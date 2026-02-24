@@ -64,14 +64,10 @@ def format_report(results: Dict[str, dict]) -> str:
         for key, r in tier2.items():
             if r["status"] == "ok":
                 lines.append(f"  ✅ {r['name']} — {r['message']}")
+            elif r["status"] == "warn":
+                lines.append(f"  ⚠️  {r['name']} — {r['message']}")
             else:
-                # Friendly message about what to configure
-                if "proxy" in str(r.get("message", "")):
-                    lines.append(f"  ⬜ {r['name']} — 配个代理就能用：agent-eyes configure proxy URL")
-                elif "cookie" in str(r.get("message", "")):
-                    lines.append(f"  ⬜ {r['name']} — 导入浏览器 Cookie 就能用：agent-eyes configure --from-browser chrome")
-                else:
-                    lines.append(f"  ⬜ {r['name']} — {r['message']}")
+                lines.append(f"  ⬜ {r['name']} — {r['message']}")
 
     lines.append("")
     lines.append(f"状态：{ok_count}/{total} 个渠道可用")

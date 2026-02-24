@@ -27,10 +27,12 @@ class GitHubChannel(Channel):
         return h
 
     def check(self, config=None):
+        import shutil
         token = config.get("github_token") if config else None
-        if token:
-            return "ok", "已认证，可访问私有仓库"
-        return "ok", "公开仓库可用。配置 github_token 可访问私有仓库"
+        has_gh = shutil.which("gh")
+        if token or has_gh:
+            return "ok", "完整可用（读取、搜索、Fork、Issue、PR 等）"
+        return "ok", "公开仓库可读可搜。配置 gh CLI 或 github_token 可解锁 Fork、Issue、PR 等操作"
 
     def can_handle(self, url: str) -> bool:
         domain = urlparse(url).netloc.lower()

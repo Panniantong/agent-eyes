@@ -16,12 +16,17 @@ class XiaoHongShuChannel(Channel):
     name = "xiaohongshu"
     description = "小红书笔记"
     backends = ["XHS Web API"]
-    requires_config = ["xhs_cookie"]
     tier = 2
 
     def can_handle(self, url: str) -> bool:
         domain = urlparse(url).netloc.lower()
         return "xiaohongshu.com" in domain or "xhslink.com" in domain
+
+    def check(self, config=None):
+        cookie = config.get("xhs_cookie") if config else None
+        if cookie:
+            return "ok", "Cookie 已配置，完整可用"
+        return "off", "需要配置 Cookie 才能访问。导入浏览器 Cookie 即可：agent-eyes configure --from-browser chrome"
 
     async def read(self, url: str, config=None) -> ReadResult:
         cookie = config.get("xhs_cookie") if config else None

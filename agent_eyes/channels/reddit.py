@@ -5,6 +5,7 @@ Backend: Reddit public JSON API (append .json to any URL)
 Swap to: any Reddit access method
 """
 
+import os
 import requests
 from urllib.parse import urlparse
 from .base import Channel, ReadResult
@@ -14,7 +15,6 @@ class RedditChannel(Channel):
     name = "reddit"
     description = "Reddit 帖子和评论"
     backends = ["Reddit JSON API"]
-    requires_config = ["reddit_proxy"]
     tier = 2
 
     USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
@@ -22,6 +22,18 @@ class RedditChannel(Channel):
     def can_handle(self, url: str) -> bool:
         domain = urlparse(url).netloc.lower()
         return "reddit.com" in domain or "redd.it" in domain
+
+    def check(self, config=None):
+        proxy = config.get("reddit_proxy") if config else None
+        has_bot = bool(os.environ.get("REDDIT_CLIENT_ID"))
+        if proxy and has_bot:
+            return "ok", "完整可用（代理 + OAuth Bot）"
+        elif proxy:
+            return "ok", "代理已配置，可读取帖子。配置 REDDIT_CLIENT_ID/SECRET 可解锁高级搜索和发帖"
+        elif has_bot:
+            return "warn", "OAuth Bot 已配置，但服务器直连可能被封。配个代理更稳定：agent-eyes configure proxy URL"
+        else:
+            return "off", "搜索用 Exa 免费可用。读帖子需配个代理：agent-eyes configure proxy URL"
 
     async def read(self, url: str, config=None) -> ReadResult:
         proxy = config.get("reddit_proxy") if config else None

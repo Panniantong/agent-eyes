@@ -14,13 +14,13 @@ Agent Eyes 把最好的开源工具粘在一起，一次安装全部搞定。
 |------|------|:--------:|------|
 | 🌐 **网页** | 阅读 | 零配置 | 任意 URL → 干净 Markdown（[Jina Reader](https://github.com/jina-ai/reader) ⭐9.8K 驱动） |
 | 🐦 **Twitter/X** | 阅读 · 搜索 | 零配置 / Cookie | 单条推文零配置可读（Jina Reader）。装 [birdx](https://github.com/runesleo/birdx) + Cookie 解锁搜索、时间线、发推 |
-| 📕 **小红书** | 阅读 · 搜索 · **发帖 · 评论 · 点赞 · 收藏** | Cookie | 完整操作能力：发图文/视频笔记、回复评论、查看用户主页 |
+| 📕 **小红书** | 阅读 · 搜索 · **发帖 · 评论 · 点赞 · 收藏** | Cookie | 配置 Cookie 即可使用全部功能：发图文/视频笔记、回复评论、查看用户主页 |
 | 🔍 **全网搜索** | 搜索 | 免费 Key | AI 语义搜索，一个 Key 搜全网 + Reddit + Twitter（[Exa](https://exa.ai) 驱动） |
-| 📦 **GitHub** | 阅读 · 搜索 | 零配置 | 公开仓库代码、README、搜索（[GitHub API](https://docs.github.com/en/rest) 驱动）。设 token 可访问私有仓库 |
+| 📦 **GitHub** | 阅读 · 搜索 | 零配置 | 公开仓库直接可用。配置 `gh` CLI 或 Token 后可解锁 Fork、Issue、PR、Review 等完整操作 |
 | 📺 **YouTube** | 阅读 | 零配置 | 1800+ 视频网站字幕提取（[yt-dlp](https://github.com/yt-dlp/yt-dlp) ⭐148K 驱动） |
-| 📺 **B站** | 阅读 | 零配置 / 代理 | 视频信息 + 字幕。本地直接用，服务器需代理 |
+| 📺 **B站** | 阅读 | 零配置 / 代理 | 视频信息 + 字幕。本地直接用，服务器配个代理即可 |
 | 📡 **RSS** | 阅读 | 零配置 | 任意 RSS/Atom 源（[feedparser](https://github.com/kurtmckee/feedparser) ⭐2.3K 驱动） |
-| 📖 **Reddit** | 搜索 · 阅读 | 免费 / 代理 | 搜索通过 Exa 免费可用；完整阅读需代理 |
+| 📖 **Reddit** | 搜索 · 阅读 | 免费 / 代理 | 搜索通过 Exa 免费直接可用。读帖子配个代理即可。配置 OAuth Bot 可解锁高级搜索和发帖 |
 
 > **配置难度说明：** 零配置 = 装好即用 · 免费 Key = 30 秒注册 · Cookie = 从浏览器导出 · 代理 = $1/月
 
@@ -112,7 +112,7 @@ $ agent-eyes doctor
 ========================================
 
 ✅ 装好即用：
-  ✅ GitHub 仓库和代码 — 公开仓库可用。配置 github_token 可访问私有仓库
+  ✅ GitHub 仓库和代码 — 公开仓库可读可搜。配置 gh CLI 或 Token 可解锁 Fork、Issue、PR 等操作
   ✅ Twitter/X 推文 — 可读取推文。安装 birdx + 配置 Cookie 可解锁搜索和发推
   ✅ YouTube 视频字幕 — yt-dlp
   ⚠️  B站视频信息和字幕 — 服务器 IP 可能被封，配置代理即可解决
@@ -123,8 +123,8 @@ $ agent-eyes doctor
   ⬜ 全网语义搜索 — 注册 exa.ai 获取免费 Key，配置一下就能用
 
 🔧 配置后可用：
-  ⬜ Reddit 帖子和评论 — 配个代理就能用
-  ⬜ 小红书笔记 — 导入浏览器 Cookie 就能用
+  ⬜ Reddit 帖子和评论 — 搜索用 Exa 免费可用。读帖子需配个代理
+  ⬜ 小红书笔记 — 需要配置 Cookie 才能访问。导入浏览器 Cookie 即可
 
 状态：6/9 个渠道可用
 ```
