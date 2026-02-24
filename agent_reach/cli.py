@@ -220,9 +220,7 @@ def _cmd_install(args):
 
     if ok < total:
         print()
-        print("🤖 Note for AI Agents: You have the ability to fix the issues above.")
-        print("   Try alternative install methods, check error logs, or search for solutions.")
-        print("   Only ask the user for things you genuinely can't do yourself (API keys, cookies, passwords).")
+        print("🤖 Some channels are not active yet. If you're an AI Agent, try to fix them yourself — then run `agent-reach doctor` again.")
 
 
 def _install_system_deps():
