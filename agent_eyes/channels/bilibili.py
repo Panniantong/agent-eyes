@@ -21,6 +21,10 @@ class BilibiliChannel(Channel):
         return "bilibili.com" in domain or "b23.tv" in domain
 
     async def read(self, url: str, config=None) -> ReadResult:
+        # Proxy support (Bilibili blocks server IPs)
+        proxy = config.get("bilibili_proxy") if config else None
+        proxies = {"http": proxy, "https": proxy} if proxy else None
+
         # Extract BV id from URL
         path = urlparse(url).path
         bv_id = ""
@@ -39,6 +43,7 @@ class BilibiliChannel(Channel):
             "https://api.bilibili.com/x/web-interface/view",
             params={"bvid": bv_id},
             headers={"User-Agent": "Mozilla/5.0"},
+            proxies=proxies,
             timeout=15,
         )
         resp.raise_for_status()

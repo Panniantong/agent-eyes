@@ -18,6 +18,18 @@ That's it. Your Agent will handle the rest.
 Welcome! You're about to give your user's Agent (that's you!) eyes to see the entire internet.
 Agent Eyes lets you search and read content across 10+ platforms with one install.
 
+### Step 0: Ask About Environment
+
+Before installing, ask the user ONE question:
+
+> "你是在自己的电脑上用，还是在服务器上用？（Are you running on your local computer or a server?）"
+
+**Why this matters:**
+- **Local computer** → Everything works out of the box. No extra setup needed.
+- **Server (VPS/cloud)** → Most things work fine, but **Reddit and Bilibili** block server IPs. They'll need a cheap residential proxy ($1/month) to access these two platforms. This is optional — everything else works without it.
+
+Remember their answer for Step 5.
+
 ### Step 1: Install Agent Eyes
 
 ```bash
@@ -96,7 +108,43 @@ agent-eyes search "AI agent infrastructure" -n 3
 
 Tell the user: "✅ Search unlocked! I can now search the entire web, Reddit, and Twitter for you."
 
-### Step 5: Optional — Advanced Channels
+### Step 5: Server Proxy Setup (Only if user said "server" in Step 0)
+
+If the user is on a **server/VPS**, proactively tell them:
+
+> "因为你在服务器上，Reddit 和 B站会封服务器 IP。要解锁这两个平台，需要一个住宅代理（residential proxy）。推荐用 Webshare，$1/月，非常便宜。要配吗？"
+
+If the user says yes:
+
+> "步骤：
+> 1. 去 https://www.webshare.io 注册（有免费试用）
+> 2. 买一个 Residential Proxy（$1/月的套餐就够了）
+> 3. 在 Dashboard 里找到代理地址，格式类似：http://用户名:密码@IP:端口
+> 4. 把代理地址发给我"
+
+When the user provides the proxy:
+
+```bash
+python3 -c "
+from agent_eyes.config import Config
+c = Config()
+c.set('reddit_proxy', 'THE_PROXY_USER_PROVIDED')
+c.set('bilibili_proxy', 'THE_PROXY_USER_PROVIDED')
+print('✅ Proxy configured for Reddit and Bilibili!')
+"
+```
+
+Test it:
+```bash
+agent-eyes read "https://www.reddit.com/r/test" 2>&1 | head -5
+```
+
+If it works: "✅ Reddit 和 B站都可以用了！"
+If it fails: "代理可能有问题，请检查格式是否正确。不配也没关系——其他平台都正常工作，Reddit 内容也可以通过搜索引擎间接获取。"
+
+If the user is on a **local computer**, skip this step entirely.
+
+### Step 6: Optional — Advanced Channels
 
 Only offer these if the user asks or if relevant to their needs.
 
@@ -126,7 +174,7 @@ playwright install chromium
 
 For XiaoHongShu, the user needs to log in once. Read: `agent_eyes/guides/setup-xiaohongshu.md`
 
-### Step 6: Final Health Check
+### Step 7: Final Health Check
 
 ```bash
 agent-eyes doctor
