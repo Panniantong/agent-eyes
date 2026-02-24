@@ -15,7 +15,7 @@ from agent_eyes.schema import (
     from_bilibili, from_twitter, from_wechat,
     from_xiaohongshu, from_youtube, from_rss, from_telegram,
 )
-from agent_eyes.fetchers.jina import fetch_via_jina
+from agent_eyes.readers.jina import fetch_via_jina
 
 
 class UniversalReader:
@@ -91,39 +91,39 @@ class UniversalReader:
         """Dispatch to platform-specific fetcher."""
 
         if platform == "bilibili":
-            from agent_eyes.fetchers.bilibili import fetch_bilibili
+            from agent_eyes.readers.bilibili import fetch_bilibili
             data = await fetch_bilibili(url)
             return from_bilibili(data)
 
         if platform == "twitter":
-            from agent_eyes.fetchers.twitter import fetch_twitter
+            from agent_eyes.readers.twitter import fetch_twitter
             data = await fetch_twitter(url)
             return from_twitter(data)
 
         if platform == "wechat":
-            from agent_eyes.fetchers.wechat import fetch_wechat
+            from agent_eyes.readers.wechat import fetch_wechat
             data = await fetch_wechat(url)
             return from_wechat(data)
 
         if platform == "xhs":
-            from agent_eyes.fetchers.xhs import fetch_xhs
+            from agent_eyes.readers.xhs import fetch_xhs
             data = await fetch_xhs(url)
             return from_xiaohongshu(data)
 
         if platform == "youtube":
-            from agent_eyes.fetchers.youtube import fetch_youtube
+            from agent_eyes.readers.youtube import fetch_youtube
             data = await fetch_youtube(url)
             return from_youtube(data)
 
         if platform == "rss":
-            from agent_eyes.fetchers.rss import fetch_rss
+            from agent_eyes.readers.rss import fetch_rss
             articles = await fetch_rss(url, limit=1)
             if articles:
                 return from_rss(articles[0])
             raise ValueError(f"No articles found in RSS feed: {url}")
 
         if platform == "reddit":
-            from agent_eyes.fetchers.reddit import fetch_reddit
+            from agent_eyes.readers.reddit import fetch_reddit
             data = await fetch_reddit(url)
             return UnifiedContent(
                 source_type=SourceType.REDDIT,
@@ -137,7 +137,7 @@ class UniversalReader:
             )
 
         if platform == "github":
-            from agent_eyes.fetchers.github import fetch_github
+            from agent_eyes.readers.github import fetch_github
             data = await fetch_github(url)
             return UnifiedContent(
                 source_type=SourceType.GITHUB,
@@ -151,7 +151,7 @@ class UniversalReader:
             )
 
         if platform == "telegram":
-            from agent_eyes.fetchers.telegram import fetch_telegram
+            from agent_eyes.readers.telegram import fetch_telegram
             # Extract channel username from t.me URL
             path = urlparse(url).path.strip("/").split("/")[0]
             channel = path if path else url

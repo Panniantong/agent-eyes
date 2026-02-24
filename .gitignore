@@ -1,32 +1,10 @@
-# Python
 __pycache__/
-*.py[cod]
+*.pyc
+*.pyo
+.pytest_cache/
 *.egg-info/
 dist/
 build/
-.venv/
-venv/
-
-# Environment
 .env
-
-# Telethon session
-*.session
-tg_session*
-
-# Data
-*.db
+.agent-eyes/
 *.log
-data/
-unified_inbox.json
-output/
-
-# Audio/video temp files
-/tmp/media_*
-
-# OS
-.DS_Store
-
-# IDE
-.vscode/
-.idea/

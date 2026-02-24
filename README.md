@@ -2,24 +2,22 @@
 
 **Give your AI Agent eyes to see the entire internet.**
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+Agent Eyes is infrastructure for the Agent world — install once, and your AI Agent can search and read content across 10+ platforms. Zero to minimal configuration.
 
-Agent Eyes is an open-source infrastructure tool that gives any AI Agent the ability to **search** and **read** the entire internet. One install, 10+ platforms, unified output.
+> *Built on top of [x-reader](https://github.com/runesleo/x-reader) by [@runes_leo](https://x.com/runes_leo) — thank you for the amazing open-source work. 🙏*
 
-> 🙏 Built on the shoulders of [x-reader](https://github.com/runesleo/x-reader) by [@runes_leo](https://x.com/runes_leo). Thank you for the foundation!
+---
 
 ## Why Agent Eyes?
 
-Your AI Agent is blind. It can only see what you manually feed it.
+AI Agents are powerful, but blind. They can't browse Reddit, search Twitter, or read WeChat articles. Agent Eyes fixes that.
 
-Agent Eyes gives it **eyes** — the ability to:
-- **Search** the web, Reddit, GitHub with a single command
-- **Read** any URL from 10+ platforms (articles, videos, tweets, posts)
-- **Transcribe** videos and podcasts to text
+- **One install, 10+ platforms** — web pages, GitHub, Reddit, Twitter, YouTube, Bilibili, WeChat, XiaoHongShu, RSS, Telegram
+- **Search + Read** — not just URL extraction, but actual search capability (find, then read)
+- **Agent-native design** — CLI, MCP Server, Python API — works with any AI Agent platform
+- **Mostly free** — 99% of features cost nothing. One free API key unlocks full search.
 
-Without this, your Agent is a chatbot waiting for instructions.  
-With this, it can autonomously find and consume information — just like you do.
+---
 
 ## Quick Start
 
@@ -27,134 +25,232 @@ With this, it can autonomously find and consume information — just like you do
 # Install
 pip install git+https://github.com/Panniantong/agent-eyes.git
 
-# Search the web
-agent-eyes search "AI agent framework 2026"
+# Check what's available
+agent-eyes doctor
 
-# Read any URL
-agent-eyes read https://reddit.com/r/LocalLLaMA/comments/xxx
-agent-eyes read https://github.com/openai/codex
-agent-eyes read https://mp.weixin.qq.com/s/xxx
-agent-eyes read https://x.com/elonmusk/status/xxx
+# Read any URL (works immediately, no config needed)
+agent-eyes read "https://github.com/openai/gpt-4"
+agent-eyes read "https://www.bilibili.com/video/BV1xx411c7mD"
 
-# Your Agent now has eyes 👁️
+# Search GitHub (works immediately, no config needed)
+agent-eyes search-github "LLM framework"
+
+# Unlock search (one free API key)
+agent-eyes setup
+agent-eyes search "AI agent infrastructure 2025"
+agent-eyes search-reddit "best self-hosted LLM" --sub LocalLLaMA
+agent-eyes search-twitter "OpenClaw agent"
 ```
 
-## Supported Platforms
+---
 
-| Platform | Read URL | Search | Notes |
-|----------|:--------:|:------:|-------|
-| 🔍 Web (any) | ✅ | ✅ Exa | Semantic search across the entire web |
-| 🟠 Reddit | ✅ | ✅ | Posts + comments. Proxy support via `REDDIT_PROXY` |
-| 🐙 GitHub | ✅ | ✅ | Repos (README), Issues, PRs |
-| 🐦 X / Twitter | ✅ | — | Tweets and threads |
-| 💬 WeChat (微信公众号) | ✅ | — | Anti-scraping bypass via Playwright |
-| 📕 Xiaohongshu (小红书) | ✅ | — | Session persistence for login-gated content |
-| ▶️ YouTube | ✅ | — | Subtitles + Whisper transcription |
-| 📺 Bilibili (B站) | ✅ | — | Official API |
-| ✈️ Telegram | ✅ | — | Channel message sync |
-| 📡 RSS | ✅ | — | Any RSS/Atom feed |
-| 🎙️ Podcasts | ✅ | — | 小宇宙, Apple Podcasts (via Whisper) |
+## Platform Support
 
-## Three Layers
+### ✅ Zero Config (works out of the box)
 
-Use the layers you need:
+| Platform | Read | Search | Notes |
+|----------|:----:|:------:|-------|
+| Web Pages | ✅ | — | Any URL via Jina Reader |
+| GitHub | ✅ | ✅ | Repos, issues, PRs, code |
+| Bilibili | ✅ | — | Videos with subtitles |
+| YouTube | ✅ | — | Videos with subtitles (needs yt-dlp) |
+| RSS | ✅ | — | Any RSS/Atom feed |
+| Single Tweet | ✅ | — | Via Jina Reader |
 
-| Layer | What | For |
-|-------|------|-----|
-| **CLI** | `agent-eyes read/search` | Quick command-line use |
-| **MCP Server** | 7 tools for any AI Agent | OpenClaw, Claude Code, etc. |
-| **Python Library** | `from agent_eyes import UniversalReader` | Custom integrations |
+### 🔑 One Free API Key (30 seconds to set up)
 
-### As MCP Server (recommended for Agents)
+| Platform | Read | Search | Notes |
+|----------|:----:|:------:|-------|
+| Web (semantic) | — | ✅ | Exa API (1000 free/month) |
+| Reddit | — | ✅ | Via Exa (site:reddit.com) |
+| Twitter/X | — | ✅ | Via Exa (site:x.com) |
+
+### ⚙️ Optional Setup
+
+| Platform | Read | Search | What's Needed |
+|----------|:----:|:------:|---------------|
+| Reddit (full) | ✅ | — | ISP proxy (~$3-10/mo) |
+| Twitter (advanced) | ✅ | ✅ | birdx + browser cookies (free) |
+| WeChat Articles | ✅ | — | Playwright (free, auto-installed) |
+| XiaoHongShu | ✅ | — | Playwright + one-time login (free) |
+| Video Transcription | ✅ | — | Groq API key (free) |
+
+---
+
+## Three Ways to Use
+
+### 1. Command Line (CLI)
 
 ```bash
-# Start the server
-python mcp_server.py
-
-# Or with SSE transport
-python mcp_server.py --transport sse
+agent-eyes read <url>                    # Read any URL
+agent-eyes search "query"                # Search the web
+agent-eyes search-reddit "query"         # Search Reddit
+agent-eyes search-github "query"         # Search GitHub
+agent-eyes search-twitter "query"        # Search Twitter
+agent-eyes setup                         # Interactive setup wizard
+agent-eyes doctor                        # Check platform status
 ```
 
-MCP Tools exposed:
+### 2. MCP Server (for Claude Code, Cursor, etc.)
 
-| Tool | Description |
-|------|-------------|
-| `read_url(url)` | Read any URL → structured content |
-| `read_batch(urls)` | Read multiple URLs concurrently |
-| `search(query)` | Semantic web search (Exa) |
-| `search_reddit(query, subreddit?)` | Search Reddit |
-| `search_github(query)` | Search GitHub repos |
-| `list_inbox()` | View previously fetched content |
-| `detect_platform(url)` | Identify platform from URL |
+```bash
+pip install agent-eyes[mcp]
+python -m agent_eyes.integrations.mcp_server
+```
 
-### As Python Library
+Exposes 8 tools: `read_url`, `read_batch`, `detect_platform`, `search`, `search_reddit`, `search_github`, `search_twitter`, `get_status`
+
+Add to your MCP config:
+
+```json
+{
+  "mcpServers": {
+    "agent-eyes": {
+      "command": "python",
+      "args": ["-m", "agent_eyes.integrations.mcp_server"]
+    }
+  }
+}
+```
+
+### 3. Python Library
 
 ```python
+from agent_eyes import AgentEyes
 import asyncio
-from agent_eyes.reader import UniversalReader
 
-async def main():
-    reader = UniversalReader()
-    
-    # Read any URL
-    content = await reader.read("https://github.com/openai/codex")
-    print(content.title)
-    print(content.content[:500])
+eyes = AgentEyes()
 
-asyncio.run(main())
+# Read
+result = asyncio.run(eyes.read("https://github.com/openai/gpt-4"))
+print(result["title"])
+print(result["content"])
+
+# Search
+results = asyncio.run(eyes.search("AI agent framework"))
+for r in results:
+    print(f"{r['title']} — {r['url']}")
+
+# Search Reddit
+results = asyncio.run(eyes.search_reddit("best LLM", subreddit="LocalLLaMA"))
+
+# Health check
+print(eyes.doctor_report())
 ```
 
-## Install
-
-```bash
-# Basic install
-pip install git+https://github.com/Panniantong/agent-eyes.git
-
-# With browser fallback (for WeChat/XHS anti-scraping)
-pip install "agent-eyes[browser] @ git+https://github.com/Panniantong/agent-eyes.git"
-playwright install chromium
-
-# With Telegram support
-pip install "agent-eyes[telegram] @ git+https://github.com/Panniantong/agent-eyes.git"
-
-# Everything
-pip install "agent-eyes[all] @ git+https://github.com/Panniantong/agent-eyes.git"
-playwright install chromium
-```
+---
 
 ## Configuration
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `EXA_API_KEY` | For search | Free key from [exa.ai](https://exa.ai) |
-| `REDDIT_PROXY` | For Reddit (if IP blocked) | `http://user:pass@host:port` |
-| `GITHUB_TOKEN` | No (higher rate limits) | GitHub personal access token |
-| `GROQ_API_KEY` | For Whisper | Free key from [groq.com](https://console.groq.com/keys) |
-| `TG_API_ID` | Telegram only | From https://my.telegram.org |
-| `TG_API_HASH` | Telegram only | From https://my.telegram.org |
+### Interactive Setup
 
-## What's New (vs x-reader)
+```bash
+agent-eyes setup
+```
 
-Agent Eyes extends x-reader with:
+Walks you through configuring each platform step by step. Only asks for what you want to set up.
 
-- 🟠 **Reddit support** — Read posts + comments, search subreddits. Proxy support for blocked IPs.
-- 🐙 **GitHub support** — Read repos (README), issues, PRs. Search repositories.
-- 🔍 **Web search** — Semantic search across the entire web via Exa.
-- 🎯 **Agent-first design** — MCP Server with 7 tools, ready to plug into any AI Agent.
+### Agent-Readable Guides
 
-## Philosophy
+Each platform has a detailed setup guide in `agent_eyes/guides/`. These are designed for AI Agents to read and follow — the Agent handles the technical steps, and only asks the user for things that require human action (logging in, copying API keys, buying proxies).
 
-This is **Agent infrastructure**. In the Web 4.0 era where AI Agents act on behalf of humans, the first capability they need is the ability to **see the world**.
+| Guide | What It Configures |
+|-------|-------------------|
+| `setup-exa.md` | Exa search API key (free) |
+| `setup-reddit.md` | Reddit ISP proxy |
+| `setup-twitter.md` | Twitter birdx cookies |
+| `setup-xiaohongshu.md` | XiaoHongShu login |
+| `setup-wechat.md` | WeChat Playwright |
+| `setup-groq.md` | Groq Whisper API key (free) |
 
-Agent Eyes is the sensory layer — the eyes — that every Agent needs.
+### Manual Config
+
+Config file: `~/.agent-eyes/config.yaml`
+
+```yaml
+exa_api_key: "exa-..."
+github_token: "ghp_..."
+reddit_proxy: "http://user:pass@ip:port"
+groq_api_key: "gsk_..."
+```
+
+Environment variables also work (uppercase): `EXA_API_KEY`, `GITHUB_TOKEN`, etc.
+
+---
+
+## Health Check
+
+```bash
+$ agent-eyes doctor
+
+👁️  Agent Eyes Status
+========================================
+
+✅ Ready (no setup needed):
+  ✅ Web Pages
+  ✅ GitHub
+  ✅ Bilibili
+  ✅ RSS
+  ✅ Tweet (single)
+  ✅ GitHub Search
+
+🔍 Search (need free Exa API key):
+  ⬜ Web Search
+  ⬜ Reddit Search
+  ⬜ Twitter Search
+
+🔧 Optional (advanced setup):
+  ⬜ Twitter Advanced — Install birdx for timeline/deep search
+  ⬜ Reddit Reader — Need proxy for full post reading
+  ⬜ WeChat — pip install agent-eyes[browser]
+  ⬜ XiaoHongShu — pip install agent-eyes[browser]
+
+Status: 7/13 platforms active
+Run `agent-eyes setup` to unlock more!
+```
+
+---
+
+## Architecture
+
+Agent Eyes is **not** a fork of x-reader. It's a layer built on top of it.
+
+```
+┌──────────────────────────────────────┐
+│         Agent Eyes                    │
+│  ┌──────────┐  ┌──────────────────┐  │
+│  │  Search   │  │  Config + Doctor │  │
+│  │  Exa      │  │  Setup Wizard   │  │
+│  │  Reddit   │  │  Health Check   │  │
+│  │  GitHub   │  │                 │  │
+│  │  Twitter  │  │  Agent Guides   │  │
+│  └──────────┘  └──────────────────┘  │
+│  ┌──────────────────────────────────┐│
+│  │  Readers (based on x-reader)     ││
+│  │  Web · GitHub · Reddit · Twitter ││
+│  │  YouTube · Bilibili · WeChat     ││
+│  │  XHS · RSS · Telegram            ││
+│  └──────────────────────────────────┘│
+│  ┌──────────────────────────────────┐│
+│  │  Integrations                    ││
+│  │  CLI · MCP Server · OpenClaw Skill│
+│  └──────────────────────────────────┘│
+└──────────────────────────────────────┘
+```
+
+- **Readers**: Content extraction from URLs (internalized from x-reader, MIT license)
+- **Search**: Semantic search across platforms (Agent Eyes original)
+- **Config + Doctor**: Configuration management and health checks (Agent Eyes original)
+- **Integrations**: CLI, MCP Server, OpenClaw Skill (Agent Eyes original)
+
+---
 
 ## Credits
 
-- [x-reader](https://github.com/runesleo/x-reader) by [@runes_leo](https://x.com/runes_leo) — the original universal content reader that inspired and powers the core of Agent Eyes
-- [Jina Reader](https://jina.ai/reader/) — universal web content extraction
-- [Exa](https://exa.ai) — semantic web search API
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) — video/audio extraction
+- **[x-reader](https://github.com/runesleo/x-reader)** by [@runes_leo](https://x.com/runes_leo) — the URL-to-content extraction engine that Agent Eyes is built upon. MIT License.
+- **[Exa](https://exa.ai)** — semantic search API powering web/Reddit/Twitter search.
+- **[birdx](https://github.com/runesleo/birdx)** — Twitter CLI tool for advanced Twitter features.
 
 ## License
 
-MIT — use it, fork it, build on it.
+MIT
