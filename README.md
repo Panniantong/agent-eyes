@@ -169,14 +169,13 @@ channels/
 
 ## ⭐ 为什么值得 Star
 
-Agent 访问互联网的需求不会消失，但平台的封锁和 API 变化永远在发生。
+这个项目我自己每天在用，所以我会一直维护它。
 
-- **平台封了，我们修。** Twitter 改了反爬？Reddit 换了策略？我们跟进，你更新一下就行。
-- **新渠道，持续加。** LinkedIn、Instagram、Telegram、Discord……有需求就加，[提 Issue](https://github.com/Panniantong/agent-reach/issues) 告诉我们你想要什么。
-- **底层工具，帮你盯。** yt-dlp、birdx 这些工具一直在更新，我们帮你追踪最新版本。
-- **一次安装，持续受益。** `pip install --upgrade` 一行命令就能拿到所有更新。
+- 有新需求或者大家提了想要的渠道，我会陆续加上
+- 每个渠道我会尽量保证**能用、好用、免费**
+- 平台改了反爬或者 API 变了，我会跟进修复
 
-**Star 一下，以后省事。** ⭐
+Star 一下，下次需要的时候能找到。⭐
 
 ## 致谢
 
