@@ -27,9 +27,14 @@ class XiaoHongShuChannel(Channel):
         cookie = config.get("xhs_cookie") if config else None
 
         if not cookie:
-            # Fallback to Jina Reader (works for some public notes)
-            from agent_eyes.channels.web import WebChannel
-            return await WebChannel().read(url, config)
+            return ReadResult(
+                title="XiaoHongShu",
+                content="⚠️ XiaoHongShu requires cookies to access.\n"
+                        "Set up: agent-eyes configure xhs-cookie \"YOUR_COOKIE_STRING\"\n"
+                        "How to get it: install Cookie-Editor extension → go to xiaohongshu.com → Export → Header String",
+                url=url,
+                platform="xiaohongshu",
+            )
 
         # Extract note ID from URL
         note_id = self._extract_note_id(url)

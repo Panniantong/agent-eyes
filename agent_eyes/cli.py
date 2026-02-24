@@ -311,7 +311,7 @@ def _cmd_configure(args):
             import requests
             resp = requests.get(
                 "https://www.reddit.com/r/test.json?limit=1",
-                headers={"User-Agent": "Mozilla/5.0"},
+                headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"},
                 proxies={"http": value, "https": value},
                 timeout=10,
             )
@@ -539,8 +539,12 @@ async def _cmd_read(args):
 async def _cmd_search(args):
     from agent_eyes.core import AgentEyes
     eyes = AgentEyes()
-    query = " ".join(args.query)
+    query = " ".join(args.query).strip()
     num = args.num
+
+    if not query:
+        print("Please provide a search query.", file=sys.stderr)
+        sys.exit(1)
 
     try:
         if args.command == "search":

@@ -27,19 +27,39 @@ class RedditChannel(Channel):
         proxy = config.get("reddit_proxy") if config else None
         proxies = {"http": proxy, "https": proxy} if proxy else None
 
-        # Ensure URL ends with .json
-        json_url = url.rstrip("/")
-        if not json_url.endswith(".json"):
-            json_url += ".json"
+        # Clean URL: remove query params, trailing slash, then add .json
+        parsed = urlparse(url)
+        clean_path = parsed.path.rstrip("/")
+        # Remove trailing .json if already present (avoid double .json)
+        if clean_path.endswith(".json"):
+            clean_path = clean_path[:-5]
+        json_url = f"https://www.reddit.com{clean_path}.json"
 
-        resp = requests.get(
-            json_url,
-            headers={"User-Agent": self.USER_AGENT},
-            proxies=proxies,
-            params={"limit": 50},
-            timeout=15,
-        )
-        resp.raise_for_status()
+        try:
+            resp = requests.get(
+                json_url,
+                headers={"User-Agent": self.USER_AGENT},
+                proxies=proxies,
+                params={"limit": 50},
+                timeout=15,
+            )
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code if e.response is not None else 0
+            if status in (403, 429):
+                return ReadResult(
+                    title="Reddit",
+                    content="⚠️ Reddit blocked this request (403 Forbidden). "
+                            "Reddit blocks most server IPs.\n"
+                            "Fix: agent-eyes configure proxy http://user:pass@ip:port\n"
+                            "Cheap option: https://www.webshare.io ($1/month)\n\n"
+                            "Alternatively, search Reddit via Exa (free, no proxy needed): "
+                            "agent-eyes search-reddit \"your query\"",
+                    url=url,
+                    platform="reddit",
+                )
+            raise
+
         data = resp.json()
 
         if isinstance(data, list) and len(data) >= 1:
