@@ -309,11 +309,28 @@ def _cmd_configure(args):
             print(f"❌ Failed: {e}")
 
     elif args.key == "twitter-cookies":
-        # Expect: auth_token ct0
-        parts = value.split()
-        if len(parts) == 2:
-            config.set("twitter_auth_token", parts[0])
-            config.set("twitter_ct0", parts[1])
+        # Accept two formats:
+        # 1. auth_token ct0 (two separate values)
+        # 2. Full cookie header string: "auth_token=xxx; ct0=yyy; ..."
+        auth_token = None
+        ct0 = None
+
+        if "auth_token=" in value and "ct0=" in value:
+            # Full cookie string — parse it
+            for part in value.replace(";", " ").split():
+                if part.startswith("auth_token="):
+                    auth_token = part.split("=", 1)[1]
+                elif part.startswith("ct0="):
+                    ct0 = part.split("=", 1)[1]
+        elif len(value.split()) == 2 and "=" not in value:
+            # Two separate values: AUTH_TOKEN CT0
+            parts = value.split()
+            auth_token = parts[0]
+            ct0 = parts[1]
+
+        if auth_token and ct0:
+            config.set("twitter_auth_token", auth_token)
+            config.set("twitter_ct0", ct0)
             print(f"✅ Twitter cookies configured!")
 
             print("Testing Twitter access...", end=" ")
@@ -321,7 +338,7 @@ def _cmd_configure(args):
                 import subprocess
                 result = subprocess.run(
                     ["birdx", "search", "test", "-n", "1",
-                     "--auth-token", parts[0], "--ct0", parts[1]],
+                     "--auth-token", auth_token, "--ct0", ct0],
                     capture_output=True, text=True, timeout=15,
                 )
                 if result.returncode == 0 and result.stdout.strip():
@@ -333,8 +350,10 @@ def _cmd_configure(args):
             except Exception as e:
                 print(f"❌ Failed: {e}")
         else:
-            print("❌ Usage: agent-eyes configure twitter-cookies AUTH_TOKEN CT0")
-            print("   (two values separated by space)")
+            print("❌ Could not find auth_token and ct0 in your input.")
+            print("   Accepted formats:")
+            print("   1. agent-eyes configure twitter-cookies AUTH_TOKEN CT0")
+            print('   2. agent-eyes configure twitter-cookies "auth_token=xxx; ct0=yyy; ..."')
 
     elif args.key == "xhs-cookie":
         config.set("xhs_cookie", value)
