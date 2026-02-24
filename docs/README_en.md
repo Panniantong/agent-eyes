@@ -57,15 +57,15 @@ Copy that to your Agent. 30 seconds later, it can read tweets, search Reddit, an
 |----------|-------------|:-----:|-------|
 | 🌐 **Web** | Read | Zero config | Any URL → clean Markdown ([Jina Reader](https://github.com/jina-ai/reader) ⭐9.8K) |
 | 🐦 **Twitter/X** | Read · Search | Zero config / Cookie | Single tweets readable out of the box. Cookie unlocks search, timeline, posting ([birdx](https://github.com/runesleo/birdx)) |
-| 📕 **XiaoHongShu** | Read · Search · **Post · Comment · Like** | Cookie | Full functionality with browser cookie |
-| 🔍 **Web Search** | Search | Free key | One key unlocks web + Reddit + Twitter search ([Exa](https://exa.ai), free 1000/month) |
-| 📦 **GitHub** | Read · Search | Zero config | Public repos work immediately. `gh` CLI or token unlocks Fork, Issue, PR |
-| 📺 **YouTube** | Read | Zero config | Subtitles from 1800+ video sites ([yt-dlp](https://github.com/yt-dlp/yt-dlp) ⭐148K) |
-| 📺 **Bilibili** | Read | Zero config / Proxy | Video info + subtitles. Local works directly, servers need a proxy |
+| 📕 **XiaoHongShu** | Read · Search · **Post · Comment · Like** | mcporter | Via [xiaohongshu-mcp](https://github.com/user/xiaohongshu-mcp) internal API, install and go |
+| 🔍 **Web Search** | Search | Auto-configured | Auto-configured during install, free, no API key ([Exa](https://exa.ai) via [mcporter](https://github.com/nicepkg/mcporter)) |
+| 📦 **GitHub** | Read · Search | Zero config | [gh CLI](https://cli.github.com) powered. Public repos work immediately. `gh auth login` unlocks Fork, Issue, PR |
+| 📺 **YouTube** | Read · **Search** | Zero config | Subtitles + search across 1800+ video sites ([yt-dlp](https://github.com/yt-dlp/yt-dlp) ⭐148K) |
+| 📺 **Bilibili** | Read · **Search** | Zero config / Proxy | Video info + subtitles + search. Local works directly, servers need a proxy ([yt-dlp](https://github.com/yt-dlp/yt-dlp)) |
 | 📡 **RSS** | Read | Zero config | Any RSS/Atom feed ([feedparser](https://github.com/kurtmckee/feedparser) ⭐2.3K) |
-| 📖 **Reddit** | Search · Read | Free / Proxy | Search via Exa (free). Reading posts needs a proxy on servers. OAuth bot unlocks posting |
+| 📖 **Reddit** | Search · Read | Free / Proxy | Search via Exa (free). Reading posts needs a proxy on servers |
 
-> **Setup levels:** Zero config = install and go · Free key = 30-second signup · Cookie = export from browser · Proxy = $1/month
+> **Setup levels:** Zero config = install and go · Auto-configured = handled during install · mcporter = needs MCP service · Cookie = export from browser · Proxy = $1/month
 
 ---
 
@@ -109,13 +109,9 @@ No configuration needed — just tell your Agent:
 
 Don't use it? Don't configure it. Every step is optional.
 
-### 🔍 Search — Free, 30 seconds
-
-Go to [exa.ai](https://exa.ai), sign up for a free key (1000 searches/month), and send it to your Agent. One key unlocks web search + Reddit search + Twitter search.
-
 ### 🍪 Cookies — Free, 2 minutes
 
-Tell your Agent "help me configure Twitter cookies" or "set up XiaoHongShu" — it'll guide you through exporting from your browser. Local computers can auto-import.
+Tell your Agent "help me configure Twitter cookies" — it'll guide you through exporting from your browser. Local computers can auto-import.
 
 ### 🌐 Proxy — $1/month, servers only
 
@@ -165,9 +161,11 @@ Agent Reach does one simple thing: **it makes those tool selection and configura
 |----------|------|-----|
 | Read web pages | [Jina Reader](https://github.com/jina-ai/reader) | 9.8K stars, free, no API key needed |
 | Read tweets | [birdx](https://github.com/runesleo/birdx) | Cookie auth, no $100/month official API |
-| Extract subtitles | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | 148K stars, 1800+ video sites |
-| Search the web | [Exa](https://exa.ai) | AI semantic search, 1000 free/month |
+| Video subtitles + search | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | 148K stars, YouTube + Bilibili + 1800 sites |
+| Search the web | [Exa](https://exa.ai) via [mcporter](https://github.com/nicepkg/mcporter) | AI semantic search, MCP integration, no API key |
+| GitHub | [gh CLI](https://cli.github.com) | Official tool, full API after auth |
 | Read RSS | [feedparser](https://github.com/kurtmckee/feedparser) | Python ecosystem standard, 2.3K stars |
+| XiaoHongShu | [xiaohongshu-mcp](https://github.com/user/xiaohongshu-mcp) | Internal API, bypasses anti-bot |
 
 One file per platform, ~50 lines each. Swap any backend by editing one file — everything else stays untouched.
 
