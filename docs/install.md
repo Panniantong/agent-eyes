@@ -12,6 +12,8 @@ Copy this to your AI Agent:
 
 ## For AI Agents
 
+**Important: You are an AI Agent with problem-solving abilities. If any step below fails, don't just report the error — diagnose and fix it yourself. You have shell access, you can search for solutions, try alternative install methods, and debug issues. Only ask the user when you genuinely need their input (API keys, cookies, passwords).**
+
 ### Step 1: Install
 
 ```bash
@@ -28,6 +30,24 @@ This single command does everything automatically:
 - Shows what's working and what needs setup
 
 **Read the output carefully.** It tells you exactly what happened and what's next.
+
+### Troubleshooting (self-fix before asking the user)
+
+If `agent-reach install` shows warnings or failures, try fixing them yourself:
+
+| Problem | What you can do |
+|---------|----------------|
+| `pip install` fails with `--break-system-packages` | Add the flag: `pip install --break-system-packages ...` or create a venv first |
+| `npm install -g mcporter` timeout | Retry with longer timeout, or try: `npx mcporter@latest list` (uses npx without global install) |
+| `gh` CLI install fails | Try: `conda install gh`, `snap install gh`, or download binary from https://github.com/cli/cli/releases |
+| `node`/`npm` not found after install | Check `export PATH` or try: `apt install nodejs npm` / `brew install node` |
+| `mcporter config add exa` fails | Run manually: `mcporter config add exa https://mcp.exa.ai/mcp` |
+| `yt-dlp` not found | `pip install yt-dlp` or `pip3 install yt-dlp` |
+| `birdx` not found | `pip install birdx` — optional, Twitter reading still works without it |
+| Permission denied | Run with `sudo` or fix directory permissions |
+| Any Python package conflict | Create a venv: `python3 -m venv ~/agent-reach-env && source ~/agent-reach-env/bin/activate` then reinstall |
+
+**General principle: You're a capable AI Agent. If a tool fails to install via one method, try another. Check error messages, search for solutions, and iterate. Don't give up after one attempt.**
 
 ### Step 2: Only if needed — configure what's missing
 

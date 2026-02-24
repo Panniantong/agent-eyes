@@ -218,6 +218,12 @@ def _cmd_install(args):
     print()
     print(f"✅ Installation complete! {ok}/{total} channels active.")
 
+    if ok < total:
+        print()
+        print("🤖 Note for AI Agents: You have the ability to fix the issues above.")
+        print("   Try alternative install methods, check error logs, or search for solutions.")
+        print("   Only ask the user for things you genuinely can't do yourself (API keys, cookies, passwords).")
+
 
 def _install_system_deps():
     """Install system-level dependencies: gh CLI, Node.js (for mcporter)."""
@@ -247,9 +253,9 @@ def _install_system_deps():
                 if shutil.which("gh"):
                     print("  ✅ gh CLI installed")
                 else:
-                    print("  ⚠️  gh CLI install failed. Install manually: https://cli.github.com")
+                    print("  ⚠️  gh CLI install failed. You can try: snap install gh, or download from https://github.com/cli/cli/releases")
             except Exception:
-                print("  ⚠️  gh CLI install failed. Install manually: https://cli.github.com")
+                print("  ⚠️  gh CLI install failed. You can try: snap install gh, or download from https://github.com/cli/cli/releases")
         elif os_type == "darwin":
             if shutil.which("brew"):
                 try:
@@ -279,9 +285,9 @@ def _install_system_deps():
             if shutil.which("node"):
                 print("  ✅ Node.js installed")
             else:
-                print("  ⚠️  Node.js install failed. Install manually: https://nodejs.org")
+                print("  ⚠️  Node.js install failed. Try: apt install nodejs npm, or nvm install 22, or download from https://nodejs.org")
         except Exception:
-            print("  ⚠️  Node.js install failed. Install manually: https://nodejs.org")
+            print("  ⚠️  Node.js install failed. Try: apt install nodejs npm, or nvm install 22, or download from https://nodejs.org")
 
     # ── birdx (for Twitter search) ──
     if shutil.which("birdx"):
@@ -325,7 +331,7 @@ def _install_mcporter():
             if shutil.which("mcporter"):
                 print("  ✅ mcporter installed")
             else:
-                print("  ❌ mcporter install failed. Try manually: npm install -g mcporter")
+                print("  ❌ mcporter install failed. Retry: npm install -g mcporter (check network/timeout), or try: npx mcporter@latest list")
                 return
         except Exception as e:
             print(f"  ❌ mcporter install failed: {e}")
