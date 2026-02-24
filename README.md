@@ -72,6 +72,8 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 
 > **不知道怎么配？不用查文档。** 直接告诉 Agent「帮我配 XXX」，它知道需要什么、会一步一步引导你。
 >
+> 🍪 需要 Cookie 的平台（Twitter、小红书等），建议使用 Chrome 插件 [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) 一键导出。
+>
 > 🔒 Cookie 只存在你本地，不上传不外传。代码完全开源，随时可审查。
 > 💻 本地电脑不需要代理。代理只有部署在服务器上才需要（~$1/月）。
 
