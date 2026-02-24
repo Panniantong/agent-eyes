@@ -2,11 +2,70 @@
 
 **让你的 AI Agent 看见整个互联网。**
 
-你的 AI Agent 很聪明，但是它看不见。它不能帮你刷 Reddit、搜 Twitter、读 B站视频。Agent Eyes 解决这个问题——装好之后，Agent 就能搜索和阅读互联网上几乎所有内容。
+Agent Eyes 是一个开源的粘合剂项目。它把互联网上最强的几个开源工具整合到一起，让你的 Agent 一次安装就获得所有能力。
 
-> 装一次，能力拉满。大部分功能零配置、零花费。
+> 我们不重复造轮子。我们找到每个领域最好的轮子，然后把它们装到你的 Agent 上。
 
 [English](docs/README_en.md)
+
+---
+
+## 我们整合了什么
+
+每个平台背后都是一个久经考验的开源项目。Agent Eyes 只是把它们粘在一起，让你一行命令就能全部用上。
+
+### 🌐 Jina Reader — 把任意网页变成干净文本
+
+[Jina Reader](https://github.com/jina-ai/reader)（⭐ 9.8K）能把任意 URL 转成 LLM 友好的 Markdown。不是简单的爬虫——它能处理 JavaScript 渲染的页面、去掉广告和导航栏、只留下正文内容。Agent Eyes 用它来读取所有网页。
+
+```bash
+agent-eyes read "https://任意网页"
+```
+
+### 📺 yt-dlp — 从 1800+ 个视频网站提取字幕
+
+[yt-dlp](https://github.com/yt-dlp/yt-dlp)（⭐ 148K）是互联网上最强的视频下载工具，支持 **1800+ 个视频网站**——不只是 YouTube，还有 B站、Twitch、TikTok 等等。Agent Eyes 用它来提取视频字幕，让 Agent 能"看"视频内容。
+
+```bash
+agent-eyes read "https://www.youtube.com/watch?v=xxx"
+agent-eyes read "https://www.bilibili.com/video/BVxxx"
+```
+
+### 🔍 Exa — AI 原生的语义搜索引擎
+
+[Exa](https://exa.ai) 不是传统的关键词搜索——它用神经网络理解你搜索的**语义**，找到真正相关的内容。一个免费 Key（1000 次/月），同时解锁全网搜索、Reddit 搜索和 Twitter 搜索。
+
+```bash
+agent-eyes search "2025年最适合个人开发者的 AI 工具"
+agent-eyes search-reddit "best self-hosted LLM" --sub LocalLLaMA
+agent-eyes search-twitter "AI agent 实战"
+```
+
+### 🐦 birdx — 无需 API，用 Cookie 玩转 Twitter
+
+[birdx](https://github.com/runesleo/birdx) 让你不需要 Twitter API Key（那个贵得离谱），只要浏览器 Cookie 就能搜索时间线、读完整线程、浏览任何用户的推文。
+
+```bash
+agent-eyes read "https://x.com/elonmusk/status/xxx"     # 读推文
+agent-eyes search-twitter "Claude Code tips"               # 搜推特
+```
+
+### 📡 feedparser — 万能 RSS 阅读器
+
+[feedparser](https://github.com/kurtmckee/feedparser)（⭐ 2.3K）是 Python 世界的 RSS/Atom 解析标准，能处理几乎任何格式的订阅源。
+
+```bash
+agent-eyes read "https://hnrss.org/frontpage"              # Hacker News
+agent-eyes read "https://rsshub.app/github/trending/daily"  # GitHub Trending
+```
+
+### 📺 Bilibili API — B站视频信息 + 字幕
+
+直接调用 B站公开 API，提取视频标题、描述、字幕。本地电脑直接可用，服务器需要代理。
+
+### 📕 小红书 — Cookie 一配就能读
+
+配好 Cookie 后可以读取小红书笔记的完整内容和评论。
 
 ---
 
@@ -18,12 +77,12 @@
 帮我安装 Agent Eyes：https://raw.githubusercontent.com/Panniantong/agent-eyes/main/docs/install.md
 ```
 
-> 💡 不知道怎么发？打开你的 Agent 对话框（Claude Code 终端、OpenClaw 聊天、Cursor Chat），直接粘贴上面这段话就行。
+> 💡 打开你的 Agent 对话框（Claude Code 终端、OpenClaw 聊天、Cursor Chat），直接粘贴就行。
 
-Agent 会自动装好并告诉你哪些功能已经可以用了。你最多需要回答 1-2 个问题。
+Agent 会自动装好，告诉你哪些功能已经可以用。
 
 <details>
-<summary>想手动装？点这里</summary>
+<summary>手动安装</summary>
 
 ```bash
 pip install https://github.com/Panniantong/agent-eyes/archive/main.zip
@@ -34,101 +93,56 @@ agent-eyes doctor
 
 ---
 
-## 装好就能用的
+## 解锁更多
 
-不需要任何配置，装好直接用：
+### 🔍 搜索（免费，30 秒）
 
-- 🌐 **网页** — 给个 URL，帮你读出来
-- 📦 **GitHub** — 仓库、Issue、PR、代码搜索
-- 📺 **YouTube** — 自动提取视频字幕
-- 📺 **B站** — 视频信息 + 字幕提取
-- 📡 **RSS** — 任意订阅源
-- 🐦 **Twitter** — 读单条推文
-
-```bash
-agent-eyes read "https://github.com/openai/gpt-4"
-agent-eyes read "https://www.bilibili.com/video/BV1xx411c7mD"
-agent-eyes search-github "LLM 框架"
-```
-
----
-
-## 一个 Key 解锁搜索
-
-注册 [Exa](https://exa.ai)（免费，1000 次/月），一个 Key 同时解锁 **全网搜索 + Reddit 搜索 + Twitter 搜索**：
+注册 [Exa](https://exa.ai) 拿一个免费 Key：
 
 ```bash
 agent-eyes configure exa-key 你的KEY
-
-agent-eyes search "2025 最好的开源 LLM"
-agent-eyes search-reddit "best self-hosted LLM" --sub LocalLLaMA
-agent-eyes search-twitter "AI agent"
 ```
-
-> 没有 Exa Key 也能用——只是不能搜索，读取功能不受影响。
-
----
-
-## 解锁更多平台
 
 ### 🍪 Cookie 解锁（免费，2 分钟）
 
-本地电脑一键导入所有 cookies：
+本地电脑一键导入所有平台 cookies：
 
 ```bash
 agent-eyes configure --from-browser chrome
 ```
 
-> 关掉 Chrome 再运行。支持 chrome / firefox / edge / brave / opera。
+服务器用户？装个 [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) 扩展，点 Export → Header String，粘贴给 Agent。
 
-服务器用户？装个 [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) 浏览器扩展，在网站上点一下 Export → Header String，粘贴给 Agent 就行。
+### 🌐 代理（$1/月，仅服务器）
 
-Cookie 能解锁：
-
-| 平台 | 额外能力 |
-|------|---------|
-| 🐦 Twitter | 时间线搜索、完整线程、高级搜索 |
-| 📕 小红书 | 笔记内容 + 评论 |
-
-### 🌐 代理解锁（$1/月，仅服务器需要）
-
-Reddit 和 B站封服务器 IP。本地电脑不受影响。
+Reddit 和 B站封服务器 IP。推荐 [Webshare](https://webshare.io)，一个代理管两个平台：
 
 ```bash
 agent-eyes configure proxy http://用户名:密码@IP:端口
 ```
 
-> 推荐 [Webshare](https://webshare.io)，$1/月。一个代理同时解锁 Reddit + B站。
->
-> 不买也行——Reddit **搜索** 通过 Exa 免费可用，只是不能读完整帖子。
+> 不买也行——Reddit 搜索通过 Exa 免费可用。
 
 ---
 
-## 三种使用方式
+## 三种接入方式
 
-### 命令行
+**命令行** · **Python API** · **MCP Server**
 
 ```bash
-agent-eyes read "https://任意URL"
-agent-eyes search "任意搜索词"
-agent-eyes search-github "关键词"
-agent-eyes search-reddit "关键词"
-agent-eyes search-twitter "关键词"
-agent-eyes doctor
+agent-eyes read "URL"              # 阅读
+agent-eyes search "关键词"          # 搜索
+agent-eyes doctor                   # 状态检查
 ```
-
-### Python
 
 ```python
 from agent_eyes import AgentEyes
-import asyncio
-
 eyes = AgentEyes()
 result = asyncio.run(eyes.read("https://example.com"))
-results = asyncio.run(eyes.search("AI agent"))
 ```
 
-### MCP Server（Claude Code / Cursor）
+<details>
+<summary>MCP Server 配置</summary>
 
 ```bash
 pip install agent-eyes[mcp]
@@ -144,6 +158,7 @@ pip install agent-eyes[mcp]
   }
 }
 ```
+</details>
 
 ---
 
@@ -151,43 +166,43 @@ pip install agent-eyes[mcp]
 
 | 命令 | 作用 |
 |------|------|
-| `agent-eyes doctor` | 查看所有频道状态 |
-| `agent-eyes configure --from-browser chrome` | 一键导入 cookies（本地）|
-| `agent-eyes configure exa-key KEY` | 解锁全网搜索 |
+| `agent-eyes doctor` | 查看状态 |
+| `agent-eyes configure --from-browser chrome` | 一键导入 cookies |
+| `agent-eyes configure exa-key KEY` | 解锁搜索 |
 | `agent-eyes configure twitter-cookies "..."` | 解锁 Twitter 高级 |
 | `agent-eyes configure xhs-cookie "..."` | 解锁小红书 |
 | `agent-eyes configure proxy URL` | 解锁 Reddit + B站（服务器）|
 
 ---
 
-## 为什么用 Agent Eyes？
+## 设计理念
 
-**不是框架，不是 SDK，就是胶水。**
+Agent Eyes 不造轮子，只做胶水：
 
-- 把最好的免费工具粘在一起：Jina Reader、birdx、yt-dlp、Exa、feedparser
-- 每个平台就是一个 ~50 行的薄封装，换后端只改一个文件
-- CLI、MCP Server、Python API 三种接入方式
+- 每个频道 ~50 行代码，就是对底层工具的薄封装
+- 换后端？改一个文件就行
 - 99% 功能免费，剩下 1% 也就 $1/月
+- 支持 CLI、MCP Server、Python API 三种接入
 
 <details>
-<summary>架构图</summary>
+<summary>架构</summary>
 
 ```
-┌─────────────────────────────────────────┐
-│           Agent Eyes（纯胶水）             │
-│                                          │
-│  web.py      → Jina Reader API           │
-│  github.py   → GitHub API                │
-│  twitter.py  → birdx + Jina              │
-│  youtube.py  → yt-dlp                    │
-│  reddit.py   → Reddit JSON API           │
-│  bilibili.py → Bilibili API              │
-│  rss.py      → feedparser                │
-│  exa.py      → Exa Search API            │
-│  xhs.py      → XHS Web API               │
-│                                          │
-│  CLI · MCP Server · Python API            │
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────────┐
+│           Agent Eyes（胶水层）              │
+│                                           │
+│  web.py      → Jina Reader (⭐ 9.8K)      │
+│  youtube.py  → yt-dlp (⭐ 148K)           │
+│  twitter.py  → birdx                      │
+│  exa.py      → Exa Search                 │
+│  github.py   → GitHub API                 │
+│  bilibili.py → Bilibili API               │
+│  reddit.py   → Reddit JSON API            │
+│  rss.py      → feedparser (⭐ 2.3K)       │
+│  xhs.py      → XHS Web API                │
+│                                           │
+│  CLI · MCP Server · Python API             │
+└──────────────────────────────────────────┘
 ```
 </details>
 
@@ -195,11 +210,13 @@ pip install agent-eyes[mcp]
 
 ## 致谢
 
-- [Jina Reader](https://r.jina.ai) — 网页阅读
-- [birdx](https://github.com/runesleo/birdx) by [@runes_leo](https://x.com/runes_leo) — Twitter
-- [Exa](https://exa.ai) — 语义搜索
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) — YouTube
-- [feedparser](https://github.com/kurtmckee/feedparser) — RSS
+感谢这些项目，Agent Eyes 站在它们的肩膀上：
+
+- [Jina Reader](https://github.com/jina-ai/reader) — 网页转 Markdown
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) — 1800+ 视频网站字幕提取
+- [birdx](https://github.com/runesleo/birdx) — 无 API Key 的 Twitter 访问
+- [Exa](https://exa.ai) — 语义搜索引擎
+- [feedparser](https://github.com/kurtmckee/feedparser) — RSS/Atom 解析
 
 ## License
 
