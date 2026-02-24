@@ -159,11 +159,10 @@ Agent Reach does one simple thing: **it makes those tool selection and configura
 
 ### 🔌 Every Channel is Pluggable
 
-Each platform is a single Python file (~50–100 lines) implementing a unified interface. **Backends can be swapped anytime** — when a better tool comes along, change one file and nothing else breaks.
+Each platform is a single Python file implementing a unified interface. **Backends can be swapped anytime** — when a better tool comes along, change one file and nothing else breaks.
 
 ```
 channels/
-├── base.py         → Unified interface (Channel base class)
 ├── web.py          → Jina Reader     ← swap to Firecrawl, Crawl4AI…
 ├── twitter.py      → birdx           ← swap to Nitter, official API…
 ├── youtube.py      → yt-dlp           ← swap to YouTube API, Whisper…
@@ -173,51 +172,8 @@ channels/
 ├── xiaohongshu.py  → mcporter MCP    ← swap to other XHS tools…
 ├── rss.py          → feedparser       ← swap to atoma…
 ├── exa_search.py   → mcporter MCP    ← swap to Tavily, SerpAPI…
-└── __init__.py     → Channel registry (one line to register a new channel)
+└── __init__.py     → Channel registry
 ```
-
-Want to swap a backend? Open the file, change the `read()` / `search()` implementation. Interface stays the same, nothing else needs to change.
-
-### 🧩 Adding a New Channel (3 Steps)
-
-**Step 1:** Create `channels/your_channel.py`
-
-```python
-from .base import Channel, ReadResult, SearchResult
-
-class YourChannel(Channel):
-    name = "your_channel"
-    description = "One-line description"
-    backends = ["tool-name"]
-
-    def can_handle(self, url: str) -> bool:
-        return "yourdomain.com" in url
-
-    async def read(self, url: str, config=None) -> ReadResult:
-        # Fetch content, return ReadResult
-        return ReadResult(title="...", content="...", url=url, platform=self.name)
-
-    def check(self, config=None):
-        return "ok", "All good"
-
-    # Optional: implement search() for search support
-```
-
-**Step 2:** Register in `channels/__init__.py`
-
-```python
-from .your_channel import YourChannel
-
-ALL_CHANNELS: List[Channel] = [
-    ...
-    YourChannel(),  # add this line
-    WebChannel(),
-]
-```
-
-**Step 3:** Done. `agent-reach doctor` auto-detects it, `agent-reach read` auto-routes to it.
-
-> 💡 **Reference examples:** `rss.py` (30 lines, simplest) → `web.py` (50 lines) → `youtube.py` (100 lines, with search)
 
 ### Current Tool Choices
 
@@ -239,25 +195,9 @@ ALL_CHANNELS: List[Channel] = [
 
 [Issues](https://github.com/Panniantong/agent-reach/issues) and [PRs](https://github.com/Panniantong/agent-reach/pulls) welcome.
 
-### 🆕 Want to Add a New Channel?
+**Want a new channel?** Open an Issue to request it, or submit a PR yourself.
 
-1. Copy `agent_reach/channels/rss.py` (simplest reference)
-2. Implement `can_handle()` + `read()`, optionally `search()` and `check()`
-3. Register in `__init__.py`
-
-That's it. No framework code to modify, no need to understand other channels.
-
-**Channels we'd love to see (PRs welcome):**
-
-- 📰 Hacker News — tech news
-- 🐘 Mastodon / Fediverse — decentralized social
-- 📱 Telegram — channels and groups
-- 🎵 Spotify / Apple Podcasts — podcast transcripts
-- 📝 Medium / Substack — paywalled articles
-- 🔬 arXiv / Semantic Scholar — academic papers
-- 💬 Discord — server messages
-- 📌 Pinterest — image search
-- … anything you find useful!
+**Want to add one locally?** Just have your Agent clone the repo and modify it — each channel is a single standalone file, easy to add.
 
 ## Credits
 
