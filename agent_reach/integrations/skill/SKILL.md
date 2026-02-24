@@ -22,7 +22,7 @@ pip install git+https://github.com/Panniantong/agent-reach.git
 
 ## 解锁更多功能
 
-运行 `agent-reach setup` 进行交互式配置，或者读取以下指南：
+运行 `agent-reach configure` 进行交互式配置，或者读取以下指南：
 
 | 功能 | 指南文件 |
 |------|---------|

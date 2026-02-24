@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="docs/assets/logo.png" alt="Agent Reach" width="200">
-</p>
-
 <h1 align="center">👁️ Agent Reach</h1>
 
 <p align="center">

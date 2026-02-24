@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0066FF"/>
+      <stop offset="100%" style="stop-color:#00AAFF"/>
+    </linearGradient>
+    <clipPath id="clip-circle">
+      <circle cx="256" cy="256" r="140"/>
+    </clipPath>
+  </defs>
+  
+  <rect width="512" height="512" fill="#0A0A1A"/>
+  
+  <!-- 外圆环 - "边界" -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="url(#grad1)" stroke-width="8" opacity="0.3"/>
+  <circle cx="256" cy="256" r="140" fill="none" stroke="url(#grad1)" stroke-width="3" opacity="0.6"/>
+  
+  <!-- 内部：Agent 核心点 -->
+  <circle cx="220" cy="256" r="24" fill="url(#grad1)"/>
+  
+  <!-- "穿越"弧线 — 从核心出发，穿过圆环边界，延伸到外面 -->
+  <path d="M 230 256 Q 320 180, 420 200" 
+        fill="none" stroke="url(#grad1)" stroke-width="6" stroke-linecap="round" opacity="0.9"/>
+  <path d="M 230 256 Q 320 256, 420 256" 
+        fill="none" stroke="url(#grad1)" stroke-width="6" stroke-linecap="round" opacity="0.7"/>
+  <path d="M 230 256 Q 320 330, 420 312" 
+        fill="none" stroke="url(#grad1)" stroke-width="6" stroke-linecap="round" opacity="0.5"/>
+  
+  <!-- 目标点：穿越后的落脚 -->
+  <circle cx="420" cy="200" r="8" fill="#00AAFF" opacity="0.9"/>
+  <circle cx="420" cy="256" r="8" fill="#00AAFF" opacity="0.7"/>
+  <circle cx="420" cy="312" r="8" fill="#00AAFF" opacity="0.5"/>
+</svg>
