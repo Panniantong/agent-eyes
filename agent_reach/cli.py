@@ -165,6 +165,10 @@ def _cmd_install(args):
         config.set("bilibili_proxy", args.proxy)
         print(f"✅ Proxy configured for Reddit + Bilibili")
 
+    # ── Install system dependencies ──
+    print()
+    _install_system_deps()
+
     # ── mcporter (for Exa search + XiaoHongShu) ──
     print()
     _install_mcporter()
@@ -215,7 +219,71 @@ def _cmd_install(args):
     print(f"✅ Installation complete! {ok}/{total} channels active.")
 
 
-def _install_mcporter():
+def _install_system_deps():
+    """Install system-level dependencies: gh CLI, Node.js (for mcporter)."""
+    import shutil
+    import subprocess
+    import platform
+
+    print("🔧 Checking system dependencies...")
+
+    # ── gh CLI ──
+    if shutil.which("gh"):
+        print("  ✅ gh CLI already installed")
+    else:
+        print("  📥 Installing gh CLI...")
+        os_type = platform.system().lower()
+        if os_type == "linux":
+            try:
+                # Official GitHub method for Linux
+                cmds = [
+                    "curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg 2>/dev/null",
+                    'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null',
+                    "apt-get update -qq 2>/dev/null",
+                    "apt-get install -y -qq gh 2>/dev/null",
+                ]
+                for cmd in cmds:
+                    subprocess.run(cmd, shell=True, capture_output=True, timeout=60)
+                if shutil.which("gh"):
+                    print("  ✅ gh CLI installed")
+                else:
+                    print("  ⚠️  gh CLI install failed. Install manually: https://cli.github.com")
+            except Exception:
+                print("  ⚠️  gh CLI install failed. Install manually: https://cli.github.com")
+        elif os_type == "darwin":
+            if shutil.which("brew"):
+                try:
+                    subprocess.run(["brew", "install", "gh"], capture_output=True, timeout=120)
+                    if shutil.which("gh"):
+                        print("  ✅ gh CLI installed")
+                    else:
+                        print("  ⚠️  gh CLI install failed. Try: brew install gh")
+                except Exception:
+                    print("  ⚠️  gh CLI install failed. Try: brew install gh")
+            else:
+                print("  ⚠️  gh CLI not found. Install: https://cli.github.com")
+        else:
+            print("  ⚠️  gh CLI not found. Install: https://cli.github.com")
+
+    # ── Node.js (needed for mcporter) ──
+    if shutil.which("node") and shutil.which("npm"):
+        print("  ✅ Node.js already installed")
+    else:
+        print("  📥 Installing Node.js...")
+        try:
+            # Use NodeSource for quick install
+            subprocess.run(
+                "curl -fsSL https://deb.nodesource.com/setup_22.x | bash - 2>/dev/null && apt-get install -y -qq nodejs 2>/dev/null",
+                shell=True, capture_output=True, timeout=120,
+            )
+            if shutil.which("node"):
+                print("  ✅ Node.js installed")
+            else:
+                print("  ⚠️  Node.js install failed. Install manually: https://nodejs.org")
+        except Exception:
+            print("  ⚠️  Node.js install failed. Install manually: https://nodejs.org")
+
+
     """Install mcporter and configure Exa + XiaoHongShu MCP servers."""
     import shutil
     import subprocess
@@ -233,7 +301,7 @@ def _install_mcporter():
         try:
             subprocess.run(
                 ["npm", "install", "-g", "mcporter"],
-                capture_output=True, text=True, timeout=60,
+                capture_output=True, text=True, timeout=120,
             )
             if shutil.which("mcporter"):
                 print("  ✅ mcporter installed")
