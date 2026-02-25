@@ -423,6 +423,19 @@ def _install_system_deps():
         else:
             print("  ⬜ bird CLI requires Node.js (optional — Twitter reading still works via Jina)")
 
+    # ── undici (proxy support for Node.js fetch) ──
+    if shutil.which("npm"):
+        npm_root = subprocess.run(["npm", "root", "-g"], capture_output=True, text=True, timeout=5).stdout.strip()
+        undici_path = os.path.join(npm_root, "undici", "index.js") if npm_root else ""
+        if os.path.exists(undici_path):
+            print("  ✅ undici already installed (Node.js proxy support)")
+        else:
+            try:
+                subprocess.run(["npm", "install", "-g", "undici"], capture_output=True, text=True, timeout=60)
+                print("  ✅ undici installed (Node.js proxy support)")
+            except Exception:
+                print("  ⬜ undici install failed (optional — bird may not work behind proxies)")
+
     # ── instaloader (for Instagram) ──
     if shutil.which("instaloader"):
         print("  ✅ instaloader already installed")
