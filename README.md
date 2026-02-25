@@ -149,9 +149,9 @@ channels/
 | 场景 | 选型 | 为什么选它 |
 |------|------|-----------|
 | 读网页 | [Jina Reader](https://github.com/jina-ai/reader) | 9.8K Star，免费，不需要 API Key |
-| 读推特 | [bird](https://github.com/steipete/bird) | Cookie 登录，免费。官方 API 按量付费（读一条 $0.005） |
+| 读推特 | [bird](https://www.npmjs.com/package/@steipete/bird) | Cookie 登录，免费。官方 API 按量付费（读一条 $0.005） |
 | 视频字幕 + 搜索 | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | 148K Star，YouTube + B站 + 1800 站通吃 |
-| 搜全网 | [Exa](https://exa.ai) via [mcporter](https://github.com/nicepkg/mcporter) | AI 语义搜索，MCP 接入免 Key |
+| 搜全网 | [Exa](https://exa.ai) via [mcporter](https://github.com/steipete/mcporter) | AI 语义搜索，MCP 接入免 Key |
 | GitHub | [gh CLI](https://cli.github.com) | 官方工具，认证后完整 API 能力 |
 | 读 RSS | [feedparser](https://github.com/kurtmckee/feedparser) | Python 生态标准选择，2.3K Star |
 | 小红书 | [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) | ⭐9K+，Go 语言，Docker 一键部署 |
@@ -186,7 +186,7 @@ Star 一下，下次需要的时候能找到。⭐
 
 ## 致谢
 
-[Jina Reader](https://github.com/jina-ai/reader) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [bird](https://github.com/steipete/bird) · [Exa](https://exa.ai) · [feedparser](https://github.com/kurtmckee/feedparser)
+[Jina Reader](https://github.com/jina-ai/reader) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [bird](https://www.npmjs.com/package/@steipete/bird) · [Exa](https://exa.ai) · [mcporter](https://github.com/steipete/mcporter) · [feedparser](https://github.com/kurtmckee/feedparser) · [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp)
 
 ## License
 
