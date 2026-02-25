@@ -105,7 +105,7 @@ agent-reach install --env=auto
 npx skills add Panniantong/Agent-Reach@agent-reach
 ```
 
-安装后，Agent 会在 Skill 列表中看到 `agent-reach`，自动知道如何使用所有搜索和阅读能力。
+Skill 安装后，Agent 读取 SKILL.md 时会自动检测 `agent-reach` CLI 是否存在，不存在则引导安装。
 
 > 如果通过 `agent-reach install` 安装，Skill 会自动注册，无需额外操作。
 </details>
