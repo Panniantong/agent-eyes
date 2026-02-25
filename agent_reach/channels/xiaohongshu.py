@@ -49,13 +49,16 @@ class XiaoHongShuChannel(Channel):
     def check(self, config=None):
         if not shutil.which("mcporter"):
             return "off", (
-                "需要 mcporter + xiaohongshu-mcp。安装：\n"
-                "  npm install -g mcporter\n"
-                "  详见 https://github.com/user/xiaohongshu-mcp"
+                "需要 mcporter + xiaohongshu-mcp。安装步骤：\n"
+                "  1. npm install -g mcporter\n"
+                "  2. docker run -d --name xiaohongshu-mcp -p 18060:18060 xpzouying/xiaohongshu-mcp\n"
+                "  3. mcporter config add xiaohongshu http://localhost:18060/mcp\n"
+                "  详见 https://github.com/xpzouying/xiaohongshu-mcp"
             )
         if not self._mcporter_ok():
             return "off", (
                 "mcporter 已装但小红书 MCP 未配置。运行：\n"
+                "  docker run -d --name xiaohongshu-mcp -p 18060:18060 xpzouying/xiaohongshu-mcp\n"
                 "  mcporter config add xiaohongshu http://localhost:18060/mcp"
             )
         try:
@@ -74,9 +77,10 @@ class XiaoHongShuChannel(Channel):
                     "⚠️ 小红书需要 mcporter + xiaohongshu-mcp 才能使用。\n\n"
                     "安装步骤：\n"
                     "1. npm install -g mcporter\n"
-                    "2. 安装 xiaohongshu-mcp 服务\n"
+                    "2. docker run -d --name xiaohongshu-mcp -p 18060:18060 xpzouying/xiaohongshu-mcp\n"
                     "3. mcporter config add xiaohongshu http://localhost:18060/mcp\n"
-                    "4. 运行 agent-reach install --env=auto"
+                    "4. 运行 agent-reach doctor 检查状态\n\n"
+                    "详见 https://github.com/xpzouying/xiaohongshu-mcp"
                 ),
                 url=url, platform="xiaohongshu",
             )

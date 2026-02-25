@@ -58,6 +58,19 @@ agent-reach configure twitter-cookies "PASTED_STRING"
 agent-reach configure proxy http://user:pass@ip:port
 ```
 
+**XiaoHongShu / 小红书 (需要 Docker):**
+> "小红书需要一个 MCP 服务。需要你的机器上有 Docker。安装好 Docker 后我来搞定剩下的。"
+
+```bash
+docker run -d --name xiaohongshu-mcp -p 18060:18060 xpzouying/xiaohongshu-mcp
+mcporter config add xiaohongshu http://localhost:18060/mcp
+```
+
+> 如果在服务器上，建议加代理避免 IP 风控：
+> `docker run -d --name xiaohongshu-mcp -p 18060:18060 -e XHS_PROXY=http://user:pass@ip:port xpzouying/xiaohongshu-mcp`
+>
+> 首次使用需要扫码登录，打开 http://localhost:18060 操作。
+
 ### Step 4: Final check
 
 Run `agent-reach doctor` one final time and report the results to your user.

@@ -1,42 +1,71 @@
 # 小红书配置指南
 
 ## 功能说明
-读取小红书笔记内容。需要 Playwright（浏览器自动化）和一次性登录。
+读取和搜索小红书笔记。通过 [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) 实现（⭐9K+，Go 语言，内置 Chrome 浏览器）。
+
+## 前置条件
+- Docker（用来运行 xiaohongshu-mcp 服务）
+- mcporter CLI（MCP 协议桥接工具）
 
 ## Agent 可自动完成的步骤
 
-1. 检查 Playwright 是否安装：
+### 1. 安装 mcporter
 ```bash
-python3 -c "import playwright; print('installed')" 2>&1
+npm install -g mcporter
 ```
 
-2. 安装 Playwright + 浏览器：
+### 2. 启动 xiaohongshu-mcp 服务
 ```bash
-pip install playwright
-playwright install chromium
+docker run -d \
+  --name xiaohongshu-mcp \
+  -p 18060:18060 \
+  xpzouying/xiaohongshu-mcp
 ```
 
-3. 检查是否已有登录态：
+> 如需代理（服务器部署推荐）：
+> ```bash
+> docker run -d \
+>   --name xiaohongshu-mcp \
+>   -p 18060:18060 \
+>   -e XHS_PROXY=http://user:pass@ip:port \
+>   xpzouying/xiaohongshu-mcp
+> ```
+
+### 3. 注册到 mcporter
 ```bash
-# 检查 cookie 文件是否存在
-ls ~/.agent-reach/xhs_cookies.json 2>/dev/null
+mcporter config add xiaohongshu http://localhost:18060/mcp
 ```
+
+### 4. 验证
+```bash
+agent-reach doctor
+```
+
+应该看到小红书显示为 ✅ 或 ⚠️（MCP 已连接但未登录）。
 
 ## 需要用户手动做的步骤
 
-请告诉用户：
+如果 doctor 显示"MCP 已连接但未登录"：
 
 > 小红书需要登录一次（之后会记住你的登录状态）。
 >
-> 我现在会打开一个浏览器窗口，显示小红书登录页面。你需要：
-> 1. 用手机小红书 App 扫描屏幕上的二维码
-> 2. 在手机上确认登录
-> 3. 看到首页后告诉我"登录好了"
->
-> 之后就不需要再登录了（除非 cookie 过期，大约 1-3 个月）。
+> 打开 http://localhost:18060 ，用手机小红书 App 扫描二维码登录。
+> 登录后 cookie 会自动保存在 Docker 容器内，大约 1-3 个月有效。
 
-## Agent 收到确认后的操作
+## 常见问题
 
-1. 保存浏览器 cookie 到 `~/.agent-reach/xhs_cookies.json`
-2. 测试：读取一条小红书笔记
-3. 反馈："✅ 小红书已配置！现在我可以读取小红书笔记了。"
+**Q: Docker 容器重启后 cookie 丢了？**
+A: 挂载数据卷持久化：
+```bash
+docker run -d \
+  --name xiaohongshu-mcp \
+  -p 18060:18060 \
+  -v xhs-data:/app/data \
+  xpzouying/xiaohongshu-mcp
+```
+
+**Q: 服务器上小红书提示 IP 风险？**
+A: 加代理参数 `-e XHS_PROXY=http://user:pass@ip:port`，推荐住宅代理。
+
+**Q: 我不想用 Docker？**
+A: 可以从源码编译：https://github.com/xpzouying/xiaohongshu-mcp

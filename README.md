@@ -63,12 +63,12 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 | 🌐 **网页** | 阅读任意网页 | — | 无需配置 |
 | 📺 **YouTube** | 字幕提取 + 视频搜索 | — | 无需配置 |
 | 📡 **RSS** | 阅读任意 RSS/Atom 源 | — | 无需配置 |
-| 🔍 **全网搜索** | — | 全网语义搜索 | 告诉 Agent「帮我配 Exa 搜索」（免费 Key） |
+| 🔍 **全网搜索** | — | 全网语义搜索 | 自动配置（MCP 接入，免费无需 Key） |
 | 📦 **GitHub** | 读公开仓库 + 搜索 | 私有仓库、提 Issue/PR、Fork | 告诉 Agent「帮我登录 GitHub」 |
 | 🐦 **Twitter/X** | 读单条推文 | 搜索推文、浏览时间线、发推 | 告诉 Agent「帮我配 Twitter」 |
 | 📺 **B站** | 本地：字幕提取 + 搜索 | 服务器也能用 | 告诉 Agent「帮我配代理」 |
 | 📖 **Reddit** | 搜索（通过 Exa 免费） | 读帖子和评论 | 告诉 Agent「帮我配代理」 |
-| 📕 **小红书** | — | 阅读、搜索、发帖、评论、点赞 | 告诉 Agent「帮我配置小红书」 |
+| 📕 **小红书** | — | 阅读、搜索、发帖、评论、点赞 | `docker run -d -p 18060:18060 xpzouying/xiaohongshu-mcp` 然后告诉 Agent「帮我配置小红书」 |
 
 > **不知道怎么配？不用查文档。** 直接告诉 Agent「帮我配 XXX」，它知道需要什么、会一步一步引导你。
 >
@@ -163,7 +163,7 @@ channels/
 | 搜全网 | [Exa](https://exa.ai) via [mcporter](https://github.com/nicepkg/mcporter) | AI 语义搜索，MCP 接入免 Key |
 | GitHub | [gh CLI](https://cli.github.com) | 官方工具，认证后完整 API 能力 |
 | 读 RSS | [feedparser](https://github.com/kurtmckee/feedparser) | Python 生态标准选择，2.3K Star |
-| 小红书 | [xiaohongshu-mcp](https://github.com/user/xiaohongshu-mcp) | 内部 API，不受反爬限制 |
+| 小红书 | [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) | ⭐9K+，Go 语言，Docker 一键部署 |
 
 > 📌 这些都是「当前选型」。不满意？换掉对应文件就行。这正是脚手架的意义。
 

@@ -1,54 +1,41 @@
 # Exa Search 配置指南
 
 ## 功能说明
-Exa 是一个语义搜索引擎，免费提供 1000 次/月搜索。配置后解锁：
-- 全网搜索
+Exa 是一个 AI 语义搜索引擎。通过 MCP 接入，**免费、无需 API Key**。配置后解锁：
+- 全网语义搜索
 - Reddit 搜索（通过 site:reddit.com）
 - Twitter 搜索（通过 site:x.com）
 
 ## Agent 可自动完成的步骤
 
-1. 检查是否已配置：
+`agent-reach install --env=auto` 会自动完成以下步骤，通常不需要手动操作。
+
+### 1. 安装 mcporter
+```bash
+npm install -g mcporter
+```
+
+### 2. 注册 Exa MCP
+```bash
+mcporter config add exa https://mcp.exa.ai/mcp
+```
+
+### 3. 验证
 ```bash
 agent-reach doctor | grep "Web Search"
-```
-
-2. 如果用户提供了 key，写入配置：
-```bash
-# 方法1: 通过 setup 命令
-agent-reach setup
-
-# 方法2: 直接写入配置文件
-python3 -c "
-from agent_reach.config import Config
-c = Config()
-c.set('exa_api_key', '用户提供的KEY')
-print('✅ Exa API key saved')
-"
-```
-
-3. 测试是否有效：
-```bash
-agent-reach search "test query" -n 1
+agent-reach search "test" -n 1
 ```
 
 ## 需要用户手动做的步骤
 
-请告诉用户：
+**无。** Exa 通过 MCP 接入，免费、无需注册、无需 API Key。
 
-> 我需要一个 Exa API Key 来开启搜索功能。完全免费，每月 1000 次搜索。
->
-> 步骤：
-> 1. 打开 https://exa.ai
-> 2. 点击 "Get API Key" 或 "Sign Up"
-> 3. 用 Google 账号或邮箱注册
-> 4. 注册后在 Dashboard 页面复制你的 API Key
-> 5. 把 Key 发给我
->
-> 大概 30 秒就能搞定。
+如果 `agent-reach install` 因为网络问题没有自动配置 Exa，手动运行上面两条命令即可。
 
-## Agent 收到 key 后的操作
+## 常见问题
 
-1. 写入配置：`config.set("exa_api_key", key)`
-2. 测试：运行一次搜索确认可用
-3. 反馈："✅ 全网搜索已开启！现在我可以帮你搜索全网、Reddit 和 Twitter 了。"
+**Q: 有搜索次数限制吗？**
+A: MCP 端点由 Exa 官方提供（mcp.exa.ai），当前免费无限制。如果未来有变化，会在 agent-reach 更新中适配。
+
+**Q: mcporter 是什么？**
+A: MCP 协议的命令行桥接工具，用来调用 MCP Server。Agent Reach 用它来连接 Exa 和小红书。
