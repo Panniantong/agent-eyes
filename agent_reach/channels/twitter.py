@@ -20,8 +20,14 @@ def _bird_cmd():
 
 
 def _bird_env(config=None):
-    """Build env dict with Twitter cookies for bird CLI."""
+    """Build env dict with Twitter cookies and proxy support for bird CLI.
+
+    Node.js native fetch() doesn't respect HTTP_PROXY/HTTPS_PROXY.
+    We inject undici's EnvHttpProxyAgent via NODE_OPTIONS so bird
+    automatically routes through the user's proxy.
+    """
     import os
+    import tempfile
     env = os.environ.copy()
     if config:
         auth_token = config.get("twitter_auth_token")
@@ -30,7 +36,47 @@ def _bird_env(config=None):
             env["AUTH_TOKEN"] = auth_token
         if ct0:
             env["CT0"] = ct0
+
+    # Auto-inject undici proxy support if HTTP_PROXY/HTTPS_PROXY is set
+    has_proxy = env.get("HTTPS_PROXY") or env.get("HTTP_PROXY") or env.get("https_proxy") or env.get("http_proxy")
+    if has_proxy:
+        bootstrap = _get_proxy_bootstrap_path()
+        if bootstrap:
+            npm_root = subprocess.run(
+                ["npm", "root", "-g"],
+                capture_output=True, text=True, timeout=5,
+            ).stdout.strip()
+            existing_opts = env.get("NODE_OPTIONS", "")
+            env["NODE_OPTIONS"] = f"--require {bootstrap} {existing_opts}".strip()
+            env["NODE_PATH"] = npm_root
+
     return env
+
+
+def _get_proxy_bootstrap_path():
+    """Create/return a bootstrap JS file that sets up undici proxy for fetch."""
+    import os
+    import tempfile
+    bootstrap_path = os.path.join(tempfile.gettempdir(), "agent-reach-undici-proxy.js")
+    if not os.path.exists(bootstrap_path):
+        # Check if undici is available
+        npm_root = subprocess.run(
+            ["npm", "root", "-g"],
+            capture_output=True, text=True, timeout=5,
+        ).stdout.strip()
+        undici_path = os.path.join(npm_root, "undici", "index.js")
+        if not os.path.exists(undici_path):
+            return None
+        with open(bootstrap_path, "w") as f:
+            f.write(
+                "try {\n"
+                "  const { EnvHttpProxyAgent, setGlobalDispatcher } = require('undici');\n"
+                "  if (process.env.HTTPS_PROXY || process.env.HTTP_PROXY) {\n"
+                "    setGlobalDispatcher(new EnvHttpProxyAgent());\n"
+                "  }\n"
+                "} catch(e) {}\n"
+            )
+    return bootstrap_path
 
 
 class TwitterChannel(Channel):
@@ -45,8 +91,31 @@ class TwitterChannel(Channel):
 
     def check(self, config=None):
         # Basic reading always works (Jina fallback)
-        if _bird_cmd():
-            return "ok", "搜索、时间线、发推全部可用"
+        bird = _bird_cmd()
+        if bird:
+            # Actually test bird connectivity
+            try:
+                result = subprocess.run(
+                    [bird, "whoami"],
+                    capture_output=True, timeout=15,
+                    encoding='utf-8', errors='replace',
+                    env=_bird_env(config),
+                )
+                if result.returncode == 0 and "fetch failed" not in result.stdout.lower() and "fetch failed" not in result.stderr.lower():
+                    return "ok", "搜索、时间线、发推全部可用"
+                else:
+                    error_hint = (result.stderr or result.stdout).strip()[:100]
+                    if "fetch failed" in (error_hint + result.stdout).lower():
+                        return "warn", (
+                            f"bird 已安装但连接失败（fetch failed）。可能原因：\n"
+                            "  1. Cookie 无效或过期 → 重新导出 Cookie\n"
+                            "  2. 需要代理但 Node.js fetch 不走系统代理 → 使用全局/透明代理（如 Clash TUN 模式、Proxifier）\n"
+                            "  3. 网络无法直连 x.com\n"
+                            "  搜索功能暂不可用，将使用 Exa 搜索作为替代"
+                        )
+                    return "warn", f"bird 连接异常：{error_hint}。搜索将使用 Exa 替代"
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                return "warn", "bird 已安装但连接超时。搜索将使用 Exa 替代"
         return "ok", "可读取推文。安装 bird + 配置 Cookie 可解锁搜索和发推"
 
     async def read(self, url: str, config=None) -> ReadResult:
@@ -153,11 +222,19 @@ class TwitterChannel(Channel):
                 env=_bird_env(config),
             )
             if result.returncode != 0:
-                return []
+                stderr = (result.stderr or "").strip()
+                if "fetch failed" in stderr.lower() or "fetch failed" in (result.stdout or "").lower():
+                    # bird can't connect — fall back to Exa silently
+                    return await self._search_exa(query, limit, config)
+                return await self._search_exa(query, limit, config)
 
-            return self._parse_bird_output(result.stdout)
+            parsed = self._parse_bird_output(result.stdout)
+            if not parsed:
+                # bird returned nothing — try Exa
+                return await self._search_exa(query, limit, config)
+            return parsed
         except (subprocess.TimeoutExpired, FileNotFoundError):
-            return []
+            return await self._search_exa(query, limit, config)
 
     def _parse_bird_output(self, text: str) -> List[SearchResult]:
         """Parse bird text output into SearchResults."""
