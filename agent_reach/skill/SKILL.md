@@ -14,6 +14,24 @@ description: >
 
 Read and search the internet across 9+ platforms via unified CLI.
 
+## Setup
+
+First check if agent-reach is installed:
+```bash
+agent-reach doctor
+```
+
+If command not found, install it:
+```bash
+pip install https://github.com/Panniantong/agent-reach/archive/main.zip
+agent-reach install --env=auto
+```
+
+`install` auto-detects your environment and installs all dependencies (Node.js, mcporter, bird CLI, gh CLI). Read the output and run `agent-reach doctor` to see what's active.
+
+For channels that need user input, ask the user. See the full setup guide:
+https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
+
 ## Commands
 
 ### Read any URL
