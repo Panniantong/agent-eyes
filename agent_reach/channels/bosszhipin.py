@@ -77,7 +77,7 @@ class BossZhipinChannel(Channel):
             "可通过 Jina Reader 读取职位页面。完整功能需要：\n"
             "  1. git clone https://github.com/mucsbr/mcp-bosszp.git\n"
             "  2. cd mcp-bosszp && pip install -r requirements.txt && playwright install chromium\n"
-            "  3. python boss_zhipin_fastmcp_v2.py（启动 MCP 服务）\n"
+            "  3. python boss_zhipin_fastmcp_v2.py（启动后扫码登录）\n"
             "  4. mcporter config add bosszhipin http://localhost:8000/mcp\n"
             "  或用 Docker：docker-compose up -d\n"
             "  详见 https://github.com/mucsbr/mcp-bosszp"

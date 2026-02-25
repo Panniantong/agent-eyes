@@ -8,6 +8,7 @@ Swap to: any Instagram access tool
 import re
 import shutil
 import subprocess
+from pathlib import Path
 from urllib.parse import urlparse
 from .base import Channel, ReadResult, SearchResult
 from typing import List
@@ -37,9 +38,14 @@ class InstagramChannel(Channel):
             return "off", (
                 "需要安装 instaloader：pip install instaloader\n"
                 "  安装后可读取 Instagram 帖子和 Profile\n"
-                "  登录解锁更多功能：instaloader --login YOUR_USERNAME"
+                "  登录: agent-reach configure instagram-cookies \"sessionid=xxx; csrftoken=yyy; ...\""
             )
-        return "ok", "可读取公开帖子和 Profile。登录后可访问更多内容"
+
+        # Check if cookies are configured
+        cookie_file = Path.home() / ".agent-reach" / "instagram-cookies.txt"
+        if cookie_file.exists():
+            return "ok", "已登录，可读取 Instagram 帖子和 Profile"
+        return "ok", "可读取公开帖子和 Profile。登录可访问更多内容:\n  agent-reach configure instagram-cookies \"sessionid=xxx; csrftoken=yyy; ...\""
 
     async def read(self, url: str, config=None) -> ReadResult:
         # Try instaloader (module or CLI)
@@ -69,8 +75,24 @@ class InstagramChannel(Channel):
                 max_connection_attempts=1,  # Don't retry on rate limit
             )
 
-            # Try to load session if available
-            if config and config.get("instagram_username"):
+            # Try to load session: cookie file > saved session
+            cookie_file = Path.home() / ".agent-reach" / "instagram-cookies.txt"
+            if cookie_file.exists():
+                try:
+                    cookie_str = cookie_file.read_text().strip()
+                    cookies = {}
+                    for part in cookie_str.split(";"):
+                        part = part.strip()
+                        if "=" in part:
+                            k, v = part.split("=", 1)
+                            cookies[k.strip()] = v.strip()
+                    if "sessionid" in cookies and "csrftoken" in cookies:
+                        # Extract username from ds_user_id or use generic
+                        username = cookies.get("ds_user_id", "user")
+                        L.context.load_session(username, cookies)
+                except Exception:
+                    pass
+            elif config and config.get("instagram_username"):
                 try:
                     L.load_session_from_file(config.get("instagram_username"))
                 except Exception:

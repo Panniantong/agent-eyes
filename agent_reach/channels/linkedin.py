@@ -55,16 +55,17 @@ class LinkedInChannel(Channel):
         if shutil.which("linkedin-scraper-mcp"):
             return "warn", (
                 "linkedin-scraper-mcp 已安装但未接入 mcporter。运行：\n"
-                "  1. uvx linkedin-scraper-mcp --transport streamable-http --port 8001\n"
-                "  2. mcporter config add linkedin http://localhost:8001/mcp\n"
-                "  或先登录：uvx linkedin-scraper-mcp --login"
+                "  1. linkedin-scraper-mcp --login（在有浏览器的机器上登录）\n"
+                "  2. linkedin-scraper-mcp --transport streamable-http --port 8001\n"
+                "  3. mcporter config add linkedin http://localhost:8001/mcp"
             )
 
         return "off", (
             "可通过 Jina Reader 读取部分内容。完整功能需要：\n"
-            "  1. pip install linkedin-scraper-mcp 或 uvx linkedin-scraper-mcp --login\n"
-            "  2. uvx linkedin-scraper-mcp --transport streamable-http --port 8001\n"
-            "  3. mcporter config add linkedin http://localhost:8001/mcp\n"
+            "  1. pip install linkedin-scraper-mcp\n"
+            "  2. linkedin-scraper-mcp --login（在有浏览器的机器上登录）\n"
+            "  3. linkedin-scraper-mcp --transport streamable-http --port 8001\n"
+            "  4. mcporter config add linkedin http://localhost:8001/mcp\n"
             "  详见 https://github.com/stickerdaniel/linkedin-mcp-server"
         )
 

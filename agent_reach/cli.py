@@ -118,7 +118,8 @@ def main():
     p_conf = sub.add_parser("configure", help="Set a config value or auto-extract from browser")
     p_conf.add_argument("key", nargs="?", default=None,
                         choices=["proxy", "github-token", "groq-key",
-                                 "twitter-cookies", "youtube-cookies"],
+                                 "twitter-cookies", "youtube-cookies",
+                                 "instagram-cookies"],
                         help="What to configure (omit if using --from-browser)")
     p_conf.add_argument("value", nargs="*", help="The value(s) to set")
     p_conf.add_argument("--from-browser", metavar="BROWSER",
@@ -645,6 +646,9 @@ def _cmd_configure(args):
         config.set("groq_api_key", value)
         print(f"✅ Groq key configured!")
 
+    elif args.key == "instagram-cookies":
+        _configure_instagram_cookies(value)
+
 
 def _cmd_doctor():
     from agent_reach.config import Config
@@ -652,6 +656,43 @@ def _cmd_doctor():
     config = Config()
     results = check_all(config)
     print(format_report(results))
+
+
+def _parse_cookie_header(cookie_str: str) -> dict:
+    """Parse Cookie-Editor 'Header String' format into a dict."""
+    cookies = {}
+    for part in cookie_str.split(";"):
+        part = part.strip()
+        if "=" in part:
+            k, v = part.split("=", 1)
+            cookies[k.strip()] = v.strip()
+    return cookies
+
+
+def _configure_instagram_cookies(value: str):
+    """Save Instagram cookies from Cookie-Editor Header String."""
+    from pathlib import Path
+
+    cookies = _parse_cookie_header(value)
+    if "sessionid" not in cookies:
+        print("❌ Cookie 里缺少 sessionid。")
+        print("   确保你已登录 Instagram，然后用 Cookie-Editor 导出 Header String。")
+        print('   格式: agent-reach configure instagram-cookies "sessionid=xxx; csrftoken=yyy; ..."')
+        return
+
+    cookie_dir = Path.home() / ".agent-reach"
+    cookie_dir.mkdir(parents=True, exist_ok=True)
+    cookie_file = cookie_dir / "instagram-cookies.txt"
+    cookie_file.write_text(value.strip())
+    cookie_file.chmod(0o600)
+
+    print(f"✅ Instagram cookies 已保存！")
+    print(f"   sessionid: {cookies['sessionid'][:8]}...")
+    if "csrftoken" in cookies:
+        print(f"   csrftoken: ✅")
+    if "ds_user_id" in cookies:
+        print(f"   ds_user_id: {cookies['ds_user_id']}")
+    print(f"   文件: {cookie_file}")
 
 
 def _cmd_setup():
