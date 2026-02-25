@@ -433,7 +433,10 @@ def _install_mcporter():
                 )
                 print("  ✅ XiaoHongShu MCP auto-detected and configured")
             except Exception:
-                print("  ⬜ XiaoHongShu MCP not detected (optional — install xiaohongshu-mcp for XHS support)")
+                print("  ⬜ XiaoHongShu MCP not detected (optional)")
+                print("     Install: docker run -d --name xiaohongshu-mcp -p 18060:18060 xpzouying/xiaohongshu-mcp")
+                print("     Then:    mcporter config add xiaohongshu http://localhost:18060/mcp")
+                print("     Repo:    https://github.com/xpzouying/xiaohongshu-mcp")
     except Exception:
         pass
 
