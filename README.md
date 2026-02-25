@@ -92,6 +92,12 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 
 就这一步。Agent 会自己完成剩下的所有事情。
 
+> 🛡️ **担心安全？** 可以用安全模式——不会自动装系统包，只告诉你需要什么：
+> ```
+> 帮我安装 Agent Reach（安全模式）：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
+> 安装时使用 --safe 参数
+> ```
+
 <details>
 <summary>它会做什么？（点击展开）</summary>
 
@@ -169,6 +175,32 @@ channels/
 
 ---
 
+## 安全性
+
+Agent Reach 在设计上重视安全：
+
+| 措施 | 说明 |
+|------|------|
+| 🔒 **凭据本地存储** | Cookie、Token 只存在你本机 `~/.agent-reach/config.yaml`，文件权限 600（仅所有者可读写），不上传不外传 |
+| 🛡️ **安全模式** | `agent-reach install --safe` 不会自动修改系统，只列出需要什么，由你决定装不装 |
+| 👀 **完全开源** | 代码透明，随时可审查。所有依赖工具也是开源项目 |
+| 🔍 **Dry Run** | `agent-reach install --dry-run` 预览所有操作，不做任何改动 |
+| 🧩 **可插拔架构** | 不信任某个组件？换掉对应的 channel 文件即可，不影响其他 |
+
+### 🍪 Cookie 安全建议
+
+需要 Cookie 的平台（Twitter、小红书、Instagram）建议使用**专用小号**，不要用主账号。Cookie 等同于完整登录权限，用小号可以在凭据泄露时限制影响范围。
+
+### 📦 安装方式
+
+| 方式 | 命令 | 适合场景 |
+|------|------|---------|
+| 一键全自动（默认） | `agent-reach install --env=auto` | 个人电脑、开发环境 |
+| 安全模式 | `agent-reach install --env=auto --safe` | 生产服务器、多人共用机器 |
+| 仅预览 | `agent-reach install --env=auto --dry-run` | 先看看会做什么 |
+
+---
+
 ## 贡献
 
 这个项目是纯 vibe coding 出来的 🎸 可能会有一些不完美的地方，如果遇到问题请多多包涵。有 bug 尽管提 [Issue](https://github.com/Panniantong/agent-reach/issues)，我都会尽快修复。
@@ -195,7 +227,7 @@ Star 一下，下次需要的时候能找到。⭐
 
 ## 致谢
 
-[Jina Reader](https://github.com/jina-ai/reader) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [bird](https://www.npmjs.com/package/@steipete/bird) · [Exa](https://exa.ai) · [mcporter](https://github.com/steipete/mcporter) · [feedparser](https://github.com/kurtmckee/feedparser) · [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp)
+[Jina Reader](https://github.com/jina-ai/reader) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [bird](https://www.npmjs.com/package/@steipete/bird) · [Exa](https://exa.ai) · [mcporter](https://github.com/steipete/mcporter) · [feedparser](https://github.com/kurtmckee/feedparser) · [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) · [instaloader](https://github.com/instaloader/instaloader) · [linkedin-scraper-mcp](https://github.com/stickerdaniel/linkedin-mcp-server) · [mcp-bosszp](https://github.com/mucsbr/mcp-bosszp)
 
 ## License
 

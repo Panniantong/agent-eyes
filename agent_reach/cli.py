@@ -113,6 +113,10 @@ def main():
                            help="Environment: local, server, or auto-detect")
     p_install.add_argument("--proxy", default="",
                            help="Residential proxy for Reddit/Bilibili (http://user:pass@ip:port)")
+    p_install.add_argument("--safe", action="store_true",
+                           help="Safe mode: skip automatic system changes, show what's needed instead")
+    p_install.add_argument("--dry-run", action="store_true",
+                           help="Show what would be done without making any changes")
 
     # ── configure ──
     p_conf = sub.add_parser("configure", help="Set a config value or auto-extract from browser")
@@ -178,10 +182,20 @@ def _cmd_install(args):
     from agent_reach.config import Config
     from agent_reach.doctor import check_all, format_report
 
+    safe_mode = args.safe
+    dry_run = args.dry_run
+
     config = Config()
     print()
     print("👁️  Agent Reach Installer")
     print("=" * 40)
+
+    if dry_run:
+        print("🔍 DRY RUN — showing what would be done (no changes)")
+        print()
+    if safe_mode:
+        print("🛡️  SAFE MODE — skipping automatic system changes")
+        print()
 
     # Auto-detect environment
     env = args.env
@@ -195,20 +209,33 @@ def _cmd_install(args):
 
     # Apply explicit flags
     if args.proxy:
-        config.set("reddit_proxy", args.proxy)
-        config.set("bilibili_proxy", args.proxy)
-        print(f"✅ Proxy configured for Reddit + Bilibili")
+        if dry_run:
+            print(f"[dry-run] Would configure proxy for Reddit + Bilibili")
+        else:
+            config.set("reddit_proxy", args.proxy)
+            config.set("bilibili_proxy", args.proxy)
+            print(f"✅ Proxy configured for Reddit + Bilibili")
 
     # ── Install system dependencies ──
     print()
-    _install_system_deps()
+    if dry_run:
+        _install_system_deps_dryrun()
+    elif safe_mode:
+        _install_system_deps_safe()
+    else:
+        _install_system_deps()
 
     # ── mcporter (for Exa search + XiaoHongShu) ──
     print()
-    _install_mcporter()
+    if dry_run:
+        print("📦 [dry-run] Would install mcporter and configure Exa search")
+    elif safe_mode:
+        _install_mcporter_safe()
+    else:
+        _install_mcporter()
 
     # Auto-import cookies on local computers
-    if env == "local":
+    if env == "local" and not safe_mode and not dry_run:
         print()
         print("🍪 Trying to import cookies from browser...")
         try:
@@ -230,6 +257,13 @@ def _cmd_install(args):
                 print("  ⬜ No cookies found (normal if you haven't logged into these sites)")
         except Exception:
             print("  ⬜ Could not read browser cookies (browser might be open)")
+    elif env == "local" and safe_mode:
+        print()
+        print("🍪 Skipped auto cookie import (safe mode).")
+        print("   To import manually: agent-reach configure --from-browser chrome")
+    elif env == "local" and dry_run:
+        print()
+        print("🍪 [dry-run] Would try to import cookies from Chrome/Firefox")
 
     # Environment-specific advice
     if env == "server":
@@ -240,25 +274,29 @@ def _cmd_install(args):
         print("   Cheap option: https://www.webshare.io ($1/month)")
 
     # Test channels
-    print()
-    print("Testing channels...")
-    results = check_all(config)
-    ok = sum(1 for r in results.values() if r["status"] == "ok")
-    total = len(results)
-
-    # Final status
-    print()
-    print(format_report(results))
-    print()
-
-    # ── Install agent skill ──
-    _install_skill()
-
-    print(f"✅ Installation complete! {ok}/{total} channels active.")
-
-    if ok < total:
+    if not dry_run:
         print()
-        print("🤖 Some channels are not active yet. If you're an AI Agent, try to fix them yourself — then run `agent-reach doctor` again.")
+        print("Testing channels...")
+        results = check_all(config)
+        ok = sum(1 for r in results.values() if r["status"] == "ok")
+        total = len(results)
+
+        # Final status
+        print()
+        print(format_report(results))
+        print()
+
+        # ── Install agent skill ──
+        _install_skill()
+
+        print(f"✅ Installation complete! {ok}/{total} channels active.")
+
+        if ok < total:
+            print()
+            print("🤖 Some channels are not active yet. If you're an AI Agent, try to fix them yourself — then run `agent-reach doctor` again.")
+    else:
+        print()
+        print("🔍 Dry run complete. No changes were made.")
 
 
 def _install_skill():
@@ -403,6 +441,58 @@ def _install_system_deps():
             print("  ⬜ instaloader install failed (optional — try: pip install instaloader)")
 
 
+def _install_system_deps_safe():
+    """Safe mode: check what's installed, print instructions for what's missing."""
+    import shutil
+
+    print("🔧 Checking system dependencies (safe mode — no auto-install)...")
+
+    deps = [
+        ("gh", ["gh"], "GitHub CLI", "https://cli.github.com — or: apt install gh / brew install gh"),
+        ("node", ["node", "npm"], "Node.js", "https://nodejs.org — or: apt install nodejs npm"),
+        ("bird", ["bird", "birdx"], "bird CLI (Twitter)", "npm install -g @steipete/bird"),
+        ("instaloader", ["instaloader"], "instaloader (Instagram)", "pip install instaloader"),
+    ]
+
+    missing = []
+    for name, binaries, label, install_hint in deps:
+        found = any(shutil.which(b) for b in binaries)
+        if found:
+            print(f"  ✅ {label} already installed")
+        else:
+            print(f"  ⬜ {label} not found")
+            missing.append((label, install_hint))
+
+    if missing:
+        print()
+        print("  To install missing dependencies manually:")
+        for label, hint in missing:
+            print(f"    {label}: {hint}")
+    else:
+        print("  All system dependencies are installed!")
+
+
+def _install_system_deps_dryrun():
+    """Dry-run: just show what would be checked/installed."""
+    import shutil
+
+    print("🔧 [dry-run] System dependency check:")
+
+    checks = [
+        ("gh CLI", ["gh"], "apt install gh / brew install gh"),
+        ("Node.js", ["node"], "curl NodeSource setup | bash + apt install nodejs"),
+        ("bird CLI", ["bird", "birdx"], "npm install -g @steipete/bird"),
+        ("instaloader", ["instaloader"], "pip install instaloader"),
+    ]
+
+    for label, binaries, method in checks:
+        found = any(shutil.which(b) for b in binaries)
+        if found:
+            print(f"  ✅ {label}: already installed, skip")
+        else:
+            print(f"  📥 {label}: would install via: {method}")
+
+
 def _install_mcporter():
     """Install mcporter and configure Exa + XiaoHongShu MCP servers."""
     import shutil
@@ -472,6 +562,21 @@ def _install_mcporter():
                 print("     Repo:    https://github.com/xpzouying/xiaohongshu-mcp")
     except Exception:
         pass
+
+
+def _install_mcporter_safe():
+    """Safe mode: check mcporter status, print instructions."""
+    import shutil
+
+    print("📦 Checking mcporter (safe mode)...")
+
+    if shutil.which("mcporter"):
+        print("  ✅ mcporter already installed")
+        print("  To configure Exa search: mcporter config add exa https://mcp.exa.ai/mcp")
+    else:
+        print("  ⬜ mcporter not installed")
+        print("  To install: npm install -g mcporter")
+        print("  Then configure Exa: mcporter config add exa https://mcp.exa.ai/mcp")
 
 
 def _detect_environment():

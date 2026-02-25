@@ -51,6 +51,12 @@ class Config:
         self._ensure_dir()
         with open(self.config_path, "w") as f:
             yaml.dump(self.data, f, default_flow_style=False, allow_unicode=True)
+        # Restrict permissions — config may contain credentials
+        try:
+            import stat
+            self.config_path.chmod(stat.S_IRUSR | stat.S_IWUSR)  # 0o600
+        except OSError:
+            pass  # Windows or permission edge cases
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a config value. Also checks environment variables (uppercase)."""

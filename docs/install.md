@@ -8,6 +8,12 @@ Copy this to your AI Agent:
 帮我安装 Agent Reach：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
 ```
 
+> 🛡️ **Security-conscious?** Use safe mode — it won't auto-install system packages:
+> ```
+> 帮我安装 Agent Reach（安全模式）：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
+> 安装时使用 --safe 参数
+> ```
+
 ---
 
 ## For AI Agents
@@ -16,7 +22,19 @@ Copy this to your AI Agent:
 
 Install Agent Reach and make sure **all channels are working**. Your user expects you to have full internet access capabilities when this is done — reading tweets, searching Reddit, watching YouTube, browsing GitHub, and more.
 
+### ⚠️ Boundaries
+
+When fixing issues, stay within these limits:
+
+- **DO NOT** run commands with `sudo` unless the user explicitly approved
+- **DO NOT** modify system files outside `~/.agent-reach/`
+- **DO NOT** install packages not listed in this guide
+- **DO NOT** disable firewalls, security settings, or system protections
+- If something requires elevated permissions, **tell the user** what's needed and let them decide
+
 ### Step 1: Install
+
+**Default (fully automatic):**
 
 ```bash
 pip install https://github.com/Panniantong/agent-reach/archive/main.zip
@@ -24,6 +42,25 @@ agent-reach install --env=auto
 ```
 
 This auto-installs system dependencies (gh CLI, Node.js, mcporter, bird), configures Exa search, detects environment, and tests all channels.
+
+**Safe mode (no automatic system changes):**
+
+If the user asked for safe mode, or you're on a production machine:
+
+```bash
+pip install https://github.com/Panniantong/agent-reach/archive/main.zip
+agent-reach install --env=auto --safe
+```
+
+Safe mode checks what's installed and tells you what's missing, but doesn't auto-install system packages. You can then install each dependency manually.
+
+**Dry run (preview only):**
+
+```bash
+agent-reach install --env=auto --dry-run
+```
+
+Shows what would be done without making any changes.
 
 **Read the output carefully**, then run:
 
@@ -35,13 +72,15 @@ agent-reach doctor
 
 `agent-reach doctor` shows you which channels are active and which aren't.
 
-**Your goal is to get as many channels to ✅ as possible.** If something failed during install or shows as ❌/⚠️ in doctor, fix it yourself. You're a capable AI Agent — diagnose the problem, try alternative approaches, and iterate until it works.
+Try to get as many channels to ✅ as possible. If something failed during install or shows as ❌/⚠️ in doctor, diagnose the problem and try to fix it — but stay within the boundaries above. If a fix requires elevated permissions or system changes, ask the user first.
 
-Only ask the user when you genuinely need their input (see below).
+Only ask the user when you genuinely need their input (credentials, permissions, etc.).
 
 ### Step 3: Configure things that need user input
 
 Some channels need credentials only the user can provide. Based on the doctor output, ask for what's missing:
+
+> 🔒 **Security tip:** For platforms that need cookies (Twitter, XiaoHongShu, Instagram), we recommend using a **dedicated/secondary account** rather than your main account. Cookie-based auth grants full account access — using a separate account limits the blast radius if credentials are ever compromised.
 
 **Twitter search & posting (server users):**
 > "To unlock Twitter search, I need your Twitter cookies. Install the Cookie-Editor Chrome extension, go to x.com/twitter.com, click the extension → Export → Header String, and paste it to me."
@@ -183,6 +222,8 @@ If the user wants a different agent to handle it, let them choose.
 | Command | What it does |
 |---------|-------------|
 | `agent-reach install --env=auto` | Full auto-setup (installs deps + configures) |
+| `agent-reach install --env=auto --safe` | Safe setup (no auto system changes) |
+| `agent-reach install --env=auto --dry-run` | Preview what would be done |
 | `agent-reach doctor` | Show channel status |
 | `agent-reach watch` | Quick health + update check (for scheduled tasks) |
 | `agent-reach check-update` | Check for new versions |
