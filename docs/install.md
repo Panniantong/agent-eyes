@@ -90,6 +90,19 @@ Some channels need credentials only the user can provide. Based on the doctor ou
 agent-reach configure twitter-cookies "PASTED_STRING"
 ```
 
+> **代理说明（中国大陆等需要翻墙的网络环境）：**
+>
+> bird CLI 使用 Node.js 原生 `fetch()`，默认不走系统代理（`HTTP_PROXY`/`HTTPS_PROXY`）。
+> Agent Reach 已内置解决方案：安装时会自动安装 `undici`（`npm install -g undici`），
+> 运行 bird 时自动注入 `EnvHttpProxyAgent`，让 fetch 走用户配置的代理。
+>
+> **你（Agent）需要做的：**
+> 1. 确认 `undici` 已全局安装：`npm list -g undici`，没有就装：`npm install -g undici`
+> 2. 确认用户配了代理：`agent-reach configure proxy http://user:pass@ip:port`
+> 3. Agent Reach 会自动处理剩下的，不需要用户做额外操作
+>
+> 如果用户报告 "fetch failed"，参考 [troubleshooting.md](troubleshooting.md)
+
 **Reddit & Bilibili full access (server users):**
 > "Reddit and Bilibili block server IPs. To unlock full access, I need a residential proxy. You can get one at https://webshare.io ($1/month). Send me the proxy address."
 

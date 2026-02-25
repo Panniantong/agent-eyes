@@ -103,3 +103,20 @@ These are things only the user can do. When `doctor` indicates one is needed, ex
 - If a channel is ⬜ but the user hasn't asked for it, don't push — let them opt in
 - If a channel breaks, run `agent-reach doctor` to diagnose
 - LinkedIn and Boss直聘 have Jina Reader fallback even without full setup
+- Twitter search 在 bird 失败时会自动 fallback 到 Exa 搜索
+
+## Troubleshooting
+
+### Twitter "fetch failed"
+
+bird CLI 用 Node.js 原生 `fetch()`，不走 `HTTP_PROXY`/`HTTPS_PROXY` 环境变量。
+Agent Reach 已内置解决方案：通过 `undici` 的 `EnvHttpProxyAgent` 自动注入代理。
+
+**你（Agent）需要确认：**
+1. `undici` 已全局安装：`npm list -g undici`，没有就装：`npm install -g undici`
+2. 用户已配置代理：`agent-reach configure proxy http://user:pass@ip:port`
+3. Agent Reach 会自动处理注入，不需要用户额外操作
+
+如果以上都没问题仍然 "fetch failed"，建议用户使用透明代理（如 Clash TUN 模式、Proxifier）。
+
+详见 https://github.com/Panniantong/Agent-Reach/blob/main/docs/troubleshooting.md
