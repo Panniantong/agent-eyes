@@ -80,19 +80,50 @@ mcporter config add xiaohongshu http://localhost:18060/mcp
 pip install instaloader
 ```
 
-> 登录后可访问更多内容（私密帖子等）：`instaloader --login YOUR_USERNAME`
-> 服务器用户同样可以在本地电脑登录后，导出 Cookie 发给 Agent。
+> **登录方式（解锁私密内容）：**
+> - **方法 1（推荐）：Cookie-Editor 导入：** 在浏览器登录 Instagram → 用 [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) 导出 Header String → 粘贴：
+>   ```bash
+>   agent-reach configure instagram-cookies "sessionid=xxx; csrftoken=yyy; ..."
+>   ```
+> - **方法 2：instaloader 命令行登录：** `instaloader --login YOUR_USERNAME`（需要输密码，有 2FA 的话还要输验证码）
 
 **LinkedIn (可选 — linkedin-scraper-mcp):**
 > "LinkedIn 基本内容可通过 Jina Reader 读取。完整功能（Profile 详情、职位搜索）需要 linkedin-scraper-mcp。"
 
 ```bash
 pip install linkedin-scraper-mcp
-uvx linkedin-scraper-mcp --login       # 首次需在有浏览器的机器上登录
-uvx linkedin-scraper-mcp --transport streamable-http --port 8001  # 启动 MCP 服务
-mcporter config add linkedin http://localhost:8001/mcp
 ```
 
+> **登录方式（需要浏览器界面）：**
+>
+> linkedin-scraper-mcp 使用 Chromium 浏览器登录，需要你能看到浏览器窗口。
+>
+> - **本地电脑（有桌面）：** 直接运行：
+>   ```bash
+>   linkedin-scraper-mcp --login --no-headless
+>   ```
+>   浏览器会弹出来，手动登录 LinkedIn 即可。
+>
+> - **服务器（无 UI）：** 需要通过 VNC 远程桌面操作：
+>   ```bash
+>   # 1. 服务器上安装并启动 VNC（如已有可跳过）
+>   apt install -y tigervnc-standalone-server
+>   vncserver :1 -geometry 1280x720
+>   
+>   # 2. 用 VNC 客户端连接 服务器IP:5901
+>   
+>   # 3. 在 VNC 桌面的终端里运行：
+>   export DISPLAY=:1
+>   linkedin-scraper-mcp --login --no-headless
+>   ```
+>   在 VNC 里看到浏览器后手动登录。登录成功后 session 会保存到 `~/.linkedin-mcp/profile/`。
+>
+> **登录后启动 MCP 服务：**
+> ```bash
+> linkedin-scraper-mcp --transport streamable-http --port 8001
+> mcporter config add linkedin http://localhost:8001/mcp
+> ```
+>
 > 详见 https://github.com/stickerdaniel/linkedin-mcp-server
 
 **Boss直聘 (可选 — mcp-bosszp):**
@@ -101,11 +132,27 @@ mcporter config add linkedin http://localhost:8001/mcp
 ```bash
 git clone https://github.com/mucsbr/mcp-bosszp.git && cd mcp-bosszp
 pip install -r requirements.txt && playwright install chromium
-python boss_zhipin_fastmcp_v2.py        # 启动 MCP 服务
-mcporter config add bosszhipin http://localhost:8000/mcp
 ```
 
+> **登录方式（手机 App 扫码）：**
+>
+> mcp-bosszp 使用二维码登录，需要 Boss直聘 App 扫码。
+>
+> ```bash
+> # 1. 启动 MCP 服务
+> python boss_zhipin_fastmcp_v2.py
+> 
+> # 2. 通过 MCP 触发登录（会生成二维码图片）
+> mcporter call 'bosszhipin.start_login()'
+> 
+> # 3. 浏览器打开二维码图片（服务器上用 http://服务器IP:8000/static/qrcode_xxx.png）
+> # 4. 用 Boss直聘 App 扫码确认
+> ```
+>
+> 扫码成功后 session 自动保存，之后可以搜索职位和自动打招呼。
+>
 > 或用 Docker：`docker-compose up -d`
+>
 > 详见 https://github.com/mucsbr/mcp-bosszp
 
 ### Step 4: Final check
