@@ -68,7 +68,7 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 | 🐦 **Twitter/X** | 读单条推文 | 搜索推文、浏览时间线、发推 | 告诉 Agent「帮我配 Twitter」 |
 | 📺 **B站** | 本地：字幕提取 + 搜索 | 服务器也能用 | 告诉 Agent「帮我配代理」 |
 | 📖 **Reddit** | 搜索（通过 Exa 免费） | 读帖子和评论 | 告诉 Agent「帮我配代理」 |
-| 📕 **小红书** | — | 阅读、搜索、发帖、评论、点赞 | `docker run -d -p 18060:18060 xpzouying/xiaohongshu-mcp` 然后告诉 Agent「帮我配置小红书」 |
+| 📕 **小红书** | — | 阅读、搜索、发帖、评论、点赞 | 告诉 Agent「帮我配小红书」 |
 | 📷 **Instagram** | 搜索（通过 Exa 免费） | 读取帖子和 Profile | 告诉 Agent「帮我配 Instagram」 |
 | 💼 **LinkedIn** | Jina Reader 读公开页面 | Profile 详情、公司页面、职位搜索 | 告诉 Agent「帮我配 LinkedIn」 |
 | 🏢 **Boss直聘** | Jina Reader 读职位页 | 搜索职位、向 HR 打招呼 | 告诉 Agent「帮我配 Boss直聘」 |
