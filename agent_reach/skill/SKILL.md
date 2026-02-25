@@ -2,17 +2,21 @@
 name: agent-reach
 description: >
   Give your AI agent eyes to see the entire internet. Read and search across
-  Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, RSS, and any web page
-  — all from a single CLI. Use when: (1) reading content from URLs (tweets, Reddit posts,
-  articles, videos), (2) searching across platforms (web, Twitter, Reddit, GitHub, YouTube,
-  Bilibili, XiaoHongShu), (3) checking channel health or updating Agent Reach.
+  Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Instagram, LinkedIn,
+  Boss直聘, RSS, and any web page — all from a single CLI.
+  Use when: (1) reading content from URLs (tweets, Reddit posts, articles, videos),
+  (2) searching across platforms (web, Twitter, Reddit, GitHub, YouTube, Bilibili,
+  XiaoHongShu, Instagram, LinkedIn, Boss直聘),
+  (3) user asks to configure/enable a platform channel,
+  (4) checking channel health or updating Agent Reach.
   Triggers: "search Twitter/Reddit/YouTube", "read this URL", "find posts about",
-  "搜索", "读取", "查一下", "看看这个链接".
+  "搜索", "读取", "查一下", "看看这个链接",
+  "帮我配", "帮我添加", "帮我安装".
 ---
 
 # Agent Reach
 
-Read and search the internet across 9+ platforms via unified CLI.
+Read and search the internet across 12+ platforms via unified CLI.
 
 ## Setup
 
@@ -27,10 +31,7 @@ pip install https://github.com/Panniantong/agent-reach/archive/main.zip
 agent-reach install --env=auto
 ```
 
-`install` auto-detects your environment and installs all dependencies (Node.js, mcporter, bird CLI, gh CLI). Read the output and run `agent-reach doctor` to see what's active.
-
-For channels that need user input, ask the user. See the full setup guide:
-https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
+`install` auto-detects your environment and installs core dependencies (Node.js, mcporter, bird CLI, gh CLI, instaloader). Read the output and run `agent-reach doctor` to see what's active.
 
 ## Commands
 
@@ -39,7 +40,7 @@ https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
 agent-reach read <url>
 agent-reach read <url> --json    # structured output
 ```
-Handles: tweets, Reddit posts, articles, YouTube (transcripts), GitHub repos, etc.
+Handles: tweets, Reddit posts, articles, YouTube/Bilibili (transcripts), GitHub repos, Instagram posts, LinkedIn profiles, Boss直聘 jobs, XiaoHongShu notes, RSS feeds, and any web page.
 
 ### Search
 
@@ -51,6 +52,9 @@ agent-reach search-github "query"      # GitHub (--lang <language>)
 agent-reach search-youtube "query"     # YouTube
 agent-reach search-bilibili "query"    # Bilibili (B站)
 agent-reach search-xhs "query"        # XiaoHongShu (小红书)
+agent-reach search-instagram "query"   # Instagram
+agent-reach search-linkedin "query"    # LinkedIn
+agent-reach search-bosszhipin "query"  # Boss直聘
 ```
 
 All search commands support `-n <count>` for number of results.
@@ -67,21 +71,35 @@ agent-reach check-update  # check for new versions
 
 ```bash
 agent-reach configure twitter-cookies "auth_token=xxx; ct0=yyy"
+agent-reach configure instagram-cookies "sessionid=xxx; csrftoken=yyy; ..."
 agent-reach configure proxy http://user:pass@ip:port
-agent-reach configure --from-browser chrome    # auto-extract cookies
+agent-reach configure --from-browser chrome    # auto-extract cookies from local browser
 ```
 
-## Channel Status Tiers
+## Configuring a channel ("帮我配 XXX")
 
-- **Tier 0 (zero config):** Web, YouTube, RSS, Twitter (read-only via Jina)
-- **Tier 1 (free setup):** Exa web search (mcporter required)
-- **Tier 2 (user config):** Twitter search (cookie), Reddit full (proxy), GitHub (token), Bilibili (proxy), XiaoHongShu (MCP)
+All channels follow the same flow. When a user asks to configure/enable any channel:
 
-Run `agent-reach doctor` to see which channels are active.
+1. Run `agent-reach doctor`
+2. Find the channel in the output — it shows the current status (✅/⚠️/⬜) and **what to do next**
+3. Execute whatever you can automatically (install packages, start services, register MCP)
+4. For steps that require human action (scan QR code, paste cookies, login), tell the user exactly what to do
+5. After the user completes their part, run `agent-reach doctor` again to verify
+
+**Do NOT memorize per-channel steps.** Always rely on `doctor` output — it stays up-to-date even when backends change.
+
+### Common human actions
+
+These are things only the user can do. When `doctor` indicates one is needed, explain it clearly:
+
+- **Paste cookies:** User installs [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) Chrome extension → goes to the website → exports Header String → sends it to you → you run `agent-reach configure <platform>-cookies "..."`
+- **Scan QR code:** User opens the URL shown in `doctor` output on their phone/browser and scans with the platform's app
+- **Browser login:** Some MCP services need a one-time browser login; on servers without a display, user may need VNC
+- **Proxy:** Reddit/Bilibili/XiaoHongShu block server IPs — suggest a residential proxy (~$1/month) if on a server
 
 ## Tips
 
 - Always try `agent-reach read <url>` first for any URL — it auto-detects the platform
-- For Twitter cookies, recommend the user install [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) Chrome extension
-- Reddit and Bilibili block server IPs — suggest a residential proxy (~$1/month) if on a server
+- If a channel is ⬜ but the user hasn't asked for it, don't push — let them opt in
 - If a channel breaks, run `agent-reach doctor` to diagnose
+- LinkedIn and Boss直聘 have Jina Reader fallback even without full setup
