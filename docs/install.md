@@ -69,7 +69,9 @@ mcporter config add xiaohongshu http://localhost:18060/mcp
 > 如果在服务器上，建议加代理避免 IP 风控：
 > `docker run -d --name xiaohongshu-mcp -p 18060:18060 -e XHS_PROXY=http://user:pass@ip:port xpzouying/xiaohongshu-mcp`
 >
-> 首次使用需要扫码登录，打开 http://localhost:18060 操作。
+> **登录方式：**
+> - **本地电脑（有浏览器）：** 打开 http://localhost:18060 扫码登录即可。
+> - **服务器（无 UI 界面）：** 服务器上通常没有浏览器，无法直接扫码。最方便的方式是在自己的电脑上用浏览器登录小红书，然后用 [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) 插件导出 Cookie（Header String 格式），发给 Agent 即可完成配置。详见 [Cookie 导出指南](cookie-export.md)。
 
 ### Step 4: Final check
 
