@@ -89,13 +89,19 @@ class LinkedInChannel(Channel):
 
     async def _read_profile_mcp(self, url: str) -> ReadResult:
         """Read a LinkedIn profile via MCP."""
-        safe_url = url.replace('"', '\\"')
+        import re
+        # Extract username from URL: /in/username/
+        match = re.search(r"/in/([^/]+)", url)
+        if not match:
+            return await self._read_jina(url)
+        username = match.group(1)
+        safe_username = username.replace('"', '\\"')
         out = _mcporter_call(
-            f'linkedin.get_person_profile(url: "{safe_url}")',
-            timeout=30,
+            f'linkedin.get_person_profile(linkedin_username: "{safe_username}")',
+            timeout=60,
         )
         return ReadResult(
-            title=self._extract_title(out) or "LinkedIn Profile",
+            title=self._extract_title(out) or f"LinkedIn Profile - {username}",
             content=out.strip(),
             url=url,
             platform="linkedin",
@@ -103,10 +109,16 @@ class LinkedInChannel(Channel):
 
     async def _read_company_mcp(self, url: str) -> ReadResult:
         """Read a LinkedIn company page via MCP."""
-        safe_url = url.replace('"', '\\"')
+        import re
+        # Extract company name from URL: /company/name/
+        match = re.search(r"/company/([^/]+)", url)
+        if not match:
+            return await self._read_jina(url)
+        company = match.group(1)
+        safe_company = company.replace('"', '\\"')
         out = _mcporter_call(
-            f'linkedin.get_company_profile(url: "{safe_url}")',
-            timeout=30,
+            f'linkedin.get_company_profile(company_name: "{safe_company}")',
+            timeout=60,
         )
         return ReadResult(
             title=self._extract_title(out) or "LinkedIn Company",
@@ -202,20 +214,20 @@ class LinkedInChannel(Channel):
         # Try job search first (most common use case)
         try:
             out = _mcporter_call(
-                f'linkedin.search_jobs(keywords: "{safe_q}", limit: {limit})',
-                timeout=30,
+                f'linkedin.search_jobs(keywords: "{safe_q}")',
+                timeout=60,
             )
             results = self._parse_search_results(out, "job")
             if results:
-                return results
+                return results[:limit]
         except Exception:
             pass
 
         # Try people search
         try:
             out = _mcporter_call(
-                f'linkedin.search_people(keywords: "{safe_q}", limit: {limit})',
-                timeout=30,
+                f'linkedin.search_people(keywords: "{safe_q}")',
+                timeout=60,
             )
             results = self._parse_search_results(out, "people")
             if results:
