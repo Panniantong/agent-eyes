@@ -89,6 +89,21 @@ def main():
     p_sx.add_argument("query", nargs="+", help="Search query")
     p_sx.add_argument("-n", "--num", type=int, default=10, help="Number of results")
 
+    # ── search-instagram ──
+    p_si = sub.add_parser("search-instagram", help="Search Instagram")
+    p_si.add_argument("query", nargs="+", help="Search query")
+    p_si.add_argument("-n", "--num", type=int, default=10, help="Number of results")
+
+    # ── search-linkedin ──
+    p_sl = sub.add_parser("search-linkedin", help="Search LinkedIn")
+    p_sl.add_argument("query", nargs="+", help="Search query")
+    p_sl.add_argument("-n", "--num", type=int, default=10, help="Number of results")
+
+    # ── search-bosszhipin ──
+    p_sbz = sub.add_parser("search-bosszhipin", help="Search Boss直聘")
+    p_sbz.add_argument("query", nargs="+", help="Search query")
+    p_sbz.add_argument("-n", "--num", type=int, default=10, help="Number of results")
+
     # ── setup ──
     sub.add_parser("setup", help="Interactive configuration wizard")
 
@@ -368,6 +383,23 @@ def _install_system_deps():
                 print("  ⬜ bird CLI install failed (optional — Twitter reading still works via Jina)")
         else:
             print("  ⬜ bird CLI requires Node.js (optional — Twitter reading still works via Jina)")
+
+    # ── instaloader (for Instagram) ──
+    if shutil.which("instaloader"):
+        print("  ✅ instaloader already installed")
+    else:
+        print("  📥 Installing instaloader...")
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "instaloader"],
+                capture_output=True, text=True, timeout=120,
+            )
+            if shutil.which("instaloader"):
+                print("  ✅ instaloader installed (Instagram reading)")
+            else:
+                print("  ⬜ instaloader install failed (optional — try: pip install instaloader)")
+        except Exception:
+            print("  ⬜ instaloader install failed (optional — try: pip install instaloader)")
 
 
 def _install_mcporter():
@@ -761,6 +793,12 @@ async def _cmd_search(args):
             results = await eyes.search_bilibili(query, limit=num)
         elif args.command == "search-xhs":
             results = await eyes.search_xhs(query, limit=num)
+        elif args.command == "search-instagram":
+            results = await eyes.search_instagram(query, limit=num)
+        elif args.command == "search-linkedin":
+            results = await eyes.search_linkedin(query, limit=num)
+        elif args.command == "search-bosszhipin":
+            results = await eyes.search_bosszhipin(query, limit=num)
         else:
             print(f"Unknown command: {args.command}", file=sys.stderr)
             sys.exit(1)

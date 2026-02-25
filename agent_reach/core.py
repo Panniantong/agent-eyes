@@ -101,6 +101,24 @@ class AgentReach:
         results = await ch.search(query, config=self.config, limit=limit)
         return [r.to_dict() for r in results]
 
+    async def search_instagram(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Search Instagram via Exa."""
+        ch = get_channel("instagram")
+        results = await ch.search(query, config=self.config, limit=limit)
+        return [r.to_dict() for r in results]
+
+    async def search_linkedin(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Search LinkedIn via MCP or Exa."""
+        ch = get_channel("linkedin")
+        results = await ch.search(query, config=self.config, limit=limit)
+        return [r.to_dict() for r in results]
+
+    async def search_bosszhipin(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Search Boss直聘 via MCP or Exa."""
+        ch = get_channel("bosszhipin")
+        results = await ch.search(query, config=self.config, limit=limit)
+        return [r.to_dict() for r in results]
+
     # ── Health ──────────────────────────────────────────
 
     def doctor(self) -> Dict[str, dict]:

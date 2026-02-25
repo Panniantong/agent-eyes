@@ -20,6 +20,9 @@ from .rss import RSSChannel
 from .bilibili import BilibiliChannel
 from .exa_search import ExaSearchChannel
 from .xiaohongshu import XiaoHongShuChannel
+from .instagram import InstagramChannel
+from .linkedin import LinkedInChannel
+from .bosszhipin import BossZhipinChannel
 
 
 # Channel registry — order matters (first match wins, web is last as fallback)
@@ -30,6 +33,9 @@ ALL_CHANNELS: List[Channel] = [
     RedditChannel(),
     BilibiliChannel(),
     XiaoHongShuChannel(),
+    InstagramChannel(),
+    LinkedInChannel(),
+    BossZhipinChannel(),
     RSSChannel(),
     ExaSearchChannel(),
     WebChannel(),        # Fallback — handles any URL

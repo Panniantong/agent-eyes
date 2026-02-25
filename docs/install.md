@@ -69,7 +69,44 @@ mcporter config add xiaohongshu http://localhost:18060/mcp
 > 如果在服务器上，建议加代理避免 IP 风控：
 > `docker run -d --name xiaohongshu-mcp -p 18060:18060 -e XHS_PROXY=http://user:pass@ip:port xpzouying/xiaohongshu-mcp`
 >
-> 首次使用需要扫码登录，打开 http://localhost:18060 操作。
+> **登录方式：**
+> - **本地电脑（有浏览器）：** 打开 http://localhost:18060 扫码登录即可。
+> - **服务器（无 UI 界面）：** 服务器上通常没有浏览器，无法直接扫码。最方便的方式是在自己的电脑上用浏览器登录小红书，然后用 [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) 插件导出 Cookie（Header String 格式），发给 Agent 即可完成配置。详见 [Cookie 导出指南](cookie-export.md)。
+
+**Instagram (需要 instaloader):**
+> "Instagram 需要 instaloader。我来帮你安装。"
+
+```bash
+pip install instaloader
+```
+
+> 登录后可访问更多内容（私密帖子等）：`instaloader --login YOUR_USERNAME`
+> 服务器用户同样可以在本地电脑登录后，导出 Cookie 发给 Agent。
+
+**LinkedIn (可选 — linkedin-scraper-mcp):**
+> "LinkedIn 基本内容可通过 Jina Reader 读取。完整功能（Profile 详情、职位搜索）需要 linkedin-scraper-mcp。"
+
+```bash
+pip install linkedin-scraper-mcp
+uvx linkedin-scraper-mcp --login       # 首次需在有浏览器的机器上登录
+uvx linkedin-scraper-mcp --transport streamable-http --port 8001  # 启动 MCP 服务
+mcporter config add linkedin http://localhost:8001/mcp
+```
+
+> 详见 https://github.com/stickerdaniel/linkedin-mcp-server
+
+**Boss直聘 (可选 — mcp-bosszp):**
+> "Boss直聘职位页面可直接读取。完整搜索和打招呼功能需要 mcp-bosszp。"
+
+```bash
+git clone https://github.com/mucsbr/mcp-bosszp.git && cd mcp-bosszp
+pip install -r requirements.txt && playwright install chromium
+python boss_zhipin_fastmcp_v2.py        # 启动 MCP 服务
+mcporter config add bosszhipin http://localhost:8000/mcp
+```
+
+> 或用 Docker：`docker-compose up -d`
+> 详见 https://github.com/mucsbr/mcp-bosszp
 
 ### Step 4: Final check
 
@@ -112,3 +149,6 @@ If the user wants a different agent to handle it, let them choose.
 | `agent-reach search-youtube "query"` | Search YouTube |
 | `agent-reach search-bilibili "query"` | Search Bilibili |
 | `agent-reach search-xhs "query"` | Search XiaoHongShu |
+| `agent-reach search-instagram "query"` | Search Instagram |
+| `agent-reach search-linkedin "query"` | Search LinkedIn |
+| `agent-reach search-bosszhipin "query"` | Search Boss直聘 |

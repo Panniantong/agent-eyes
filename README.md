@@ -69,6 +69,9 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 | 📺 **B站** | 本地：字幕提取 + 搜索 | 服务器也能用 | 告诉 Agent「帮我配代理」 |
 | 📖 **Reddit** | 搜索（通过 Exa 免费） | 读帖子和评论 | 告诉 Agent「帮我配代理」 |
 | 📕 **小红书** | — | 阅读、搜索、发帖、评论、点赞 | `docker run -d -p 18060:18060 xpzouying/xiaohongshu-mcp` 然后告诉 Agent「帮我配置小红书」 |
+| 📷 **Instagram** | — | 读取帖子和 Profile | 告诉 Agent「帮我配 Instagram」 |
+| 💼 **LinkedIn** | — | 读取 Profile、公司、职位搜索 | 告诉 Agent「帮我配 LinkedIn」 |
+| 🏢 **Boss直聘** | — | 搜索职位、向 HR 打招呼 | 告诉 Agent「帮我配 Boss直聘」 |
 
 > **不知道怎么配？不用查文档。** 直接告诉 Agent「帮我配 XXX」，它知道需要什么、会一步一步引导你。
 >
@@ -139,6 +142,9 @@ channels/
 ├── bilibili.py     → yt-dlp           ← 可以换成 bilibili-api……
 ├── reddit.py       → JSON API + Exa  ← 可以换成 PRAW、Pushshift……
 ├── xiaohongshu.py  → mcporter MCP    ← 可以换成其他 XHS 工具……
+├── instagram.py    → instaloader     ← 可以换成 instagrapi、官方 API……
+├── linkedin.py     → linkedin-mcp    ← 可以换成 LinkedIn API……
+├── bosszhipin.py   → mcp-bosszp      ← 可以换成其他招聘工具……
 ├── rss.py          → feedparser       ← 可以换成 atoma……
 ├── exa_search.py   → mcporter MCP    ← 可以换成 Tavily、SerpAPI……
 └── __init__.py     → 渠道注册
@@ -155,6 +161,9 @@ channels/
 | GitHub | [gh CLI](https://cli.github.com) | 官方工具，认证后完整 API 能力 |
 | 读 RSS | [feedparser](https://github.com/kurtmckee/feedparser) | Python 生态标准选择，2.3K Star |
 | 小红书 | [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) | ⭐9K+，Go 语言，Docker 一键部署 |
+| Instagram | [instaloader](https://github.com/instaloader/instaloader) | ⭐9.8K，Python CLI，Cookie 登录，免费 |
+| LinkedIn | [linkedin-scraper-mcp](https://github.com/stickerdaniel/linkedin-mcp-server) | ⭐900+，MCP 服务，浏览器自动化 |
+| Boss直聘 | [mcp-bosszp](https://github.com/mucsbr/mcp-bosszp) | MCP 服务，支持职位搜索和打招呼 |
 
 > 📌 这些都是「当前选型」。不满意？换掉对应文件就行。这正是脚手架的意义。
 
