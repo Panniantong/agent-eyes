@@ -5,8 +5,10 @@ Backend: Reddit public JSON API (append .json to any URL)
 Swap to: any Reddit access method
 """
 
+import json
 import os
 import requests
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 from .base import Channel, ReadResult
 
@@ -39,14 +41,31 @@ class RedditChannel(Channel):
         proxy = config.get("reddit_proxy") if config else None
         proxies = {"http": proxy, "https": proxy} if proxy else None
 
-        # Clean URL: remove query params, trailing slash, then add .json
         parsed = urlparse(url)
+
+        # Fix #1: Resolve redd.it short links via HEAD redirect
+        if "redd.it" in parsed.netloc:
+            try:
+                head_resp = requests.head(
+                    url,
+                    allow_redirects=True,
+                    timeout=10,
+                    headers={"User-Agent": self.USER_AGENT},
+                    proxies=proxies,
+                )
+                url = head_resp.url
+                parsed = urlparse(url)
+            except Exception:
+                pass  # Fall through with original URL; may 404
+
+        # Clean URL: remove query params, trailing slash, then add .json
         clean_path = parsed.path.rstrip("/")
         # Remove trailing .json if already present (avoid double .json)
         if clean_path.endswith(".json"):
             clean_path = clean_path[:-5]
         json_url = f"https://www.reddit.com{clean_path}.json"
 
+        # Fix #5: Catch network-level exceptions
         try:
             resp = requests.get(
                 json_url,
@@ -55,10 +74,38 @@ class RedditChannel(Channel):
                 params={"limit": 50},
                 timeout=15,
             )
-            resp.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            status = e.response.status_code if e.response is not None else 0
-            if status in (403, 429):
+        except requests.exceptions.ConnectionError:
+            return ReadResult(
+                title="Reddit",
+                content="⚠️ 无法连接到 Reddit，请检查网络或代理配置。",
+                url=url,
+                platform="reddit",
+            )
+        except requests.exceptions.Timeout:
+            return ReadResult(
+                title="Reddit",
+                content="⚠️ 请求 Reddit 超时，请稍后重试或检查代理。",
+                url=url,
+                platform="reddit",
+            )
+        except requests.exceptions.ProxyError:
+            return ReadResult(
+                title="Reddit",
+                content="⚠️ 代理连接失败，请检查代理地址和凭证。",
+                url=url,
+                platform="reddit",
+            )
+        except requests.exceptions.RequestException as e:
+            return ReadResult(
+                title="Reddit",
+                content=f"⚠️ 请求失败: {e}",
+                url=url,
+                platform="reddit",
+            )
+
+        # Fix #4: Friendly errors for all HTTP status codes
+        if resp.status_code != 200:
+            if resp.status_code in (403, 429):
                 return ReadResult(
                     title="Reddit",
                     content="⚠️ Reddit blocked this request (403 Forbidden). "
@@ -70,22 +117,53 @@ class RedditChannel(Channel):
                     url=url,
                     platform="reddit",
                 )
-            raise
+            return ReadResult(
+                title="Reddit",
+                content=f"⚠️ Reddit 返回 HTTP {resp.status_code}: {url}",
+                url=url,
+                platform="reddit",
+            )
 
-        data = resp.json()
+        # Fix #2: Safe JSON parsing
+        try:
+            data = resp.json()
+        except (json.JSONDecodeError, ValueError):
+            return ReadResult(
+                title="Reddit",
+                content=f"⚠️ Reddit 返回了非 JSON 响应: {url}",
+                url=url,
+                platform="reddit",
+            )
 
         # Subreddit listing page: /r/sub/, /r/sub/hot, /r/sub/new, /r/sub/top
         if isinstance(data, dict) and data.get("kind") == "Listing":
             return self._parse_listing(data, url)
 
         if isinstance(data, list) and len(data) >= 1:
-            # Post page: [post_listing, comments_listing]
-            post = data[0]["data"]["children"][0]["data"]
+            # Fix #2 continued: Safe nested access
+            children = data[0].get("data", {}).get("children", [])
+            if not children:
+                return ReadResult(
+                    title="Reddit",
+                    content=f"⚠️ 帖子不存在或已被删除: {url}",
+                    url=url,
+                    platform="reddit",
+                )
+
+            post = children[0].get("data", {})
             title = post.get("title", "")
             author = post.get("author", "")
             selftext = post.get("selftext", "")
             score = post.get("score", 0)
             subreddit = post.get("subreddit", "")
+
+            # Fix #3: Extract created_utc timestamp
+            created = post.get("created_utc", 0)
+            date_str = (
+                datetime.fromtimestamp(created, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+                if created
+                else ""
+            )
 
             # Extract comments
             comments_text = ""
@@ -102,10 +180,16 @@ class RedditChannel(Channel):
                 url=url,
                 author=f"u/{author}",
                 platform="reddit",
+                date=date_str,
                 extra={"subreddit": subreddit, "score": score},
             )
 
-        raise ValueError(f"Could not parse Reddit response for: {url}")
+        return ReadResult(
+            title="Reddit",
+            content=f"⚠️ Reddit 返回了意外格式: {url}",
+            url=url,
+            platform="reddit",
+        )
 
     def _parse_listing(self, data: dict, url: str) -> ReadResult:
         """Parse a subreddit listing (hot/new/top/rising)."""
@@ -130,8 +214,17 @@ class RedditChannel(Channel):
             post_url = post.get("url", "")
             is_self = post.get("is_self", False)
 
+            # Fix #3: timestamp in listing items
+            created = post.get("created_utc", 0)
+            date_str = (
+                datetime.fromtimestamp(created, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+                if created
+                else ""
+            )
+
             lines.append(f"### {i}. {title}")
-            lines.append(f"👤 u/{author} · ⬆ {score} · 💬 {num_comments}")
+            date_part = f" · 📅 {date_str}" if date_str else ""
+            lines.append(f"👤 u/{author} · ⬆ {score} · 💬 {num_comments}{date_part}")
             if not is_self and post_url:
                 lines.append(f"🔗 {post_url}")
             lines.append(f"📎 https://www.reddit.com{permalink}")
@@ -159,8 +252,20 @@ class RedditChannel(Channel):
         children = comments_data.get("data", {}).get("children", [])
 
         for child in children:
-            if child.get("kind") != "t1":
+            kind = child.get("kind")
+
+            # Fix #6: Show "more" comments hint instead of silently skipping
+            if kind == "more":
+                count = child.get("data", {}).get("count", 0)
+                if count > 0:
+                    indent = "  " * depth
+                    lines.append(f"{indent}*[还有 {count} 条评论未加载]*")
+                    lines.append("")
                 continue
+
+            if kind != "t1":
+                continue
+
             data = child.get("data", {})
             author = data.get("author", "[deleted]")
             body = data.get("body", "")
