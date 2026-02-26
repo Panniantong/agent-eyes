@@ -58,7 +58,6 @@ Copy that to your Agent. A few minutes later, it can read tweets, search Reddit,
 | 🌐 **Web** | Read | Zero config | Any URL → clean Markdown ([Jina Reader](https://github.com/jina-ai/reader) ⭐9.8K) |
 | 🐦 **Twitter/X** | Read · Search | Zero config / Cookie | Single tweets readable out of the box. Cookie unlocks search, timeline, posting ([bird](https://github.com/steipete/bird)) |
 | 📕 **XiaoHongShu** | Read · Search · **Post · Comment · Like** | mcporter | Via [xiaohongshu-mcp](https://github.com/user/xiaohongshu-mcp) internal API, install and go |
-| 📷 **Instagram** | Search (via Exa) | Read posts and profiles | Tell your Agent "help me set up Instagram" |
 | 💼 **LinkedIn** | Jina Reader (public pages) | Full profiles, companies, job search | Tell your Agent "help me set up LinkedIn" |
 | 🏢 **Boss直聘** | Jina Reader (job pages) | Job search, greet recruiters | Tell your Agent "help me set up Boss直聘" |
 | 🔍 **Web Search** | Search | Auto-configured | Auto-configured during install, free, no API key ([Exa](https://exa.ai) via [mcporter](https://github.com/nicepkg/mcporter)) |
@@ -185,7 +184,6 @@ channels/
 ├── bilibili.py     → yt-dlp           ← swap to bilibili-api…
 ├── reddit.py       → JSON API + Exa  ← swap to PRAW, Pushshift…
 ├── xiaohongshu.py  → mcporter MCP    ← swap to other XHS tools…
-├── instagram.py    → instaloader     ← swap to instagrapi, official API…
 ├── linkedin.py     → linkedin-mcp    ← swap to LinkedIn API…
 ├── bosszhipin.py   → mcp-bosszp      ← swap to other job tools…
 ├── rss.py          → feedparser       ← swap to atoma…
@@ -204,7 +202,6 @@ channels/
 | GitHub | [gh CLI](https://cli.github.com) | Official tool, full API after auth |
 | Read RSS | [feedparser](https://github.com/kurtmckee/feedparser) | Python ecosystem standard, 2.3K stars |
 | XiaoHongShu | [xiaohongshu-mcp](https://github.com/user/xiaohongshu-mcp) | Internal API, bypasses anti-bot |
-| Instagram | [instaloader](https://github.com/instaloader/instaloader) | 9.8K stars, Python CLI, cookie auth, free |
 | LinkedIn | [linkedin-scraper-mcp](https://github.com/stickerdaniel/linkedin-mcp-server) | 900+ stars, MCP server, browser automation |
 | Boss直聘 | [mcp-bosszp](https://github.com/mucsbr/mcp-bosszp) | MCP server, job search + recruiter greeting |
 
@@ -253,7 +250,7 @@ Yes! Agent Reach is a standard CLI tool. Any AI coding agent that can execute sh
 <details>
 <summary><strong>Is Agent Reach free? Any API costs?</strong></summary>
 
-100% free and open source. All backends (bird CLI, yt-dlp, Jina Reader, instaloader, Exa) are free tools that don't require paid API keys. The only optional cost is a residential proxy (~$1/month) if you need Reddit/Bilibili access from a server.
+100% free and open source. All backends (bird CLI, yt-dlp, Jina Reader, Exa) are free tools that don't require paid API keys. The only optional cost is a residential proxy (~$1/month) if you need Reddit/Bilibili access from a server.
 </details>
 
 <details>
@@ -272,7 +269,7 @@ Agent Reach integrates with xiaohongshu-mcp (runs in Docker). After setup, use `
 
 ## Credits
 
-[Jina Reader](https://github.com/jina-ai/reader) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [bird](https://github.com/steipete/bird) · [Exa](https://exa.ai) · [feedparser](https://github.com/kurtmckee/feedparser) · [instaloader](https://github.com/instaloader/instaloader) · [linkedin-scraper-mcp](https://github.com/stickerdaniel/linkedin-mcp-server) · [mcp-bosszp](https://github.com/mucsbr/mcp-bosszp)
+[Jina Reader](https://github.com/jina-ai/reader) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [bird](https://github.com/steipete/bird) · [Exa](https://exa.ai) · [feedparser](https://github.com/kurtmckee/feedparser) · [linkedin-scraper-mcp](https://github.com/stickerdaniel/linkedin-mcp-server) · [mcp-bosszp](https://github.com/mucsbr/mcp-bosszp)
 
 ## License
 

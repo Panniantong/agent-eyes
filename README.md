@@ -69,7 +69,6 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 | 📺 **B站** | 本地：字幕提取 + 搜索 | 服务器也能用 | 告诉 Agent「帮我配代理」 |
 | 📖 **Reddit** | 搜索（通过 Exa 免费） | 读帖子和评论 | 告诉 Agent「帮我配代理」 |
 | 📕 **小红书** | — | 阅读、搜索、发帖、评论、点赞 | 告诉 Agent「帮我配小红书」 |
-| 📷 **Instagram** | 搜索（通过 Exa 免费） | 读取帖子和 Profile | 告诉 Agent「帮我配 Instagram」 |
 | 💼 **LinkedIn** | Jina Reader 读公开页面 | Profile 详情、公司页面、职位搜索 | 告诉 Agent「帮我配 LinkedIn」 |
 | 🏢 **Boss直聘** | Jina Reader 读职位页 | 搜索职位、向 HR 打招呼 | 告诉 Agent「帮我配 Boss直聘」 |
 
@@ -148,7 +147,6 @@ channels/
 ├── bilibili.py     → yt-dlp           ← 可以换成 bilibili-api……
 ├── reddit.py       → JSON API + Exa  ← 可以换成 PRAW、Pushshift……
 ├── xiaohongshu.py  → mcporter MCP    ← 可以换成其他 XHS 工具……
-├── instagram.py    → instaloader     ← 可以换成 instagrapi、官方 API……
 ├── linkedin.py     → linkedin-mcp    ← 可以换成 LinkedIn API……
 ├── bosszhipin.py   → mcp-bosszp      ← 可以换成其他招聘工具……
 ├── rss.py          → feedparser       ← 可以换成 atoma……
@@ -167,7 +165,6 @@ channels/
 | GitHub | [gh CLI](https://cli.github.com) | 官方工具，认证后完整 API 能力 |
 | 读 RSS | [feedparser](https://github.com/kurtmckee/feedparser) | Python 生态标准选择，2.3K Star |
 | 小红书 | [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) | ⭐9K+，Go 语言，Docker 一键部署 |
-| Instagram | [instaloader](https://github.com/instaloader/instaloader) | ⭐9.8K，Python CLI，Cookie 登录，免费 |
 | LinkedIn | [linkedin-scraper-mcp](https://github.com/stickerdaniel/linkedin-mcp-server) | ⭐900+，MCP 服务，浏览器自动化 |
 | Boss直聘 | [mcp-bosszp](https://github.com/mucsbr/mcp-bosszp) | MCP 服务，支持职位搜索和打招呼 |
 
@@ -189,7 +186,7 @@ Agent Reach 在设计上重视安全：
 
 ### 🍪 Cookie 安全建议
 
-需要 Cookie 的平台（Twitter、小红书、Instagram）建议使用**专用小号**，不要用主账号。Cookie 等同于完整登录权限，用小号可以在凭据泄露时限制影响范围。
+需要 Cookie 的平台（Twitter、小红书）建议使用**专用小号**，不要用主账号。Cookie 等同于完整登录权限，用小号可以在凭据泄露时限制影响范围。
 
 ### 📦 安装方式
 
@@ -268,14 +265,14 @@ Yes! Agent Reach is a standard CLI tool — any AI coding agent that can run she
 <details>
 <summary><strong>Is this free? Any API costs?</strong></summary>
 
-100% free. All backends are open-source tools (bird CLI, yt-dlp, Jina Reader, instaloader, Exa, etc.) that don't require paid API keys. The only optional cost is a residential proxy (~$1/month) if you need Reddit/Bilibili access from a server.
+100% free. All backends are open-source tools (bird CLI, yt-dlp, Jina Reader, Exa, etc.) that don't require paid API keys. The only optional cost is a residential proxy (~$1/month) if you need Reddit/Bilibili access from a server.
 </details>
 
 ---
 
 ## 致谢
 
-[Jina Reader](https://github.com/jina-ai/reader) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [bird](https://www.npmjs.com/package/@steipete/bird) · [Exa](https://exa.ai) · [mcporter](https://github.com/steipete/mcporter) · [feedparser](https://github.com/kurtmckee/feedparser) · [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) · [instaloader](https://github.com/instaloader/instaloader) · [linkedin-scraper-mcp](https://github.com/stickerdaniel/linkedin-mcp-server) · [mcp-bosszp](https://github.com/mucsbr/mcp-bosszp)
+[Jina Reader](https://github.com/jina-ai/reader) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [bird](https://www.npmjs.com/package/@steipete/bird) · [Exa](https://exa.ai) · [mcporter](https://github.com/steipete/mcporter) · [feedparser](https://github.com/kurtmckee/feedparser) · [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) · [linkedin-scraper-mcp](https://github.com/stickerdaniel/linkedin-mcp-server) · [mcp-bosszp](https://github.com/mucsbr/mcp-bosszp)
 
 ## License
 

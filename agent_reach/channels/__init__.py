@@ -20,7 +20,6 @@ from .rss import RSSChannel
 from .bilibili import BilibiliChannel
 from .exa_search import ExaSearchChannel
 from .xiaohongshu import XiaoHongShuChannel
-from .instagram import InstagramChannel
 from .linkedin import LinkedInChannel
 from .bosszhipin import BossZhipinChannel
 
@@ -33,7 +32,6 @@ ALL_CHANNELS: List[Channel] = [
     RedditChannel(),
     BilibiliChannel(),
     XiaoHongShuChannel(),
-    InstagramChannel(),
     LinkedInChannel(),
     BossZhipinChannel(),
     RSSChannel(),

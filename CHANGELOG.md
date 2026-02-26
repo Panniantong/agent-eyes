@@ -10,13 +10,10 @@ All notable changes to this project will be documented in this file.
 
 ### 🆕 New Channels / 新增渠道
 
-#### 📷 Instagram
-- Read public posts and profiles via [instaloader](https://github.com/instaloader/instaloader)
-- Search via Exa (free, no API key)
-- Optional cookie login for private content
-- 通过 instaloader 读取公开帖子和 Profile
-- 搜索通过 Exa（免费，无需 API Key）
-- 可选 Cookie 登录解锁私密内容
+#### ~~📷 Instagram~~ (removed — upstream blocked)
+- ~~Read public posts and profiles via [instaloader](https://github.com/instaloader/instaloader)~~
+- **Removed:** Instagram's aggressive anti-scraping measures broke all available open-source tools (instaloader, etc.). See [instaloader#2585](https://github.com/instaloader/instaloader/issues/2585). Will re-add when upstream recovers.
+- **已移除：** Instagram 反爬封杀导致所有开源工具（instaloader 等）失效。上游恢复后会重新加回。
 
 #### 💼 LinkedIn
 - Read person profiles, company pages, and job details via [linkedin-scraper-mcp](https://github.com/stickerdaniel/linkedin-mcp-server)
@@ -38,12 +35,12 @@ All notable changes to this project will be documented in this file.
 
 - Channel count: 9 → 12
 - `agent-reach doctor` now detects all 12 channels
-- CLI: added `search-instagram`, `search-linkedin`, `search-bosszhipin` subcommands
+- CLI: added `search-linkedin`, `search-bosszhipin` subcommands
 - Updated install guide with setup instructions for new channels
-- 渠道数量：9 → 12
-- `agent-reach doctor` 现在检测全部 12 个渠道
-- CLI：新增 `search-instagram`、`search-linkedin`、`search-bosszhipin` 子命令
-- 安装指南新增三个渠道的配置说明
+- 渠道数量：9 → 11
+- `agent-reach doctor` 现在检测全部 11 个渠道
+- CLI：新增 `search-linkedin`、`search-bosszhipin` 子命令
+- 安装指南新增渠道配置说明
 
 ---
 
