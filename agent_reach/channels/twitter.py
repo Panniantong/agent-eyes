@@ -6,12 +6,16 @@ Backend: bird (@steipete/bird npm package) for search/timeline
 Swap to: any Twitter access tool
 """
 
+import json
+import logging
 import shutil
 import subprocess
 from urllib.parse import urlparse
 from .base import Channel, ReadResult, SearchResult
 from typing import List
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 def _bird_cmd():
@@ -79,6 +83,30 @@ def _get_proxy_bootstrap_path():
     return bootstrap_path
 
 
+def _tweet_url(tweet: dict) -> str:
+    """Build tweet URL from JSON object."""
+    username = tweet.get("author", {}).get("username", "")
+    tweet_id = tweet.get("id", "")
+    if username and tweet_id:
+        return f"https://x.com/{username}/status/{tweet_id}"
+    return ""
+
+
+def _format_metrics(tweet: dict) -> str:
+    """Format engagement metrics into a compact string."""
+    parts = []
+    likes = tweet.get("likeCount", 0)
+    rts = tweet.get("retweetCount", 0)
+    replies = tweet.get("replyCount", 0)
+    if likes:
+        parts.append(f"♥{likes}")
+    if rts:
+        parts.append(f"🔁{rts}")
+    if replies:
+        parts.append(f"💬{replies}")
+    return " ".join(parts) if parts else ""
+
+
 class TwitterChannel(Channel):
     name = "twitter"
     description = "Twitter/X 推文"
@@ -127,27 +155,59 @@ class TwitterChannel(Channel):
         return await self._read_jina(url)
 
     async def _read_bird(self, url: str, bird: str, config=None) -> ReadResult:
-        result = subprocess.run(
-            [bird, "read", url],
-            capture_output=True, timeout=30,
-            encoding='utf-8', errors='replace',
-            env=_bird_env(config),
-        )
-        if result.returncode != 0:
+        try:
+            result = subprocess.run(
+                [bird, "read", url, "--json"],
+                capture_output=True, timeout=30,
+                encoding='utf-8', errors='replace',
+                env=_bird_env(config),
+            )
+        except subprocess.TimeoutExpired:
+            logger.warning("bird read timed out for %s, falling back to Jina", url)
             return await self._read_jina(url)
 
-        text = result.stdout.strip()
-        # Extract author from first line
-        author = ""
-        lines = text.split("\n")
-        if lines and lines[0].startswith("@"):
-            author = lines[0].split()[0]
+        if result.returncode != 0:
+            stderr = (result.stderr or "").strip()
+            logger.warning("bird read failed (rc=%d) for %s: %s — falling back to Jina",
+                           result.returncode, url, stderr[:200])
+            return await self._read_jina(url)
+
+        # Parse JSON output
+        try:
+            tweet = json.loads(result.stdout)
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.warning("bird read returned invalid JSON for %s: %s — falling back to Jina",
+                           url, e)
+            return await self._read_jina(url)
+
+        text = tweet.get("text", "")
+        author_info = tweet.get("author", {})
+        author = f"@{author_info['username']}" if author_info.get("username") else ""
+        date = tweet.get("createdAt", "")
+        metrics = _format_metrics(tweet)
+
+        # Build rich content block
+        content_parts = []
+        if author:
+            name = author_info.get("name", "")
+            header = f"{author}"
+            if name:
+                header = f"{name} ({author})"
+            content_parts.append(header)
+        if date:
+            content_parts.append(date)
+        content_parts.append("")
+        content_parts.append(text)
+        if metrics:
+            content_parts.append("")
+            content_parts.append(metrics)
 
         return ReadResult(
             title=text[:100],
-            content=text,
-            url=url,
+            content="\n".join(content_parts),
+            url=_tweet_url(tweet) or url,
             author=author,
+            date=date,
             platform="twitter",
         )
 
@@ -216,68 +276,66 @@ class TwitterChannel(Channel):
     async def _search_bird(self, query: str, limit: int, bird: str, config=None) -> List[SearchResult]:
         try:
             result = subprocess.run(
-                [bird, "search", query, "-n", str(limit)],
+                [bird, "search", query, "-n", str(limit), "--json"],
                 capture_output=True, timeout=30,
                 encoding='utf-8', errors='replace',
                 env=_bird_env(config),
             )
             if result.returncode != 0:
                 stderr = (result.stderr or "").strip()
-                if "fetch failed" in stderr.lower() or "fetch failed" in (result.stdout or "").lower():
-                    # bird can't connect — fall back to Exa silently
-                    return await self._search_exa(query, limit, config)
+                stdout = (result.stdout or "").strip()
+                logger.warning("bird search failed (rc=%d) for query '%s': %s — falling back to Exa",
+                               result.returncode, query, (stderr or stdout)[:200])
                 return await self._search_exa(query, limit, config)
 
-            parsed = self._parse_bird_output(result.stdout)
+            parsed = self._parse_bird_json(result.stdout)
             if not parsed:
-                # bird returned nothing — try Exa
+                logger.warning("bird search returned no results for query '%s' — falling back to Exa", query)
                 return await self._search_exa(query, limit, config)
             return parsed
-        except (subprocess.TimeoutExpired, FileNotFoundError):
+        except subprocess.TimeoutExpired:
+            logger.warning("bird search timed out for query '%s' — falling back to Exa", query)
+            return await self._search_exa(query, limit, config)
+        except FileNotFoundError:
+            logger.warning("bird binary not found — falling back to Exa")
             return await self._search_exa(query, limit, config)
 
-    def _parse_bird_output(self, text: str) -> List[SearchResult]:
-        """Parse bird text output into SearchResults."""
+    def _parse_bird_json(self, raw: str) -> List[SearchResult]:
+        """Parse bird --json output into SearchResults."""
+        try:
+            data = json.loads(raw)
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.warning("bird returned invalid JSON: %s", e)
+            return []
+
+        if not isinstance(data, list):
+            data = [data]
+
         results = []
-        current = {}
-        text_lines = []
+        for tweet in data:
+            url = _tweet_url(tweet)
+            if not url:
+                # Skip results with no usable URL
+                continue
 
-        for line in text.strip().split("\n"):
-            line = line.strip()
-            if line.startswith("─"):
-                if current:
-                    current["text"] = "\n".join(text_lines).strip()
-                    results.append(SearchResult(
-                        title=current.get("text", "")[:80],
-                        url=current.get("url", ""),
-                        snippet=current.get("text", ""),
-                        author=current.get("author", ""),
-                        date=current.get("date", ""),
-                    ))
-                    current = {}
-                    text_lines = []
-                continue
-            if line.startswith("@") and line.endswith(":") and "(" in line:
-                current["author"] = line.split()[0]
-                continue
-            if line.startswith("date:"):
-                current["date"] = line[5:].strip()
-                continue
-            if line.startswith("url:"):
-                current["url"] = line[4:].strip()
-                continue
-            if current is not None:
-                text_lines.append(line)
+            text = tweet.get("text", "")
+            author_info = tweet.get("author", {})
+            author = f"@{author_info['username']}" if author_info.get("username") else ""
+            date = tweet.get("createdAt", "")
+            metrics = _format_metrics(tweet)
 
-        if current and text_lines:
-            current["text"] = "\n".join(text_lines).strip()
+            snippet = text
+            if metrics:
+                snippet = f"{text}\n{metrics}"
+
             results.append(SearchResult(
-                title=current.get("text", "")[:80],
-                url=current.get("url", ""),
-                snippet=current.get("text", ""),
-                author=current.get("author", ""),
-                date=current.get("date", ""),
+                title=text[:80],
+                url=url,
+                snippet=snippet,
+                author=author,
+                date=date,
             ))
+
         return results
 
     async def _search_exa(self, query: str, limit: int, config=None) -> List[SearchResult]:
