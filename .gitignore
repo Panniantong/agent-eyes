@@ -8,3 +8,4 @@ build/
 .env
 .agent-reach/
 *.log
+__pycache__/
