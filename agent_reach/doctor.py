@@ -13,7 +13,10 @@ def check_all(config: Config) -> Dict[str, dict]:
     """Check all channels and return status dict."""
     results = {}
     for ch in get_all_channels():
-        status, message = ch.check(config)
+        try:
+            status, message = ch.check(config)
+        except Exception as e:
+            status, message = "error", f"检查失败: {e}"
         results[ch.name] = {
             "status": status,
             "name": ch.description,

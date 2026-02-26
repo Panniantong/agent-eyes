@@ -57,9 +57,10 @@ class TestConfig:
         assert tmp_config.get("to_delete") is None
 
     def test_is_configured(self, tmp_config):
-        assert not tmp_config.is_configured("exa_search")
-        tmp_config.set("exa_api_key", "test-key")
-        assert tmp_config.is_configured("exa_search")
+        assert not tmp_config.is_configured("twitter_bird")
+        tmp_config.set("twitter_auth_token", "token123")
+        tmp_config.set("twitter_ct0", "ct0abc")
+        assert tmp_config.is_configured("twitter_bird")
 
     def test_is_configured_reddit(self, tmp_config):
         assert not tmp_config.is_configured("reddit_proxy")
@@ -69,7 +70,7 @@ class TestConfig:
     def test_get_configured_features(self, tmp_config):
         features = tmp_config.get_configured_features()
         assert isinstance(features, dict)
-        assert "exa_search" in features
+        assert "reddit_proxy" in features
         assert all(v is False for v in features.values())
 
     def test_to_dict_masks_sensitive(self, tmp_config):

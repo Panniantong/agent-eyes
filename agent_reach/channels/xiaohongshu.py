@@ -7,7 +7,6 @@ Requires: mcporter CLI + xiaohongshu MCP server running
 
 import json
 import shutil
-import subprocess
 from urllib.parse import urlparse
 from .base import Channel, ReadResult, SearchResult
 from typing import List, Optional
@@ -18,27 +17,6 @@ class XiaoHongShuChannel(Channel):
     description = "小红书笔记"
     backends = ["xiaohongshu-mcp"]
     tier = 2
-
-    def _mcporter_ok(self) -> bool:
-        """Check if mcporter + xiaohongshu MCP is available."""
-        if not shutil.which("mcporter"):
-            return False
-        try:
-            r = subprocess.run(
-                ["mcporter", "list"], capture_output=True, text=True, timeout=10
-            )
-            return "xiaohongshu" in r.stdout
-        except Exception:
-            return False
-
-    def _call(self, expr: str, timeout: int = 30) -> str:
-        r = subprocess.run(
-            ["mcporter", "call", expr],
-            capture_output=True, text=True, timeout=timeout,
-        )
-        if r.returncode != 0:
-            raise RuntimeError(r.stderr or r.stdout)
-        return r.stdout
 
     # ── Channel interface ──
 
@@ -55,14 +33,14 @@ class XiaoHongShuChannel(Channel):
                 "  3. mcporter config add xiaohongshu http://localhost:18060/mcp\n"
                 "  详见 https://github.com/xpzouying/xiaohongshu-mcp"
             )
-        if not self._mcporter_ok():
+        if not self._mcporter_has("xiaohongshu"):
             return "off", (
                 "mcporter 已装但小红书 MCP 未配置。运行：\n"
                 "  docker run -d --name xiaohongshu-mcp -p 18060:18060 xpzouying/xiaohongshu-mcp\n"
                 "  mcporter config add xiaohongshu http://localhost:18060/mcp"
             )
         try:
-            out = self._call("xiaohongshu.check_login_status()", timeout=10)
+            out = self._mcporter_call("xiaohongshu.check_login_status()", timeout=10)
             if "已登录" in out or "logged" in out.lower():
                 return "ok", "完整可用（阅读、搜索、发帖、评论、点赞）"
             return "warn", "MCP 已连接但未登录，需扫码登录"
@@ -70,7 +48,7 @@ class XiaoHongShuChannel(Channel):
             return "warn", "MCP 连接异常，检查 xiaohongshu-mcp 服务是否在运行"
 
     async def read(self, url: str, config=None) -> ReadResult:
-        if not self._mcporter_ok():
+        if not self._mcporter_has("xiaohongshu"):
             return ReadResult(
                 title="XiaoHongShu",
                 content=(
@@ -108,26 +86,26 @@ class XiaoHongShuChannel(Channel):
             )
 
         # Step 2: get detail
-        out = self._call(
+        out = self._mcporter_call(
             f'xiaohongshu.get_feed_detail(feed_id: "{note_id}", xsec_token: "{xsec_token}")',
             timeout=15,
         )
 
         return ReadResult(
-            title=self._extract_title(out) or f"XHS {note_id}",
+            title=self._extract_first_line(out) or f"XHS {note_id}",
             content=out.strip(),
             url=url, platform="xiaohongshu",
         )
 
     async def search(self, query: str, config=None, **kwargs) -> List[SearchResult]:
-        if not self._mcporter_ok():
+        if not self._mcporter_has("xiaohongshu"):
             raise ValueError(
                 "小红书搜索需要 mcporter + xiaohongshu-mcp。\n"
                 "安装: npm install -g mcporter && mcporter config add xiaohongshu http://localhost:18060/mcp"
             )
         limit = kwargs.get("limit", 10)
         safe_q = query.replace('"', '\\"')
-        out = self._call(f'xiaohongshu.search_feeds(keyword: "{safe_q}")', timeout=30)
+        out = self._mcporter_call(f'xiaohongshu.search_feeds(keyword: "{safe_q}")', timeout=30)
 
         results = []
         try:
@@ -155,7 +133,7 @@ class XiaoHongShuChannel(Channel):
     def _find_token(self, note_id: str) -> Optional[str]:
         """Try to find xsec_token for a note from feeds."""
         try:
-            out = self._call("xiaohongshu.list_feeds()", timeout=15)
+            out = self._mcporter_call("xiaohongshu.list_feeds()", timeout=15)
             data = json.loads(out)
             for feed in data.get("feeds", []):
                 if feed.get("id") == note_id:
@@ -163,10 +141,3 @@ class XiaoHongShuChannel(Channel):
         except Exception:
             pass
         return None
-
-    def _extract_title(self, text: str) -> str:
-        for line in text.split("\n"):
-            line = line.strip()
-            if line and not line.startswith(("{", "[", "#", "http")):
-                return line[:80]
-        return ""

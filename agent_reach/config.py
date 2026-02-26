@@ -20,7 +20,6 @@ class Config:
 
     # Feature → required config keys
     FEATURE_REQUIREMENTS = {
-        "exa_search": ["exa_api_key"],
         "reddit_proxy": ["reddit_proxy"],
         "twitter_bird": ["twitter_auth_token", "twitter_ct0"],
         "groq_whisper": ["groq_api_key"],

@@ -6,38 +6,10 @@ Swap to: any Boss直聘 access tool
 """
 
 import json
-import shutil
 import subprocess
 from urllib.parse import urlparse
 from .base import Channel, ReadResult, SearchResult
 from typing import List
-import requests
-
-
-def _mcporter_has_bosszhipin() -> bool:
-    """Check if mcporter has Boss直聘 MCP configured."""
-    if not shutil.which("mcporter"):
-        return False
-    try:
-        r = subprocess.run(
-            ["mcporter", "list"], capture_output=True, text=True, timeout=10
-        )
-        # Check for various possible config names
-        out = r.stdout.lower()
-        return "boss" in out or "zhipin" in out or "bosszhipin" in out
-    except Exception:
-        return False
-
-
-def _mcporter_call(expr: str, timeout: int = 30) -> str:
-    """Call a Boss直聘 MCP tool via mcporter."""
-    r = subprocess.run(
-        ["mcporter", "call", expr],
-        capture_output=True, text=True, timeout=timeout,
-    )
-    if r.returncode != 0:
-        raise RuntimeError(r.stderr or r.stdout)
-    return r.stdout
 
 
 def _get_mcp_name() -> str:
@@ -70,7 +42,7 @@ class BossZhipinChannel(Channel):
         return "zhipin.com" in domain or "boss.com" in domain
 
     def check(self, config=None):
-        if _mcporter_has_bosszhipin():
+        if self._mcporter_has("boss"):
             return "ok", "可搜索职位、向 HR 打招呼"
 
         return "off", (
@@ -85,57 +57,22 @@ class BossZhipinChannel(Channel):
 
     async def read(self, url: str, config=None) -> ReadResult:
         # Boss直聘 pages mostly work with Jina Reader
-        return await self._read_jina(url)
-
-    async def _read_jina(self, url: str) -> ReadResult:
-        """Read Boss直聘 page via Jina Reader."""
-        try:
-            resp = requests.get(
-                f"https://r.jina.ai/{url}",
-                headers={"Accept": "text/markdown"},
-                timeout=15,
-            )
-            resp.raise_for_status()
-            text = resp.text
-
-            if len(text.strip()) < 50:
-                return ReadResult(
-                    title="Boss直聘",
-                    content=(
-                        f"⚠️ 无法读取此页面内容: {url}\n\n"
-                        "提示：\n"
-                        "- 安装 mcp-bosszp 可解锁职位搜索和自动打招呼\n"
-                        "- 详见 https://github.com/mucsbr/mcp-bosszp"
-                    ),
-                    url=url,
-                    platform="bosszhipin",
-                )
-
-            return ReadResult(
-                title=text[:100] if text else url,
-                content=text,
-                url=url,
-                platform="bosszhipin",
-            )
-        except Exception:
-            return ReadResult(
-                title="Boss直聘",
-                content=(
-                    f"⚠️ 无法读取此 Boss直聘页面: {url}\n\n"
-                    "提示：\n"
-                    "- Boss直聘部分页面需要登录\n"
-                    "- 安装 mcp-bosszp 可解锁完整功能\n"
-                    "- 详见 https://github.com/mucsbr/mcp-bosszp"
-                ),
-                url=url,
-                platform="bosszhipin",
-            )
+        return await self._jina_read(
+            url, "bosszhipin",
+            error_hint=(
+                f"⚠️ 无法读取此 Boss直聘页面: {url}\n\n"
+                "提示：\n"
+                "- Boss直聘部分页面需要登录\n"
+                "- 安装 mcp-bosszp 可解锁完整功能\n"
+                "- 详见 https://github.com/mucsbr/mcp-bosszp"
+            ),
+        )
 
     async def search(self, query: str, config=None, **kwargs) -> List[SearchResult]:
         limit = kwargs.get("limit", 10)
 
         # Try MCP search first
-        if _mcporter_has_bosszhipin():
+        if self._mcporter_has("boss"):
             try:
                 return await self._search_mcp(query, limit, config)
             except Exception:
@@ -150,7 +87,7 @@ class BossZhipinChannel(Channel):
         """Search Boss直聘 via MCP."""
         server = _get_mcp_name()
         try:
-            out = _mcporter_call(
+            out = self._mcporter_call(
                 f'{server}.get_recommend_jobs_tool(page: 1)',
                 timeout=30,
             )
