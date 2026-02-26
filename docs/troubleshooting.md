@@ -68,16 +68,3 @@ bird search "test"
 **解决方案：**
 - **本地电脑：** 正常使用，一般不会被拦
 - **服务器：** 使用 Jina Reader 读取职位页面 + Exa 搜索职位信息作为替代
-
----
-
-## Instagram: Checkpoint / 安全验证
-
-**症状：** `instaloader --login` 触发 Instagram 安全验证
-
-**原因：** Instagram 检测到从未见过的设备/位置登录。
-
-**解决方案：**
-1. 在自己的浏览器登录 Instagram
-2. 用 Cookie-Editor 导出 Cookie
-3. 配置：`agent-reach configure instagram-cookies "sessionid=xxx; csrftoken=yyy; ..."`

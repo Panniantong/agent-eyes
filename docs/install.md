@@ -80,7 +80,7 @@ Only ask the user when you genuinely need their input (credentials, permissions,
 
 Some channels need credentials only the user can provide. Based on the doctor output, ask for what's missing:
 
-> 🔒 **Security tip:** For platforms that need cookies (Twitter, XiaoHongShu, Instagram), we recommend using a **dedicated/secondary account** rather than your main account. Cookie-based auth grants full account access — using a separate account limits the blast radius if credentials are ever compromised.
+> 🔒 **Security tip:** For platforms that need cookies (Twitter, XiaoHongShu), we recommend using a **dedicated/secondary account** rather than your main account. Cookie-based auth grants full account access — using a separate account limits the blast radius if credentials are ever compromised.
 
 **Twitter search & posting (server users):**
 > "To unlock Twitter search, I need your Twitter cookies. Install the Cookie-Editor Chrome extension, go to x.com/twitter.com, click the extension → Export → Header String, and paste it to me."
@@ -124,20 +124,6 @@ mcporter config add xiaohongshu http://localhost:18060/mcp
 > **登录方式：**
 > - **本地电脑（有浏览器）：** 打开 http://localhost:18060 扫码登录即可。
 > - **服务器（无 UI 界面）：** 服务器上通常没有浏览器，无法直接扫码。最方便的方式是在自己的电脑上用浏览器登录小红书，然后用 [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) 插件导出 Cookie（Header String 格式），发给 Agent 即可完成配置。详见 [Cookie 导出指南](cookie-export.md)。
-
-**Instagram (需要 instaloader):**
-> "Instagram 需要 instaloader。我来帮你安装。"
-
-```bash
-pip install instaloader
-```
-
-> **登录方式（解锁私密内容）：**
-> - **方法 1（推荐）：Cookie-Editor 导入：** 在浏览器登录 Instagram → 用 [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) 导出 Header String → 粘贴：
->   ```bash
->   agent-reach configure instagram-cookies "sessionid=xxx; csrftoken=yyy; ..."
->   ```
-> - **方法 2：instaloader 命令行登录：** `instaloader --login YOUR_USERNAME`（需要输密码，有 2FA 的话还要输验证码）
 
 **LinkedIn (可选 — linkedin-scraper-mcp):**
 > "LinkedIn 基本内容可通过 Jina Reader 读取。完整功能（Profile 详情、职位搜索）需要 linkedin-scraper-mcp。"
@@ -250,6 +236,5 @@ If the user wants a different agent to handle it, let them choose.
 | `agent-reach search-youtube "query"` | Search YouTube |
 | `agent-reach search-bilibili "query"` | Search Bilibili |
 | `agent-reach search-xhs "query"` | Search XiaoHongShu |
-| `agent-reach search-instagram "query"` | Search Instagram |
 | `agent-reach search-linkedin "query"` | Search LinkedIn |
 | `agent-reach search-bosszhipin "query"` | Search Boss直聘 |
