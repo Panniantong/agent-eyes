@@ -6,8 +6,12 @@ yt-dlp natively supports Bilibili — video info, subtitles, and search.
 """
 
 import json
+import os
+import re
 import shutil
 import subprocess
+import tempfile
+from pathlib import Path
 from urllib.parse import urlparse
 from .base import Channel, ReadResult, SearchResult
 from typing import List
@@ -30,7 +34,6 @@ class BilibiliChannel(Channel):
         proxy = config.get("bilibili_proxy") if config else None
         if proxy:
             return "ok", "已配置代理，完整可用"
-        import os
         is_server = bool(os.environ.get("SSH_CONNECTION") or os.path.exists("/etc/cloud"))
         if is_server:
             return "warn", "服务器 IP 可能被封，配置代理即可解决：agent-reach configure proxy URL"
@@ -43,7 +46,7 @@ class BilibiliChannel(Channel):
         proxy = config.get("bilibili_proxy") if config else None
 
         # Get video info via yt-dlp
-        info = self._get_info(url, proxy)
+        info = self._get_info(url, proxy, config)
         if not info:
             return ReadResult(
                 title="Bilibili",
@@ -51,12 +54,12 @@ class BilibiliChannel(Channel):
                 url=url, platform="bilibili",
             )
 
-        title = info.get("title", url)
-        author = info.get("uploader", "")
-        desc = info.get("description", "")
+        title = info.get("title") or url
+        author = info.get("uploader") or ""
+        desc = info.get("description") or ""
 
         # Try subtitles
-        subtitle = self._get_subtitles(url, proxy)
+        subtitle = self._get_subtitles(url, proxy, config)
         content = desc
         if subtitle:
             content += f"\n\n## 字幕\n{subtitle}"
@@ -64,6 +67,7 @@ class BilibiliChannel(Channel):
         return ReadResult(
             title=title, content=content, url=url,
             author=author, platform="bilibili",
+            date=info.get("upload_date") or "",
             extra={
                 "view_count": info.get("view_count"),
                 "like_count": info.get("like_count"),
@@ -116,11 +120,12 @@ class BilibiliChannel(Channel):
                 try:
                     d = json.loads(line)
                     vid = d.get("id", "")
-                    url = d.get("webpage_url", f"https://www.bilibili.com/video/av{vid}")
+                    url = d.get("webpage_url") or f"https://www.bilibili.com/video/{vid}"
                     results.append(SearchResult(
-                        title=d.get("title", f"av{vid}"),
+                        title=d.get("title") or f"{vid}",
                         url=url,
                         snippet=f"👤 {d.get('uploader', '?')} · 👁 {d.get('view_count', '?')}",
+                        author=d.get("uploader") or "",
                         extra={
                             "view_count": d.get("view_count"),
                             "uploader": d.get("uploader"),
@@ -159,49 +164,113 @@ class BilibiliChannel(Channel):
                             title=title or url,
                             url=url,
                             snippet=f"👤 {author}" if author else "(via Exa search)",
+                            author=author,
                         ))
                     title, author, url = "", "", ""
             return results
         except Exception:
             return []
 
-    def _get_info(self, url: str, proxy: str = None) -> dict:
-        cmd = ["yt-dlp", "--dump-json", "--no-download", url]
+    def _get_info(self, url: str, proxy: str = None, config=None) -> dict:
+        cmd = ["yt-dlp", "--dump-json", "--no-download"]
         if proxy:
             cmd += ["--proxy", proxy]
+        # Apply cookie config
+        cookie_file = self._build_cookie_file(config)
+        if cookie_file:
+            cmd += ["--cookies", cookie_file]
+        cmd.append(url)
         try:
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             if r.returncode == 0:
                 return json.loads(r.stdout)
         except (subprocess.TimeoutExpired, json.JSONDecodeError):
             pass
+        finally:
+            if cookie_file:
+                try:
+                    os.unlink(cookie_file)
+                except OSError:
+                    pass
         return {}
 
-    def _get_subtitles(self, url: str, proxy: str = None) -> str:
-        import tempfile
-        from pathlib import Path
-
+    def _get_subtitles(self, url: str, proxy: str = None, config=None) -> str:
         with tempfile.TemporaryDirectory() as tmpdir:
             cmd = [
                 "yt-dlp", "--write-sub", "--write-auto-sub",
                 "--sub-lang", "zh-Hans,zh,en",
-                "--skip-download", "--sub-format", "vtt",
-                "-o", f"{tmpdir}/%(id)s.%(ext)s", url,
+                "--skip-download",
+                "--convert-subs", "vtt",
+                "--sub-format", "vtt",
+                "-o", f"{tmpdir}/%(id)s.%(ext)s",
             ]
             if proxy:
                 cmd += ["--proxy", proxy]
+            # Apply cookie config
+            cookie_file = self._build_cookie_file(config)
+            if cookie_file:
+                cmd += ["--cookies", cookie_file]
+            cmd.append(url)
             try:
                 subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                # Priority-based subtitle selection
+                priority = ["zh-Hans", "zh", "en"]
+                for lang in priority:
+                    for f in Path(tmpdir).glob(f"*.{lang}.vtt"):
+                        return self._parse_vtt(f)
+                # Fallback: any vtt
                 for f in Path(tmpdir).glob("*.vtt"):
-                    text = f.read_text(errors="replace")
-                    lines = []
-                    for line in text.split("\n"):
-                        line = line.strip()
-                        if not line or line.startswith("WEBVTT") or "-->" in line or line.isdigit():
-                            continue
-                        if line not in lines[-1:]:
-                            lines.append(line)
-                    return "\n".join(lines)
+                    return self._parse_vtt(f)
             except subprocess.TimeoutExpired:
                 pass
+            finally:
+                if cookie_file:
+                    try:
+                        os.unlink(cookie_file)
+                    except OSError:
+                        pass
         return ""
+
+    @staticmethod
+    def _parse_vtt(filepath: Path) -> str:
+        """Parse a VTT file into clean text, stripping HTML tags and deduping."""
+        text = filepath.read_text(errors="replace")
+        lines = []
+        for line in text.split("\n"):
+            line = line.strip()
+            if not line or line.startswith("WEBVTT") or "-->" in line or line.isdigit():
+                continue
+            # Strip HTML tags (e.g. <c>, </c>, <c.colorCCCCCC>)
+            line = re.sub(r'<[^>]+>', '', line)
+            line = line.strip()
+            if line and line not in lines[-1:]:
+                lines.append(line)
+        return "\n".join(lines)
+
+    @staticmethod
+    def _build_cookie_file(config) -> str:
+        """Build a Netscape cookie file from config's bilibili_sessdata.
+
+        Returns the temp file path, or None if no cookies configured.
+        Caller is responsible for deleting the file.
+        """
+        if not config:
+            return None
+        sessdata = config.get("bilibili_sessdata")
+        if not sessdata:
+            return None
+
+        csrf = config.get("bilibili_csrf") or ""
+
+        # Netscape cookie file format
+        lines = [
+            "# Netscape HTTP Cookie File",
+            f".bilibili.com\tTRUE\t/\tFALSE\t0\tSESSDATA\t{sessdata}",
+        ]
+        if csrf:
+            lines.append(f".bilibili.com\tTRUE\t/\tFALSE\t0\tbili_jct\t{csrf}")
+
+        fd, path = tempfile.mkstemp(suffix=".txt", prefix="bili_cookies_")
+        with os.fdopen(fd, "w") as f:
+            f.write("\n".join(lines) + "\n")
+        return path
