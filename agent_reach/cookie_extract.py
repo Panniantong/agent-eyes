@@ -21,6 +21,12 @@ PLATFORM_SPECS = [
         "config_key": "twitter",
     },
     {
+        "name": "Instagram",
+        "domains": [".instagram.com"],
+        "cookies": None,  # None = grab all cookies as header string
+        "config_key": "instagram",
+    },
+    {
         "name": "XiaoHongShu",
         "domains": [".xiaohongshu.com"],
         "cookies": None,  # None = grab all cookies as header string
@@ -143,6 +149,32 @@ def configure_from_browser(browser: str, config) -> List[Tuple[str, bool, str]]:
             results_list.append(("Twitter/X", False,
                                  f"Found {found}, but missing: {', '.join(missing)}. "
                                  f"Make sure you're logged into x.com in {browser}."))
+
+    if "instagram" in extracted:
+        cookie_str = extracted["instagram"].get("cookie_string", "")
+        if cookie_str:
+            # Validate essential cookies exist
+            cookies = {}
+            for part in cookie_str.split(";"):
+                part = part.strip()
+                if "=" in part:
+                    k, v = part.split("=", 1)
+                    cookies[k.strip()] = v.strip()
+            if "sessionid" in cookies:
+                # Save as cookie file (same format as manual configure)
+                from pathlib import Path
+                cookie_dir = Path.home() / ".agent-reach"
+                cookie_dir.mkdir(parents=True, exist_ok=True)
+                cookie_file = cookie_dir / "instagram-cookies.txt"
+                cookie_file.write_text(cookie_str)
+                cookie_file.chmod(0o600)
+                n_cookies = len(cookies)
+                results_list.append(("Instagram", True,
+                                     f"{n_cookies} cookies (sessionid ✅)"))
+            else:
+                results_list.append(("Instagram", False,
+                                     f"Cookies found but missing sessionid. "
+                                     f"Make sure you're logged into instagram.com in {browser}."))
 
     if "xhs" in extracted:
         cookie_str = extracted["xhs"].get("cookie_string", "")
