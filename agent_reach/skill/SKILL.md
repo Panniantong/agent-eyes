@@ -2,11 +2,11 @@
 name: agent-reach
 description: >
   Give your AI agent eyes to see the entire internet. Read and search across
-  Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Instagram, LinkedIn,
+  Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, LinkedIn,
   Boss直聘, RSS, and any web page — all from a single CLI.
   Use when: (1) reading content from URLs (tweets, Reddit posts, articles, videos),
   (2) searching across platforms (web, Twitter, Reddit, GitHub, YouTube, Bilibili,
-  XiaoHongShu, Instagram, LinkedIn, Boss直聘),
+  XiaoHongShu, LinkedIn, Boss直聘),
   (3) user asks to configure/enable a platform channel,
   (4) checking channel health or updating Agent Reach.
   Triggers: "search Twitter/Reddit/YouTube", "read this URL", "find posts about",
@@ -31,7 +31,7 @@ pip install https://github.com/Panniantong/agent-reach/archive/main.zip
 agent-reach install --env=auto
 ```
 
-`install` auto-detects your environment and installs core dependencies (Node.js, mcporter, bird CLI, gh CLI, instaloader). Read the output and run `agent-reach doctor` to see what's active.
+`install` auto-detects your environment and installs core dependencies (Node.js, mcporter, bird CLI, gh CLI). Read the output and run `agent-reach doctor` to see what's active.
 
 ## Commands
 
@@ -40,7 +40,7 @@ agent-reach install --env=auto
 agent-reach read <url>
 agent-reach read <url> --json    # structured output
 ```
-Handles: tweets, Reddit posts, articles, YouTube/Bilibili (transcripts), GitHub repos, Instagram posts, LinkedIn profiles, Boss直聘 jobs, XiaoHongShu notes, RSS feeds, and any web page.
+Handles: tweets, Reddit posts, articles, YouTube/Bilibili (transcripts), GitHub repos, LinkedIn profiles, Boss直聘 jobs, XiaoHongShu notes, RSS feeds, and any web page.
 
 ### Search
 
@@ -52,7 +52,6 @@ agent-reach search-github "query"      # GitHub (--lang <language>)
 agent-reach search-youtube "query"     # YouTube
 agent-reach search-bilibili "query"    # Bilibili (B站)
 agent-reach search-xhs "query"        # XiaoHongShu (小红书)
-agent-reach search-instagram "query"   # Instagram
 agent-reach search-linkedin "query"    # LinkedIn
 agent-reach search-bosszhipin "query"  # Boss直聘
 ```
@@ -71,7 +70,6 @@ agent-reach check-update  # check for new versions
 
 ```bash
 agent-reach configure twitter-cookies "auth_token=xxx; ct0=yyy"
-agent-reach configure instagram-cookies "sessionid=xxx; csrftoken=yyy; ..."
 agent-reach configure proxy http://user:pass@ip:port
 agent-reach configure --from-browser chrome    # auto-extract cookies from local browser
 ```

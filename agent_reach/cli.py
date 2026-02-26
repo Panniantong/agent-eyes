@@ -89,11 +89,6 @@ def main():
     p_sx.add_argument("query", nargs="+", help="Search query")
     p_sx.add_argument("-n", "--num", type=int, default=10, help="Number of results")
 
-    # ── search-instagram ──
-    p_si = sub.add_parser("search-instagram", help="Search Instagram")
-    p_si.add_argument("query", nargs="+", help="Search query")
-    p_si.add_argument("-n", "--num", type=int, default=10, help="Number of results")
-
     # ── search-linkedin ──
     p_sl = sub.add_parser("search-linkedin", help="Search LinkedIn")
     p_sl.add_argument("query", nargs="+", help="Search query")
@@ -122,8 +117,7 @@ def main():
     p_conf = sub.add_parser("configure", help="Set a config value or auto-extract from browser")
     p_conf.add_argument("key", nargs="?", default=None,
                         choices=["proxy", "github-token", "groq-key",
-                                 "twitter-cookies", "youtube-cookies",
-                                 "instagram-cookies"],
+                                 "twitter-cookies", "youtube-cookies"],
                         help="What to configure (omit if using --from-browser)")
     p_conf.add_argument("value", nargs="*", help="The value(s) to set")
     p_conf.add_argument("--from-browser", metavar="BROWSER",
@@ -436,23 +430,6 @@ def _install_system_deps():
             except Exception:
                 print("  ⬜ undici install failed (optional — bird may not work behind proxies)")
 
-    # ── instaloader (for Instagram) ──
-    if shutil.which("instaloader"):
-        print("  ✅ instaloader already installed")
-    else:
-        print("  📥 Installing instaloader...")
-        try:
-            subprocess.run(
-                [sys.executable, "-m", "pip", "install", "instaloader"],
-                capture_output=True, text=True, timeout=120,
-            )
-            if shutil.which("instaloader"):
-                print("  ✅ instaloader installed (Instagram reading)")
-            else:
-                print("  ⬜ instaloader install failed (optional — try: pip install instaloader)")
-        except Exception:
-            print("  ⬜ instaloader install failed (optional — try: pip install instaloader)")
-
 
 def _install_system_deps_safe():
     """Safe mode: check what's installed, print instructions for what's missing."""
@@ -464,7 +441,6 @@ def _install_system_deps_safe():
         ("gh", ["gh"], "GitHub CLI", "https://cli.github.com — or: apt install gh / brew install gh"),
         ("node", ["node", "npm"], "Node.js", "https://nodejs.org — or: apt install nodejs npm"),
         ("bird", ["bird", "birdx"], "bird CLI (Twitter)", "npm install -g @steipete/bird"),
-        ("instaloader", ["instaloader"], "instaloader (Instagram)", "pip install instaloader"),
     ]
 
     missing = []
@@ -495,7 +471,6 @@ def _install_system_deps_dryrun():
         ("gh CLI", ["gh"], "apt install gh / brew install gh"),
         ("Node.js", ["node"], "curl NodeSource setup | bash + apt install nodejs"),
         ("bird CLI", ["bird", "birdx"], "npm install -g @steipete/bird"),
-        ("instaloader", ["instaloader"], "pip install instaloader"),
     ]
 
     for label, binaries, method in checks:
@@ -764,9 +739,6 @@ def _cmd_configure(args):
         config.set("groq_api_key", value)
         print(f"✅ Groq key configured!")
 
-    elif args.key == "instagram-cookies":
-        _configure_instagram_cookies(value)
-
 
 def _cmd_doctor():
     from agent_reach.config import Config
@@ -787,30 +759,6 @@ def _parse_cookie_header(cookie_str: str) -> dict:
     return cookies
 
 
-def _configure_instagram_cookies(value: str):
-    """Save Instagram cookies from Cookie-Editor Header String."""
-    from pathlib import Path
-
-    cookies = _parse_cookie_header(value)
-    if "sessionid" not in cookies:
-        print("❌ Cookie 里缺少 sessionid。")
-        print("   确保你已登录 Instagram，然后用 Cookie-Editor 导出 Header String。")
-        print('   格式: agent-reach configure instagram-cookies "sessionid=xxx; csrftoken=yyy; ..."')
-        return
-
-    cookie_dir = Path.home() / ".agent-reach"
-    cookie_dir.mkdir(parents=True, exist_ok=True)
-    cookie_file = cookie_dir / "instagram-cookies.txt"
-    cookie_file.write_text(value.strip())
-    cookie_file.chmod(0o600)
-
-    print(f"✅ Instagram cookies 已保存！")
-    print(f"   sessionid: {cookies['sessionid'][:8]}...")
-    if "csrftoken" in cookies:
-        print(f"   csrftoken: ✅")
-    if "ds_user_id" in cookies:
-        print(f"   ds_user_id: {cookies['ds_user_id']}")
-    print(f"   文件: {cookie_file}")
 
 
 def _cmd_setup():
@@ -952,8 +900,6 @@ async def _cmd_search(args):
             results = await eyes.search_bilibili(query, limit=num)
         elif args.command == "search-xhs":
             results = await eyes.search_xhs(query, limit=num)
-        elif args.command == "search-instagram":
-            results = await eyes.search_instagram(query, limit=num)
         elif args.command == "search-linkedin":
             results = await eyes.search_linkedin(query, limit=num)
         elif args.command == "search-bosszhipin":

@@ -10,7 +10,7 @@ keywords = [
     "ai-agent", "llm-tools", "agent-infrastructure", "mcp",
     "web-reader", "web-scraper", "search",
     "twitter-scraper", "reddit-scraper", "youtube-transcript",
-    "bilibili", "xiaohongshu", "instagram",
+    "bilibili", "xiaohongshu",
     "ai-search", "cli", "automation",
     "claude-code", "cursor", "openai",
     "free-api", "no-api-key",
