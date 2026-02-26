@@ -115,14 +115,14 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 
 不需要任何配置，告诉 Agent 就行：
 
-- "帮我看看这个链接" → 任意网页
-- "这个 GitHub 仓库是做什么的" → GitHub 仓库、Issue、代码
-- "这个视频讲了什么" → YouTube / B站字幕提取
-- "帮我看看这条推文" → Twitter 推文
-- "订阅这个 RSS" → RSS / Atom 源
-- "搜一下 GitHub 上有什么 LLM 框架" → GitHub 搜索
+- "帮我看看这个链接" → `curl https://r.jina.ai/URL` 读任意网页
+- "这个 GitHub 仓库是做什么的" → `gh repo view owner/repo`
+- "这个视频讲了什么" → `yt-dlp --dump-json URL` 提取字幕
+- "帮我看看这条推文" → `bird read URL --json`
+- "订阅这个 RSS" → `feedparser` 解析
+- "搜一下 GitHub 上有什么 LLM 框架" → `gh search repos "LLM framework"`
 
-**不需要记命令。** Agent 自己知道该调什么。
+**不需要记命令。** Agent 读了 SKILL.md 之后自己知道该调什么。
 
 ---
 
@@ -134,9 +134,11 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 
 Agent Reach 做的事情很简单：**帮你把这些选型和配置的活儿做完了。**
 
+安装完成后，Agent 直接调用上游工具（bird CLI、yt-dlp、mcporter、gh CLI 等），不需要经过 Agent Reach 的包装层。
+
 ### 🔌 每个渠道都是可插拔的
 
-每个平台对应一个独立的 Python 文件，实现统一接口。**后端工具随时可以换**——哪天出了更好的工具，改一个文件就行，其他不用动。
+每个平台背后是一个独立的上游工具。**不满意？换掉就行。**
 
 ```
 channels/
@@ -229,13 +231,13 @@ Star 一下，下次需要的时候能找到。⭐
 <details>
 <summary><strong>AI Agent 怎么搜索 Twitter / X？不想付 API 费用</strong></summary>
 
-Agent Reach 使用 [bird CLI](https://www.npmjs.com/package/@steipete/bird) 通过 Cookie 认证访问 Twitter，完全免费。安装 Agent Reach 后，用 Cookie-Editor 导出你的 Twitter Cookie，运行 `agent-reach configure twitter-cookies "your_cookies"` 即可。之后 Agent 就可以用 `agent-reach search-twitter "关键词"` 搜索推文了。
+Agent Reach 使用 [bird CLI](https://www.npmjs.com/package/@steipete/bird) 通过 Cookie 认证访问 Twitter，完全免费。安装 Agent Reach 后，用 Cookie-Editor 导出你的 Twitter Cookie，运行 `agent-reach configure twitter-cookies "your_cookies"` 即可。之后 Agent 就可以用 `bird search "关键词" --json` 搜索推文了。
 </details>
 
 <details>
 <summary><strong>How to search Twitter/X with AI agent for free (no API)?</strong></summary>
 
-Agent Reach uses the bird CLI with cookie auth — zero API fees. After installing, export your Twitter cookies with the Cookie-Editor extension, run `agent-reach configure twitter-cookies "your_cookies"`, then your agent can search with `agent-reach search-twitter "query"`.
+Agent Reach uses the bird CLI with cookie auth — zero API fees. After installing, export your Twitter cookies with the Cookie-Editor extension, run `agent-reach configure twitter-cookies "your_cookies"`, then your agent can search with `bird search "query" --json`.
 </details>
 
 <details>
@@ -247,19 +249,19 @@ Reddit 封锁数据中心 IP。配置一个住宅代理即可解决：`agent-rea
 <details>
 <summary><strong>How to get YouTube video transcripts for AI?</strong></summary>
 
-`agent-reach read https://youtube.com/watch?v=xxx` automatically extracts the transcript. Uses yt-dlp under the hood, supports multiple languages. No API key needed.
+`yt-dlp --dump-json "https://youtube.com/watch?v=xxx"` extracts video metadata; `yt-dlp --write-sub --skip-download "URL"` extracts subtitles. Uses yt-dlp under the hood, supports multiple languages. No API key needed.
 </details>
 
 <details>
 <summary><strong>怎么让 AI Agent 读小红书？</strong></summary>
 
-小红书需要通过 Docker 运行一个 MCP 服务。安装 Docker 后，运行 `agent-reach install` 会自动配置。之后 Agent 就能用 `agent-reach read <小红书链接>` 或 `agent-reach search-xhs "关键词"` 了。
+小红书需要通过 Docker 运行一个 MCP 服务。安装 Docker 后，运行 `agent-reach install` 会自动配置。之后 Agent 就能用 `mcporter call 'xiaohongshu.get_feed_detail(...)'` 读取笔记或 `mcporter call 'xiaohongshu.search_feeds(keyword: "关键词")'` 搜索了。
 </details>
 
 <details>
 <summary><strong>Compatible with Claude Code / Cursor / OpenClaw / Windsurf?</strong></summary>
 
-Yes! Agent Reach is a standard CLI tool — any AI coding agent that can run shell commands can use it. Works with Claude Code, Cursor, OpenClaw, Windsurf, Codex, and more. Just `pip install agent-reach` and the agent can start using it immediately.
+Yes! Agent Reach is an installer + configuration tool — any AI coding agent that can run shell commands can use it. Works with Claude Code, Cursor, OpenClaw, Windsurf, Codex, and more. Just `pip install agent-reach`, run `agent-reach install`, and the agent can start using the upstream tools immediately.
 </details>
 
 <details>
