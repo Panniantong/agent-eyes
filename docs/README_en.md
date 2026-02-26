@@ -59,6 +59,7 @@ Copy that to your Agent. A few minutes later, it can read tweets, search Reddit,
 | 🐦 **Twitter/X** | Read · Search | Zero config / Cookie | Single tweets readable out of the box. Cookie unlocks search, timeline, posting ([bird](https://github.com/steipete/bird)) |
 | 📕 **XiaoHongShu** | Read · Search · **Post · Comment · Like** | mcporter | Via [xiaohongshu-mcp](https://github.com/user/xiaohongshu-mcp) internal API, install and go |
 | 🎵 **Douyin** | Video parsing · Watermark-free download | mcporter | Via [douyin-mcp-server](https://github.com/yzfly/douyin-mcp-server), no login needed |
+| 📰 **WeChat MP** | Read articles (Jina Reader) | Draft management · Publishing · User management · Analytics | Via [wechat-official-account-mcp](https://github.com/xwang152-jack/wechat-official-account-mcp), needs AppID + AppSecret |
 | 💼 **LinkedIn** | Jina Reader (public pages) | Full profiles, companies, job search | Tell your Agent "help me set up LinkedIn" |
 | 🏢 **Boss直聘** | Jina Reader (job pages) | Job search, greet recruiters | Tell your Agent "help me set up Boss直聘" |
 | 🔍 **Web Search** | Search | Auto-configured | Auto-configured during install, free, no API key ([Exa](https://exa.ai) via [mcporter](https://github.com/nicepkg/mcporter)) |

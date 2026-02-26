@@ -169,6 +169,28 @@ mcporter config add douyin http://localhost:18070/mcp
 >
 > 详见 https://github.com/yzfly/douyin-mcp-server
 
+**微信公众号 / WeChat Official Account (wechat-official-account-mcp):**
+> "微信公众号管理需要一个 MCP 服务，可以管理草稿、发布文章、用户管理、数据统计等。需要你的公众号后台的 AppID 和 AppSecret。"
+
+```bash
+# 1. 安装
+npm install -g wechat-official-account-mcp
+
+# 2. 注册到 mcporter（替换为你的 AppID 和 AppSecret）
+mcporter config add wechat-mp --stdio "wechat-mcp mcp -a <APP_ID> -s <APP_SECRET>"
+```
+
+> **获取 AppID 和 AppSecret：**
+> 1. 登录 [微信公众平台](https://mp.weixin.qq.com/)
+> 2. 进入「设置与开发」→「基本配置」
+> 3. 复制 AppID 和 AppSecret
+>
+> **注意：** 需要在公众号后台的「开发者」→「基本配置」→「IP白名单」中添加你服务器的 IP 地址。
+>
+> 公众号文章阅读（mp.weixin.qq.com 链接）无需配置，可通过 Jina Reader 直接读取。
+>
+> 详见 https://github.com/xwang152-jack/wechat-official-account-mcp
+
 **LinkedIn (可选 — linkedin-scraper-mcp):**
 > "LinkedIn 基本内容可通过 Jina Reader 读取。完整功能（Profile 详情、职位搜索）需要 linkedin-scraper-mcp。"
 
@@ -286,6 +308,7 @@ After installation, use upstream tools directly. See SKILL.md for the full comma
 | Exa Search | `mcporter` | `mcporter call 'exa.web_search_exa(...)'` |
 | 小红书 | `mcporter` | `mcporter call 'xiaohongshu.search_feeds(...)'` |
 | 抖音 | `mcporter` | `mcporter call 'douyin.parse_douyin_video_info(...)'` |
+| 微信公众号 | `mcporter` | `mcporter call 'wechat-mp.wechat_draft(action: "list")'` |
 | LinkedIn | `mcporter` | `mcporter call 'linkedin.get_person_profile(...)'` |
 | Boss直聘 | `mcporter` | `mcporter call 'bosszhipin.search_jobs_tool(...)'` |
 | RSS | `feedparser` | `python3 -c "import feedparser; ..."` |

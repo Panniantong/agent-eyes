@@ -3,7 +3,7 @@ name: agent-reach
 description: >
   Give your AI agent eyes to see the entire internet. Install and configure
   upstream tools for Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu,
-  Douyin, LinkedIn, Boss直聘, RSS, and any web page — then call them directly.
+  Douyin, WeChat Official Account, LinkedIn, Boss直聘, RSS, and any web page — then call them directly.
   Use when: (1) setting up platform access tools for the first time,
   (2) checking which platforms are available,
   (3) user asks to configure/enable a platform channel.
@@ -160,6 +160,35 @@ mcporter call 'douyin.extract_douyin_text(share_link: "https://v.douyin.com/xxx/
 ```
 
 > 无需登录即可解析视频。支持抖音分享链接和直接链接。
+
+### 微信公众号 / WeChat Official Account (mcporter + wechat-official-account-mcp)
+
+```bash
+# 读取公众号文章（通过 Jina Reader，无需配置）
+curl -s "https://r.jina.ai/https://mp.weixin.qq.com/s/ARTICLE_ID" -H "Accept: text/markdown"
+
+# 以下功能需要配置 MCP 服务（需要 AppID + AppSecret）
+
+# 查看草稿列表
+mcporter call 'wechat-mp.wechat_draft(action: "list")'
+
+# 创建草稿
+mcporter call 'wechat-mp.wechat_draft(action: "add", articles: [{"title": "标题", "content": "正文HTML", "thumb_media_id": "素材ID"}])'
+
+# 发布草稿
+mcporter call 'wechat-mp.wechat_publish(action: "submit", mediaId: "草稿MEDIA_ID")'
+
+# 查看数据统计
+mcporter call 'wechat-mp.wechat_statistics(action: "get_article_summary", beginDate: "2025-01-01", endDate: "2025-01-07")'
+
+# 用户管理
+mcporter call 'wechat-mp.wechat_user(action: "get_user_list")'
+
+# 发送模板消息
+mcporter call 'wechat-mp.wechat_template_msg(action: "send", toUser: "OPENID", templateId: "TEMPLATE_ID")'
+```
+
+> 公众号文章阅读无需配置（Jina Reader 即可）。管理功能需要公众号后台的 AppID 和 AppSecret。
 
 ### GitHub (gh CLI)
 
