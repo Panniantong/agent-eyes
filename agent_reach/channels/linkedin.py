@@ -5,25 +5,42 @@ Backend: linkedin-scraper-mcp (916 stars, Patchright browser automation)
 Swap to: any LinkedIn access tool
 """
 
+import json
+import logging
 import shutil
 import subprocess
+import time
 from urllib.parse import urlparse
 from .base import Channel, ReadResult, SearchResult
 from typing import List
 import requests
 
+logger = logging.getLogger(__name__)
+
+_mcporter_cache = {"available": None, "checked_at": 0}
+
 
 def _mcporter_has_linkedin() -> bool:
-    """Check if mcporter has linkedin MCP configured."""
+    """Check if mcporter has linkedin MCP configured (cached for 60s)."""
+    now = time.time()
+    if now - _mcporter_cache["checked_at"] < 60 and _mcporter_cache["available"] is not None:
+        return _mcporter_cache["available"]
+
     if not shutil.which("mcporter"):
+        _mcporter_cache["available"] = False
+        _mcporter_cache["checked_at"] = now
         return False
     try:
         r = subprocess.run(
             ["mcporter", "list"], capture_output=True, text=True, timeout=10
         )
-        return "linkedin" in r.stdout.lower()
+        result = "linkedin" in r.stdout.lower()
     except Exception:
-        return False
+        result = False
+
+    _mcporter_cache["available"] = result
+    _mcporter_cache["checked_at"] = now
+    return result
 
 
 def _mcporter_call(expr: str, timeout: int = 30) -> str:
@@ -81,8 +98,8 @@ class LinkedInChannel(Channel):
                     return await self._read_company_mcp(url)
                 elif "/jobs/view/" in url:
                     return await self._read_job_mcp(url)
-            except Exception:
-                pass  # Fall through to Jina
+            except Exception as e:
+                logger.warning(f"LinkedIn MCP read failed, falling back to Jina: {e}")
 
         # Fallback: Jina Reader
         return await self._read_jina(url)
@@ -174,7 +191,7 @@ class LinkedInChannel(Channel):
                 )
 
             return ReadResult(
-                title=text[:100] if text else url,
+                title=self._extract_title(text) or url,
                 content=text,
                 url=url,
                 platform="linkedin",
@@ -200,8 +217,8 @@ class LinkedInChannel(Channel):
         if _mcporter_has_linkedin():
             try:
                 return await self._search_mcp(query, limit)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"LinkedIn MCP search failed, falling back to Exa: {e}")
 
         # Fallback to Exa
         from agent_reach.channels.exa_search import ExaSearchChannel
@@ -220,8 +237,8 @@ class LinkedInChannel(Channel):
             results = self._parse_search_results(out, "job")
             if results:
                 return results[:limit]
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"LinkedIn job search MCP call failed: {e}")
 
         # Try people search
         try:
@@ -231,36 +248,40 @@ class LinkedInChannel(Channel):
             )
             results = self._parse_search_results(out, "people")
             if results:
-                return results
-        except Exception:
-            pass
+                return results[:limit]
+        except Exception as e:
+            logger.warning(f"LinkedIn people search MCP call failed: {e}")
 
         return []
 
     def _parse_search_results(self, text: str, result_type: str) -> List[SearchResult]:
-        """Parse MCP search output into SearchResults."""
-        import json
+        """Parse MCP search output into SearchResults.
+
+        linkedin-scraper-mcp returns: {"url": "...", "sections": {"name": "raw text"}, "pages_visited": N}
+        mcporter may output text/markdown instead of JSON.
+        """
         results = []
         try:
             data = json.loads(text)
-            items = data if isinstance(data, list) else data.get("results", data.get("jobs", []))
-            for item in items:
-                if isinstance(item, dict):
-                    title = item.get("title") or item.get("name") or item.get("headline", "")
-                    url = item.get("url") or item.get("link", "")
-                    snippet = item.get("description") or item.get("company", "")
-                    results.append(SearchResult(
-                        title=title,
-                        url=url,
-                        snippet=snippet[:200] if snippet else "",
-                    ))
-        except (json.JSONDecodeError, KeyError):
-            # Try line-by-line parsing
-            pass
+            if isinstance(data, dict) and "sections" in data:
+                raw = "\n".join(str(v) for v in data["sections"].values())
+                results.append(SearchResult(
+                    title=f"LinkedIn {result_type} search results",
+                    url=data.get("url", ""),
+                    snippet=raw[:500],
+                ))
+        except (json.JSONDecodeError, ValueError):
+            # mcporter may output text format; wrap as a result
+            if text.strip():
+                results.append(SearchResult(
+                    title=f"LinkedIn {result_type} search results",
+                    url="",
+                    snippet=text.strip()[:500],
+                ))
         return results
 
     def _extract_title(self, text: str) -> str:
-        """Extract a title from MCP output."""
+        """Extract a meaningful title from MCP/Jina output."""
         for line in text.split("\n"):
             line = line.strip()
             if line and not line.startswith(("{", "[", "#", "http")):
