@@ -6,35 +6,9 @@ Swap to: any LinkedIn access tool
 """
 
 import shutil
-import subprocess
 from urllib.parse import urlparse
 from .base import Channel, ReadResult, SearchResult
 from typing import List
-import requests
-
-
-def _mcporter_has_linkedin() -> bool:
-    """Check if mcporter has linkedin MCP configured."""
-    if not shutil.which("mcporter"):
-        return False
-    try:
-        r = subprocess.run(
-            ["mcporter", "list"], capture_output=True, text=True, timeout=10
-        )
-        return "linkedin" in r.stdout.lower()
-    except Exception:
-        return False
-
-
-def _mcporter_call(expr: str, timeout: int = 30) -> str:
-    """Call a LinkedIn MCP tool via mcporter."""
-    r = subprocess.run(
-        ["mcporter", "call", expr],
-        capture_output=True, text=True, timeout=timeout,
-    )
-    if r.returncode != 0:
-        raise RuntimeError(r.stderr or r.stdout)
-    return r.stdout
 
 
 class LinkedInChannel(Channel):
@@ -48,7 +22,7 @@ class LinkedInChannel(Channel):
         return "linkedin.com" in domain
 
     def check(self, config=None):
-        if _mcporter_has_linkedin():
+        if self._mcporter_has("linkedin"):
             return "ok", "完整可用（Profile、公司、职位搜索）"
 
         # Check if linkedin-scraper-mcp is installed as CLI
@@ -73,7 +47,7 @@ class LinkedInChannel(Channel):
         path = urlparse(url).path.strip("/")
 
         # Try MCP first
-        if _mcporter_has_linkedin():
+        if self._mcporter_has("linkedin"):
             try:
                 if "/in/" in url:
                     return await self._read_profile_mcp(url)
@@ -85,7 +59,7 @@ class LinkedInChannel(Channel):
                 pass  # Fall through to Jina
 
         # Fallback: Jina Reader
-        return await self._read_jina(url)
+        return await self._read_jina_linkedin(url)
 
     async def _read_profile_mcp(self, url: str) -> ReadResult:
         """Read a LinkedIn profile via MCP."""
@@ -93,15 +67,15 @@ class LinkedInChannel(Channel):
         # Extract username from URL: /in/username/
         match = re.search(r"/in/([^/]+)", url)
         if not match:
-            return await self._read_jina(url)
+            return await self._read_jina_linkedin(url)
         username = match.group(1)
         safe_username = username.replace('"', '\\"')
-        out = _mcporter_call(
+        out = self._mcporter_call(
             f'linkedin.get_person_profile(linkedin_username: "{safe_username}")',
             timeout=60,
         )
         return ReadResult(
-            title=self._extract_title(out) or f"LinkedIn Profile - {username}",
+            title=self._extract_first_line(out) or f"LinkedIn Profile - {username}",
             content=out.strip(),
             url=url,
             platform="linkedin",
@@ -113,15 +87,15 @@ class LinkedInChannel(Channel):
         # Extract company name from URL: /company/name/
         match = re.search(r"/company/([^/]+)", url)
         if not match:
-            return await self._read_jina(url)
+            return await self._read_jina_linkedin(url)
         company = match.group(1)
         safe_company = company.replace('"', '\\"')
-        out = _mcporter_call(
+        out = self._mcporter_call(
             f'linkedin.get_company_profile(company_name: "{safe_company}")',
             timeout=60,
         )
         return ReadResult(
-            title=self._extract_title(out) or "LinkedIn Company",
+            title=self._extract_first_line(out) or "LinkedIn Company",
             content=out.strip(),
             url=url,
             platform="linkedin",
@@ -132,72 +106,48 @@ class LinkedInChannel(Channel):
         import re
         match = re.search(r"/jobs/view/(\d+)", url)
         if not match:
-            return await self._read_jina(url)
+            return await self._read_jina_linkedin(url)
 
         job_id = match.group(1)
-        out = _mcporter_call(
+        out = self._mcporter_call(
             f'linkedin.get_job_details(job_id: "{job_id}")',
             timeout=30,
         )
         return ReadResult(
-            title=self._extract_title(out) or f"LinkedIn Job {job_id}",
+            title=self._extract_first_line(out) or f"LinkedIn Job {job_id}",
             content=out.strip(),
             url=url,
             platform="linkedin",
         )
 
-    async def _read_jina(self, url: str) -> ReadResult:
-        """Fallback: use Jina Reader."""
-        try:
-            resp = requests.get(
-                f"https://r.jina.ai/{url}",
-                headers={"Accept": "text/markdown"},
-                timeout=15,
-            )
-            resp.raise_for_status()
-            text = resp.text
+    async def _read_jina_linkedin(self, url: str) -> ReadResult:
+        """Jina fallback with LinkedIn-specific usability check."""
+        result = await self._jina_read(url, "linkedin")
+        text = result.content
 
-            # Check if content is usable
-            if len(text.strip()) < 100 or "Sign in" in text[:200]:
-                return ReadResult(
-                    title="LinkedIn",
-                    content=(
-                        f"⚠️ LinkedIn 页面需要登录才能完整查看。\n\n"
-                        f"URL: {url}\n\n"
-                        "完整功能需安装 linkedin-scraper-mcp：\n"
-                        "  pip install linkedin-scraper-mcp\n"
-                        "  uvx linkedin-scraper-mcp --login\n"
-                        "  详见 https://github.com/stickerdaniel/linkedin-mcp-server"
-                    ),
-                    url=url,
-                    platform="linkedin",
-                )
-
-            return ReadResult(
-                title=text[:100] if text else url,
-                content=text,
-                url=url,
-                platform="linkedin",
-            )
-        except Exception:
+        # Check if content is usable
+        if len(text.strip()) < 100 or "Sign in" in text[:200]:
             return ReadResult(
                 title="LinkedIn",
                 content=(
-                    f"⚠️ 无法读取此 LinkedIn 页面: {url}\n\n"
-                    "提示：\n"
-                    "- LinkedIn 需要登录才能查看大部分内容\n"
-                    "- 安装 linkedin-scraper-mcp 解锁完整功能\n"
-                    "- 详见 https://github.com/stickerdaniel/linkedin-mcp-server"
+                    f"⚠️ LinkedIn 页面需要登录才能完整查看。\n\n"
+                    f"URL: {url}\n\n"
+                    "完整功能需安装 linkedin-scraper-mcp：\n"
+                    "  pip install linkedin-scraper-mcp\n"
+                    "  uvx linkedin-scraper-mcp --login\n"
+                    "  详见 https://github.com/stickerdaniel/linkedin-mcp-server"
                 ),
                 url=url,
                 platform="linkedin",
             )
 
+        return result
+
     async def search(self, query: str, config=None, **kwargs) -> List[SearchResult]:
         limit = kwargs.get("limit", 10)
 
         # Try MCP search first
-        if _mcporter_has_linkedin():
+        if self._mcporter_has("linkedin"):
             try:
                 return await self._search_mcp(query, limit)
             except Exception:
@@ -213,7 +163,7 @@ class LinkedInChannel(Channel):
         safe_q = query.replace('"', '\\"')
         # Try job search first (most common use case)
         try:
-            out = _mcporter_call(
+            out = self._mcporter_call(
                 f'linkedin.search_jobs(keywords: "{safe_q}")',
                 timeout=60,
             )
@@ -225,7 +175,7 @@ class LinkedInChannel(Channel):
 
         # Try people search
         try:
-            out = _mcporter_call(
+            out = self._mcporter_call(
                 f'linkedin.search_people(keywords: "{safe_q}")',
                 timeout=60,
             )
@@ -258,11 +208,3 @@ class LinkedInChannel(Channel):
             # Try line-by-line parsing
             pass
         return results
-
-    def _extract_title(self, text: str) -> str:
-        """Extract a title from MCP output."""
-        for line in text.split("\n"):
-            line = line.strip()
-            if line and not line.startswith(("{", "[", "#", "http")):
-                return line[:80]
-        return ""

@@ -6,7 +6,7 @@ Swap to: any Reddit access method
 """
 
 import os
-import requests
+import httpx
 from urllib.parse import urlparse
 from .base import Channel, ReadResult
 
@@ -37,7 +37,6 @@ class RedditChannel(Channel):
 
     async def read(self, url: str, config=None) -> ReadResult:
         proxy = config.get("reddit_proxy") if config else None
-        proxies = {"http": proxy, "https": proxy} if proxy else None
 
         # Clean URL: remove query params, trailing slash, then add .json
         parsed = urlparse(url)
@@ -48,15 +47,18 @@ class RedditChannel(Channel):
         json_url = f"https://www.reddit.com{clean_path}.json"
 
         try:
-            resp = requests.get(
-                json_url,
-                headers={"User-Agent": self.USER_AGENT},
-                proxies=proxies,
-                params={"limit": 50},
+            async with httpx.AsyncClient(
                 timeout=15,
-            )
-            resp.raise_for_status()
-        except requests.exceptions.HTTPError as e:
+                proxies=proxy if proxy else None,
+            ) as client:
+                resp = await client.get(
+                    json_url,
+                    headers={"User-Agent": self.USER_AGENT},
+                    params={"limit": 50},
+                )
+                resp.raise_for_status()
+                data = resp.json()
+        except httpx.HTTPStatusError as e:
             status = e.response.status_code if e.response is not None else 0
             if status in (403, 429):
                 return ReadResult(
@@ -71,8 +73,6 @@ class RedditChannel(Channel):
                     platform="reddit",
                 )
             raise
-
-        data = resp.json()
 
         # Subreddit listing page: /r/sub/, /r/sub/hot, /r/sub/new, /r/sub/top
         if isinstance(data, dict) and data.get("kind") == "Listing":

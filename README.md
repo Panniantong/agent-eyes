@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="#30-秒上手">快速开始</a> · <a href="docs/README_en.md">English</a> · <a href="#支持的平台">支持平台</a> · <a href="#设计理念">设计理念</a>
+  <a href="#30-秒上手">快速开始</a> · <a href="docs/README_en.md">English</a> · <a href="#支持的平台">支持平台</a> · <a href="#设计理念">设计理念</a> · <a href="docs/uninstall.md">卸载</a>
 </p>
 
 ---
@@ -280,3 +280,28 @@ Yes! Agent Reach is a standard CLI tool — any AI coding agent that can run she
 ## License
 
 [MIT](LICENSE)
+
+---
+
+## Changelog
+
+### v1.1.0
+
+**代码质量 & 架构**
+
+- **消除重复代码**：将 4 个文件各自实现的 `_read_jina()`、3 个文件各自实现的 `_mcporter_ok()/_call()`、2 个文件各自实现的 `_extract_title()` 统一上移到 `Channel` 基类，分别为 `_jina_read()`、`_mcporter_has()`、`_mcporter_call()`、`_extract_first_line()`
+- **HTTP 异步化**：`web.py` 和 `reddit.py` 从同步 `requests.get` 改为异步 `httpx.AsyncClient`，`read_batch` 并发请求现在真正并发
+- **新增依赖**：`httpx>=0.27` 加入 `pyproject.toml`
+
+**Bug 修复**
+
+- **异常处理加固**：`doctor.py` 中单个渠道 `check()` 崩溃不再导致整体 `check_all` 失败，每个渠道独立隔离；`web.py` 原来裸抛 requests 异常，现在捕获所有异常返回带 `⚠️` 提示的 `ReadResult`
+- **bare except 修复**：`base.py` 中 `except:` 改为 `except Exception:`，避免误捕获 `KeyboardInterrupt`、`SystemExit` 等系统信号
+- **`config.py` 清理**：删除已过时的 `"exa_search": ["exa_api_key"]`——Exa 现在通过 mcporter MCP 接入，不再需要 API Key
+- **Twitter 调试日志**：Jina Reader 回退失败时记录 debug 日志，方便排查问题
+
+**测试**
+
+- 新增 `TestWebChannel`（3 个用例）、`TestYouTubeChannel`（4 个用例）、`TestBilibiliChannel`（3 个用例）、`TestMCPChannels`（涵盖小红书、LinkedIn、Boss直聘、Instagram）
+- 更新 Reddit、Exa、Config、Doctor 原有测试，适配 httpx 和基类方法重构
+- 版本号统一：`__init__.py` 版本号与 `pyproject.toml` 保持一致（均为 1.1.0）

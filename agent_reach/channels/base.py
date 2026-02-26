@@ -136,5 +136,58 @@ class Channel(ABC):
         try:
             # Check if search is overridden
             return type(self).search is not Channel.search
-        except:
+        except Exception:
             return False
+
+    async def _jina_read(self, url: str, platform: str, error_hint: str = "") -> "ReadResult":
+        """通用 Jina Reader fallback，带 debug 日志。"""
+        import httpx
+        from loguru import logger
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.get(
+                    f"https://r.jina.ai/{url}",
+                    headers={"Accept": "text/markdown"},
+                )
+                resp.raise_for_status()
+                text = resp.text
+                return ReadResult(
+                    title=text[:100] if text else url,
+                    content=text, url=url, platform=platform,
+                )
+        except Exception as e:
+            logger.debug(f"Jina Reader failed for {url}: {e}")
+            return ReadResult(
+                title=platform.capitalize(),
+                content=error_hint or f"⚠️ 无法读取: {url}",
+                url=url, platform=platform,
+            )
+
+    def _mcporter_has(self, server_name: str) -> bool:
+        """检查 mcporter 是否配置了指定 server。"""
+        import shutil as _shutil
+        import subprocess as _subprocess
+        if not _shutil.which("mcporter"):
+            return False
+        try:
+            r = _subprocess.run(["mcporter", "list"], capture_output=True, text=True, timeout=10)
+            return server_name.lower() in r.stdout.lower()
+        except Exception:
+            return False
+
+    def _mcporter_call(self, expr: str, timeout: int = 30) -> str:
+        """通过 mcporter 调用 MCP 工具。失败时抛 RuntimeError。"""
+        import subprocess as _subprocess
+        r = _subprocess.run(["mcporter", "call", expr], capture_output=True, text=True, timeout=timeout)
+        if r.returncode != 0:
+            raise RuntimeError(r.stderr or r.stdout)
+        return r.stdout
+
+    @staticmethod
+    def _extract_first_line(text: str) -> str:
+        """从文本中提取第一行有效内容作为标题（最多 80 字符）。"""
+        for line in text.split("\n"):
+            line = line.strip()
+            if line and not line.startswith(("{", "[", "#", "http")):
+                return line[:80]
+        return ""

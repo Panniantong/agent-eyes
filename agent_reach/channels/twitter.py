@@ -11,7 +11,6 @@ import subprocess
 from urllib.parse import urlparse
 from .base import Channel, ReadResult, SearchResult
 from typing import List
-import requests
 
 
 def _bird_cmd():
@@ -124,7 +123,18 @@ class TwitterChannel(Channel):
         if bird:
             return await self._read_bird(url, bird, config)
         # Fallback: Jina Reader
-        return await self._read_jina(url)
+        return await self._jina_read(
+            url, "twitter",
+            error_hint=(
+                "⚠️ Could not read this tweet.\n"
+                "The tweet may have been deleted, or the account is private.\n\n"
+                "Tips:\n"
+                "- Make sure the URL is correct\n"
+                "- Try: bird read <url> (if bird CLI is installed)\n"
+                "- For protected tweets, configure Twitter cookies: "
+                "agent-reach configure twitter-cookies AUTH_TOKEN CT0"
+            ),
+        )
 
     async def _read_bird(self, url: str, bird: str, config=None) -> ReadResult:
         result = subprocess.run(
@@ -134,7 +144,18 @@ class TwitterChannel(Channel):
             env=_bird_env(config),
         )
         if result.returncode != 0:
-            return await self._read_jina(url)
+            return await self._jina_read(
+                url, "twitter",
+                error_hint=(
+                    "⚠️ Could not read this tweet.\n"
+                    "The tweet may have been deleted, or the account is private.\n\n"
+                    "Tips:\n"
+                    "- Make sure the URL is correct\n"
+                    "- Try: bird read <url> (if bird CLI is installed)\n"
+                    "- For protected tweets, configure Twitter cookies: "
+                    "agent-reach configure twitter-cookies AUTH_TOKEN CT0"
+                ),
+            )
 
         text = result.stdout.strip()
         # Extract author from first line
@@ -150,58 +171,6 @@ class TwitterChannel(Channel):
             author=author,
             platform="twitter",
         )
-
-    async def _read_jina(self, url: str) -> ReadResult:
-        try:
-            resp = requests.get(
-                f"https://r.jina.ai/{url}",
-                headers={"Accept": "text/markdown"},
-                timeout=15,
-            )
-            resp.raise_for_status()
-            text = resp.text
-
-            # Detect unusable Jina responses for X/Twitter (JS-required pages)
-            unusable_indicators = [
-                "page doesn",  # "this page doesn't exist" (handles both ' and ')
-                "miss what",   # "Don't miss what's happening"
-                "Something went wrong. Try reloading",
-                "Log in](",    # Markdown link: [Log in](...)
-            ]
-            if any(indicator in text for indicator in unusable_indicators):
-                return ReadResult(
-                    title="Twitter/X",
-                    content="⚠️ Could not read this tweet.\n"
-                            "The tweet may have been deleted, or the account is private.\n\n"
-                            "Tips:\n"
-                            "- Make sure the URL is correct\n"
-                            "- Try: bird read <url> (if bird CLI is installed)\n"
-                            "- For protected tweets, configure Twitter cookies: "
-                            "agent-reach configure twitter-cookies AUTH_TOKEN CT0",
-                    url=url,
-                    platform="twitter",
-                )
-
-            title = text[:100] if text else url
-            return ReadResult(
-                title=title,
-                content=text,
-                url=url,
-                platform="twitter",
-            )
-        except Exception:
-            return ReadResult(
-                title="Twitter/X",
-                content="⚠️ Could not read this tweet.\n"
-                        "The tweet may have been deleted, or the account is private.\n\n"
-                        "Tips:\n"
-                        "- Make sure the URL is correct\n"
-                        "- Try: bird read <url> (if bird CLI is installed)\n"
-                        "- For protected tweets, configure Twitter cookies: "
-                        "agent-reach configure twitter-cookies AUTH_TOKEN CT0",
-                url=url,
-                platform="twitter",
-            )
 
     async def search(self, query: str, config=None, **kwargs) -> List[SearchResult]:
         limit = kwargs.get("limit", 10)

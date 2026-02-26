@@ -55,7 +55,16 @@ class InstagramChannel(Channel):
         except ImportError:
             pass
         # Fallback: Jina Reader
-        return await self._read_jina(url)
+        return await self._jina_read(
+            url, "instagram",
+            error_hint=(
+                f"⚠️ 无法读取此 Instagram 内容: {url}\n\n"
+                "提示：\n"
+                "- 确保 URL 正确\n"
+                "- 安装 instaloader: pip install instaloader\n"
+                "- 登录以访问更多内容: instaloader --login YOUR_USERNAME"
+            ),
+        )
 
     async def _read_instaloader(self, url: str, config=None) -> ReadResult:
         """Read Instagram content using instaloader Python API."""
@@ -116,7 +125,16 @@ class InstagramChannel(Channel):
                 return result
         except (asyncio.TimeoutError, Exception):
             # Any error or timeout → Jina fallback
-            return await self._read_jina(url)
+            return await self._jina_read(
+                url, "instagram",
+                error_hint=(
+                    f"⚠️ 无法读取此 Instagram 内容: {url}\n\n"
+                    "提示：\n"
+                    "- 确保 URL 正确\n"
+                    "- 安装 instaloader: pip install instaloader\n"
+                    "- 登录以访问更多内容: instaloader --login YOUR_USERNAME"
+                ),
+            )
 
     def _read_post_sync(self, L, url: str, path: str) -> ReadResult:
         """Read a single Instagram post (sync, runs in executor)."""
@@ -208,37 +226,6 @@ class InstagramChannel(Channel):
             )
         except Exception:
             raise  # Let executor timeout handle fallback
-
-    async def _read_jina(self, url: str) -> ReadResult:
-        """Fallback: use Jina Reader."""
-        import requests
-        try:
-            resp = requests.get(
-                f"https://r.jina.ai/{url}",
-                headers={"Accept": "text/markdown"},
-                timeout=15,
-            )
-            resp.raise_for_status()
-            text = resp.text
-            return ReadResult(
-                title=text[:100] if text else url,
-                content=text,
-                url=url,
-                platform="instagram",
-            )
-        except Exception:
-            return ReadResult(
-                title="Instagram",
-                content=(
-                    f"⚠️ 无法读取此 Instagram 内容: {url}\n\n"
-                    "提示：\n"
-                    "- 确保 URL 正确\n"
-                    "- 安装 instaloader: pip install instaloader\n"
-                    "- 登录以访问更多内容: instaloader --login YOUR_USERNAME"
-                ),
-                url=url,
-                platform="instagram",
-            )
 
     async def search(self, query: str, config=None, **kwargs) -> List[SearchResult]:
         """Search Instagram via Exa."""

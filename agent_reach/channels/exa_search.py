@@ -7,7 +7,6 @@ Requires: mcporter CLI
 
 import json
 import shutil
-import subprocess
 from .base import Channel, SearchResult
 from typing import List
 
@@ -17,26 +16,6 @@ class ExaSearchChannel(Channel):
     description = "全网语义搜索（同时支持 Reddit/Twitter 搜索）"
     backends = ["exa-mcp"]
     tier = 1
-
-    def _mcporter_ok(self) -> bool:
-        if not shutil.which("mcporter"):
-            return False
-        try:
-            r = subprocess.run(
-                ["mcporter", "list"], capture_output=True, text=True, timeout=10
-            )
-            return "exa" in r.stdout
-        except Exception:
-            return False
-
-    def _call(self, expr: str, timeout: int = 30) -> str:
-        r = subprocess.run(
-            ["mcporter", "call", expr],
-            capture_output=True, text=True, timeout=timeout,
-        )
-        if r.returncode != 0:
-            raise RuntimeError(r.stderr or r.stdout)
-        return r.stdout
 
     # ── Channel interface ──
 
@@ -52,12 +31,12 @@ class ExaSearchChannel(Channel):
                 "需要 mcporter。安装：npm install -g mcporter && "
                 "mcporter config add exa https://mcp.exa.ai/mcp"
             )
-        if not self._mcporter_ok():
+        if not self._mcporter_has("exa"):
             return "off", "mcporter 已装但 Exa 未配置。运行：mcporter config add exa https://mcp.exa.ai/mcp"
         return "ok", "MCP 已连接，免 Key 直接可用（全网搜索 + Reddit + Twitter）"
 
     async def search(self, query: str, config=None, **kwargs) -> List[SearchResult]:
-        if not self._mcporter_ok():
+        if not self._mcporter_has("exa"):
             raise ValueError(
                 "Exa 搜索需要 mcporter。安装：\n"
                 "  npm install -g mcporter\n"
@@ -66,7 +45,7 @@ class ExaSearchChannel(Channel):
 
         limit = kwargs.get("limit", 5)
         safe_q = query.replace('"', '\\"')
-        out = self._call(
+        out = self._mcporter_call(
             f'exa.web_search_exa(query: "{safe_q}", numResults: {min(limit, 10)})',
             timeout=30,
         )

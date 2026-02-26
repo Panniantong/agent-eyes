@@ -5,7 +5,8 @@ Backend: Jina Reader (https://r.jina.ai)
 Swap to: Firecrawl, Trafilatura, or any other reader API
 """
 
-import requests
+import httpx
+from loguru import logger
 from .base import Channel, ReadResult
 
 
@@ -22,28 +23,37 @@ class WebChannel(Channel):
         return True
 
     async def read(self, url: str, config=None) -> ReadResult:
-        resp = requests.get(
-            f"{self.JINA_URL}{url}",
-            headers={"Accept": "text/markdown"},
-            timeout=15,
-        )
-        resp.raise_for_status()
-        text = resp.text
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.get(
+                    f"{self.JINA_URL}{url}",
+                    headers={"Accept": "text/markdown"},
+                )
+                resp.raise_for_status()
+                text = resp.text
 
-        # Extract title from first markdown heading
-        title = url
-        for line in text.split("\n"):
-            line = line.strip()
-            if line.startswith("# "):
-                title = line[2:].strip()
-                break
-            if line.startswith("Title:"):
-                title = line[6:].strip()
-                break
+            # Extract title from first markdown heading
+            title = url
+            for line in text.split("\n"):
+                line = line.strip()
+                if line.startswith("# "):
+                    title = line[2:].strip()
+                    break
+                if line.startswith("Title:"):
+                    title = line[6:].strip()
+                    break
 
-        return ReadResult(
-            title=title,
-            content=text,
-            url=url,
-            platform="web",
-        )
+            return ReadResult(
+                title=title,
+                content=text,
+                url=url,
+                platform="web",
+            )
+        except Exception as e:
+            logger.debug(f"WebChannel read failed for {url}: {e}")
+            return ReadResult(
+                title=url,
+                content=f"⚠️ 无法读取网页: {url}\n\n{e}",
+                url=url,
+                platform="web",
+            )

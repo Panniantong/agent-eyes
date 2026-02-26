@@ -2,8 +2,10 @@
 """Tests for AgentReach core class."""
 
 import pytest
+from unittest.mock import patch, MagicMock
 from agent_reach.config import Config
 from agent_reach.core import AgentReach
+from agent_reach.channels.base import ReadResult
 
 
 @pytest.fixture
@@ -34,3 +36,12 @@ class TestAgentReach:
         report = eyes.doctor_report()
         assert isinstance(report, str)
         assert "Agent Reach" in report
+
+    @patch("agent_reach.channels.web.WebChannel.read")
+    @pytest.mark.asyncio
+    async def test_read_batch(self, mock_read, eyes):
+        mock_read.return_value = ReadResult(
+            title="T", content="C", url="https://example.com", platform="web"
+        )
+        results = await eyes.read_batch(["https://example.com", "https://example.org"])
+        assert len(results) == 2
