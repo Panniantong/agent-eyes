@@ -13,6 +13,7 @@ import sys
 import argparse
 import json
 import os
+import time
 
 # Fix Windows console encoding — emoji/CJK characters crash on cp936/cp1252
 if sys.platform == 'win32':
@@ -789,61 +790,159 @@ def _cmd_setup():
     print()
 
 
+def _classify_update_error(exc):
+    """Classify update-check errors for user-friendly diagnostics."""
+    import requests
+
+    if isinstance(exc, requests.exceptions.Timeout):
+        return "timeout"
+    if isinstance(exc, requests.exceptions.ConnectionError):
+        msg = str(exc).lower()
+        dns_markers = [
+            "name or service not known",
+            "temporary failure in name resolution",
+            "nodename nor servname",
+            "getaddrinfo failed",
+            "name resolution",
+            "dns",
+        ]
+        if any(marker in msg for marker in dns_markers):
+            return "dns"
+        return "connection"
+    if isinstance(exc, requests.exceptions.HTTPError):
+        return "http"
+    return "unknown"
+
+
+def _update_error_text(kind):
+    """Map internal error kinds to user-facing text."""
+    mapping = {
+        "timeout": "网络超时",
+        "dns": "DNS 解析失败",
+        "rate_limit": "GitHub API 速率限制",
+        "connection": "网络连接失败",
+        "server_error": "GitHub 服务暂时不可用",
+        "http": "HTTP 请求失败",
+        "unknown": "未知网络错误",
+    }
+    return mapping.get(kind, "请求失败")
+
+
+def _classify_github_response_error(resp):
+    """Classify non-200 GitHub responses that merit special handling."""
+    if resp is None:
+        return "unknown"
+    if resp.status_code == 429:
+        return "rate_limit"
+    if resp.status_code == 403:
+        remaining = resp.headers.get("X-RateLimit-Remaining", "")
+        if remaining == "0":
+            return "rate_limit"
+        try:
+            message = resp.json().get("message", "").lower()
+            if "rate limit" in message:
+                return "rate_limit"
+        except Exception:
+            pass
+    if 500 <= resp.status_code < 600:
+        return "server_error"
+    return None
+
+
+def _github_get_with_retry(url, timeout=10, retries=3, sleeper=time.sleep):
+    """GET GitHub API with retry/backoff and basic error classification."""
+    import requests
+
+    for attempt in range(1, retries + 1):
+        try:
+            resp = requests.get(url, timeout=timeout)
+        except requests.exceptions.RequestException as exc:
+            if attempt >= retries:
+                return None, _classify_update_error(exc), attempt
+            sleeper(2 ** (attempt - 1))
+            continue
+
+        err_kind = _classify_github_response_error(resp)
+        if err_kind in ("rate_limit", "server_error"):
+            if attempt >= retries:
+                return None, err_kind, attempt
+            delay = 2 ** (attempt - 1)
+            retry_after = resp.headers.get("Retry-After")
+            if err_kind == "rate_limit" and retry_after:
+                try:
+                    delay = max(delay, float(retry_after))
+                except Exception:
+                    pass
+            sleeper(delay)
+            continue
+
+        return resp, None, attempt
+
+    return None, "unknown", retries
+
+
 def _cmd_check_update():
     """Check for newer versions on GitHub."""
-    import requests
     from agent_reach import __version__
 
     print(f"📦 当前版本: v{__version__}")
+    release_url = "https://api.github.com/repos/Panniantong/Agent-Reach/releases/latest"
+    commit_url = "https://api.github.com/repos/Panniantong/Agent-Reach/commits/main"
 
-    try:
-        # Fetch latest version from GitHub
-        resp = requests.get(
-            "https://api.github.com/repos/Panniantong/Agent-Reach/releases/latest",
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            latest = data.get("tag_name", "").lstrip("v")
-            body = data.get("body", "")
-
-            if latest and latest != __version__:
-                print(f"🆕 最新版本: v{latest} ← 有更新！")
-                if body:
-                    print()
-                    print("更新内容：")
-                    # Show first 20 lines of release notes
-                    for line in body.strip().split("\n")[:20]:
-                        print(f"  {line}")
-                print()
-                print("更新命令:")
-                print("  pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip")
-                return "update_available"
-            else:
-                print(f"✅ 已是最新版本")
-                return "up_to_date"
-        else:
-            # No releases yet, fall back to comparing commit
-            resp2 = requests.get(
-                "https://api.github.com/repos/Panniantong/Agent-Reach/commits/main",
-                timeout=10,
-            )
-            if resp2.status_code == 200:
-                commit = resp2.json()
-                sha = commit.get("sha", "")[:7]
-                msg = commit.get("commit", {}).get("message", "").split("\n")[0]
-                date = commit.get("commit", {}).get("committer", {}).get("date", "")[:10]
-                print(f"🔍 最新提交: {sha} ({date}) {msg}")
-                print()
-                print("更新命令:")
-                print("  pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip")
-                return "unknown"
-            else:
-                print("⚠️ 无法检查更新（网络问题）")
-                return "error"
-    except Exception as e:
-        print(f"⚠️ 无法检查更新: {e}")
+    # Fetch latest release with retry/backoff.
+    resp, err, attempts = _github_get_with_retry(release_url, timeout=10, retries=3)
+    if err:
+        print(f"⚠️ 无法检查更新（{_update_error_text(err)}，已重试 {attempts} 次）")
         return "error"
+
+    if resp.status_code == 200:
+        data = resp.json()
+        latest = data.get("tag_name", "").lstrip("v")
+        body = data.get("body", "")
+
+        if latest and latest != __version__:
+            print(f"🆕 最新版本: v{latest} ← 有更新！")
+            if body:
+                print()
+                print("更新内容：")
+                # Show first 20 lines of release notes
+                for line in body.strip().split("\n")[:20]:
+                    print(f"  {line}")
+            print()
+            print("更新命令:")
+            print("  pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip")
+            return "update_available"
+        print(f"✅ 已是最新版本")
+        return "up_to_date"
+
+    release_err = _classify_github_response_error(resp)
+    if release_err == "rate_limit":
+        print("⚠️ 无法检查更新（GitHub API 速率限制，请稍后重试）")
+        return "error"
+
+    # No releases yet, fall back to latest main commit.
+    resp2, err2, attempts2 = _github_get_with_retry(commit_url, timeout=10, retries=2)
+    if err2:
+        print(f"⚠️ 无法检查更新（{_update_error_text(err2)}，已重试 {attempts + attempts2} 次）")
+        return "error"
+    if resp2.status_code == 200:
+        commit = resp2.json()
+        sha = commit.get("sha", "")[:7]
+        msg = commit.get("commit", {}).get("message", "").split("\n")[0]
+        date = commit.get("commit", {}).get("committer", {}).get("date", "")[:10]
+        print(f"🔍 最新提交: {sha} ({date}) {msg}")
+        print()
+        print("更新命令:")
+        print("  pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip")
+        return "unknown"
+
+    commit_err = _classify_github_response_error(resp2)
+    if commit_err == "rate_limit":
+        print("⚠️ 无法检查更新（GitHub API 速率限制，请稍后重试）")
+        return "error"
+
+    print(f"⚠️ 无法检查更新（GitHub 返回 {resp2.status_code}）")
+    return "error"
 
 
 def _cmd_watch():
@@ -853,7 +952,6 @@ def _cmd_watch():
     """
     from agent_reach.config import Config
     from agent_reach.doctor import check_all
-    import requests
     from agent_reach import __version__
 
     config = Config()
@@ -875,20 +973,18 @@ def _cmd_watch():
     update_available = False
     new_version = ""
     release_body = ""
-    try:
-        resp = requests.get(
-            "https://api.github.com/repos/Panniantong/Agent-Reach/releases/latest",
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            latest = data.get("tag_name", "").lstrip("v")
-            if latest and latest != __version__:
-                update_available = True
-                new_version = latest
-                release_body = data.get("body", "")
-    except Exception:
-        pass
+    resp, err, _attempts = _github_get_with_retry(
+        "https://api.github.com/repos/Panniantong/Agent-Reach/releases/latest",
+        timeout=10,
+        retries=2,
+    )
+    if not err and resp and resp.status_code == 200:
+        data = resp.json()
+        latest = data.get("tag_name", "").lstrip("v")
+        if latest and latest != __version__:
+            update_available = True
+            new_version = latest
+            release_body = data.get("body", "")
 
     # Output
     if not issues and not update_available:
