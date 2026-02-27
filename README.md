@@ -189,6 +189,7 @@ Agent Reach 在设计上重视安全：
 | 🛡️ **安全模式** | `agent-reach install --safe` 不会自动修改系统，只列出需要什么，由你决定装不装 |
 | 👀 **完全开源** | 代码透明，随时可审查。所有依赖工具也是开源项目 |
 | 🔍 **Dry Run** | `agent-reach install --dry-run` 预览所有操作，不做任何改动 |
+| 📊 **本地遥测（可关闭）** | 默认仅写入本机 `~/.agent-reach/telemetry.jsonl`，不上传。可通过 `AGENT_REACH_TELEMETRY=0` 关闭 |
 | 🧩 **可插拔架构** | 不信任某个组件？换掉对应的 channel 文件即可，不影响其他 |
 
 ### 🍪 Cookie 安全建议
@@ -218,6 +219,8 @@ Agent Reach 在设计上重视安全：
 **想在本地加？** 让你的 Agent clone 下来改就行，每个渠道就是一个独立文件，加起来很简单。
 
 [PR](https://github.com/Panniantong/agent-reach/pulls) 也随时欢迎！
+
+依赖可复现建议见：[Dependency Locking Guide](docs/dependency-locking.md)（`constraints.txt`）。
 
 ---
 

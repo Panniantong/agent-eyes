@@ -6,6 +6,25 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.3.0] - 2026-02-27
+
+### 📈 Improvements / 改进
+
+- Added quality gates: `ruff` + `mypy` + `pytest` in CI
+- CI test matrix now covers Python `3.10/3.11/3.12`
+- `doctor` now reports four health signals: `installed/configured/reachable/authenticated`
+- Added local-only telemetry (`~/.agent-reach/telemetry.jsonl`, opt-out via `AGENT_REACH_TELEMETRY=0`)
+- Added reproducible dependency strategy (`constraints.txt` + dependency locking guide)
+- Added channel contract tests and telemetry tests for regression coverage
+- 新增质量门禁：CI 同时执行 `ruff`、`mypy`、`pytest`
+- CI Python 版本矩阵扩展为 `3.10/3.11/3.12`
+- `doctor` 新增四级健康信号：`installed/configured/reachable/authenticated`
+- 新增本地遥测（仅本机写入，可通过 `AGENT_REACH_TELEMETRY=0` 关闭）
+- 新增依赖可复现方案（`constraints.txt` 与依赖锁定文档）
+- 新增渠道契约测试与 telemetry 测试，提升回归可靠性
+
+---
+
 ## [1.2.0] - 2026-02-27
 
 ### 📈 Improvements / 改进

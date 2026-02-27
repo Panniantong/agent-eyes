@@ -4,22 +4,22 @@ Channel registry — lists all supported platforms for doctor checks.
 """
 
 from typing import List, Optional
+
 from .base import Channel
+from .bilibili import BilibiliChannel
+from .bosszhipin import BossZhipinChannel
+from .douyin import DouyinChannel
+from .exa_search import ExaSearchChannel
+from .github import GitHubChannel
+from .linkedin import LinkedInChannel
+from .reddit import RedditChannel
+from .rss import RSSChannel
+from .twitter import TwitterChannel
 
 # Import all channels
 from .web import WebChannel
-from .github import GitHubChannel
-from .twitter import TwitterChannel
-from .youtube import YouTubeChannel
-from .reddit import RedditChannel
-from .rss import RSSChannel
-from .bilibili import BilibiliChannel
-from .exa_search import ExaSearchChannel
 from .xiaohongshu import XiaoHongShuChannel
-from .douyin import DouyinChannel
-from .linkedin import LinkedInChannel
-from .bosszhipin import BossZhipinChannel
-
+from .youtube import YouTubeChannel
 
 # Channel registry
 ALL_CHANNELS: List[Channel] = [

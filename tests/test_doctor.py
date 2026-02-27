@@ -2,9 +2,10 @@
 """Tests for doctor module."""
 
 import pytest
+
+from agent_reach.channels.exa_search import ExaSearchChannel
 from agent_reach.config import Config
 from agent_reach.doctor import check_all, format_report
-from agent_reach.channels.exa_search import ExaSearchChannel
 
 
 @pytest.fixture
@@ -26,7 +27,10 @@ class TestDoctor:
             assert "status" in item
             assert "name" in item
             assert "message" in item
+            assert "signals" in item
             assert item["status"] in {"ok", "warn", "off", "error"}
+            assert set(item["signals"]) == {"installed", "configured", "reachable", "authenticated"}
+            assert set(item["signals"].values()) <= {"yes", "no", "unknown", "n/a"}
 
     def test_exa_channel_off_when_mcporter_missing(self, monkeypatch):
         import agent_reach.channels.exa_search as exa_mod
@@ -51,3 +55,4 @@ class TestDoctor:
         assert "Agent Reach" in report
         assert "✅" in report
         assert "渠道可用" in report
+        assert "I=installed" in report

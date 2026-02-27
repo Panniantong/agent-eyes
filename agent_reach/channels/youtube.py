@@ -2,6 +2,7 @@
 """YouTube — check if yt-dlp is available."""
 
 import shutil
+
 from .base import Channel
 
 

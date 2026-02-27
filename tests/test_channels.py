@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Tests for channel routing and registry."""
 
-from agent_reach.channels import get_channel_for_url, get_channel, get_all_channels
+from agent_reach.channels import get_all_channels, get_channel, get_channel_for_url
 
 
 class TestChannelRouting:

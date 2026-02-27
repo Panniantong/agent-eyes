@@ -273,6 +273,8 @@ If the user wants a different agent to handle it, let them choose.
 | `agent-reach configure twitter-cookies "..."` | Unlock Twitter search + posting |
 | `agent-reach configure proxy URL` | Unlock Reddit + Bilibili on servers |
 
+> Telemetry note: Agent Reach writes local-only command telemetry to `~/.agent-reach/telemetry.jsonl` (no remote upload). Disable with `AGENT_REACH_TELEMETRY=0`.
+
 After installation, use upstream tools directly. See SKILL.md for the full command reference:
 
 | Platform | Upstream Tool | Example |

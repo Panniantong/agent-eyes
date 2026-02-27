@@ -9,10 +9,9 @@ Usage:
     agent-reach setup
 """
 
-import sys
 import argparse
-import json
 import os
+import sys
 import time
 
 from agent_reach import __version__
@@ -44,6 +43,25 @@ def _configure_logging(verbose: bool = False):
     logger.remove()  # Remove default stderr handler
     if verbose:
         logger.add(sys.stderr, level="INFO")
+
+
+def _write_cli_telemetry(command: str, status: str, started_at: float, details=None):
+    """Best-effort telemetry sink for CLI command execution."""
+    try:
+        from agent_reach.config import Config
+        from agent_reach.telemetry import record_cli_event
+
+        duration_ms = int((time.perf_counter() - started_at) * 1000)
+        cfg = Config()
+        record_cli_event(
+            command=command,
+            status=status,
+            duration_ms=duration_ms,
+            config=cfg,
+            details=details or {},
+        )
+    except Exception:
+        return
 
 
 def main():
@@ -100,26 +118,44 @@ def main():
     # Suppress loguru noise unless --verbose
     _configure_logging(getattr(args, "verbose", False))
 
+    started_at = time.perf_counter()
+    command = args.command or "help"
+    status = "ok"
+    details = {}
+
     if not args.command:
         parser.print_help()
+        _write_cli_telemetry(command, status, started_at)
         sys.exit(0)
 
-    if args.command == "version":
-        print(f"Agent Reach v{__version__}")
-        sys.exit(0)
+    try:
+        if args.command == "version":
+            print(f"Agent Reach v{__version__}")
+            _write_cli_telemetry(command, status, started_at)
+            sys.exit(0)
 
-    if args.command == "doctor":
-        _cmd_doctor()
-    elif args.command == "check-update":
-        _cmd_check_update()
-    elif args.command == "watch":
-        _cmd_watch()
-    elif args.command == "setup":
-        _cmd_setup()
-    elif args.command == "install":
-        _cmd_install(args)
-    elif args.command == "configure":
-        _cmd_configure(args)
+        if args.command == "doctor":
+            _cmd_doctor()
+        elif args.command == "check-update":
+            result = _cmd_check_update()
+            details["result"] = result
+            if result == "error":
+                status = "warn"
+        elif args.command == "watch":
+            _cmd_watch()
+        elif args.command == "setup":
+            _cmd_setup()
+        elif args.command == "install":
+            _cmd_install(args)
+        elif args.command == "configure":
+            _cmd_configure(args)
+    except Exception as exc:
+        status = "error"
+        details["error_type"] = type(exc).__name__
+        _write_cli_telemetry(command, status, started_at, details)
+        raise
+
+    _write_cli_telemetry(command, status, started_at, details)
 
 
 # ── Command handlers ────────────────────────────────
@@ -127,7 +163,6 @@ def main():
 
 def _cmd_install(args):
     """One-shot deterministic installer."""
-    import os
     from agent_reach.config import Config
     from agent_reach.doctor import check_all, format_report
 
@@ -152,18 +187,18 @@ def _cmd_install(args):
         env = _detect_environment()
     
     if env == "server":
-        print(f"📡 Environment: Server/VPS (auto-detected)")
+        print("📡 Environment: Server/VPS (auto-detected)")
     else:
-        print(f"💻 Environment: Local computer (auto-detected)")
+        print("💻 Environment: Local computer (auto-detected)")
 
     # Apply explicit flags
     if args.proxy:
         if dry_run:
-            print(f"[dry-run] Would configure proxy for Reddit + Bilibili")
+            print("[dry-run] Would configure proxy for Reddit + Bilibili")
         else:
             config.set("reddit_proxy", args.proxy)
             config.set("bilibili_proxy", args.proxy)
-            print(f"✅ Proxy configured for Reddit + Bilibili")
+            print("✅ Proxy configured for Reddit + Bilibili")
 
     # ── Install system dependencies ──
     print()
@@ -189,16 +224,16 @@ def _cmd_install(args):
         print("🍪 Trying to import cookies from browser...")
         try:
             from agent_reach.cookie_extract import configure_from_browser
-            results = configure_from_browser("chrome", config)
+            cookie_results = configure_from_browser("chrome", config)
             found = False
-            for platform, success, message in results:
+            for platform, success, message in cookie_results:
                 if success:
                     print(f"  ✅ {platform}: {message}")
                     found = True
             if not found:
                 # Try firefox
-                results = configure_from_browser("firefox", config)
-                for platform, success, message in results:
+                cookie_results = configure_from_browser("firefox", config)
+                for platform, success, message in cookie_results:
                     if success:
                         print(f"  ✅ {platform}: {message}")
                         found = True
@@ -250,8 +285,8 @@ def _cmd_install(args):
 
 def _install_skill():
     """Install Agent Reach as an agent skill (OpenClaw / Claude Code)."""
-    import os
     import importlib.resources
+    import os
 
     # Determine skill install path
     skill_dirs = [
@@ -267,7 +302,12 @@ def _install_skill():
             try:
                 os.makedirs(target, exist_ok=True)
                 # Read SKILL.md from package data
-                skill_md = importlib.resources.files("agent_reach").joinpath("skill", "SKILL.md").read_text()
+                skill_md = (
+                    importlib.resources.files("agent_reach")
+                    .joinpath("skill")
+                    .joinpath("SKILL.md")
+                    .read_text()
+                )
                 with open(os.path.join(target, "SKILL.md"), "w") as f:
                     f.write(skill_md)
                 platform_name = "OpenClaw" if "openclaw" in skill_dir else "Claude Code" if "claude" in skill_dir else "Agent"
@@ -281,7 +321,12 @@ def _install_skill():
         target = os.path.expanduser("~/.openclaw/skills/agent-reach")
         try:
             os.makedirs(target, exist_ok=True)
-            skill_md = importlib.resources.files("agent_reach").joinpath("skill", "SKILL.md").read_text()
+            skill_md = (
+                importlib.resources.files("agent_reach")
+                .joinpath("skill")
+                .joinpath("SKILL.md")
+                .read_text()
+            )
             with open(os.path.join(target, "SKILL.md"), "w") as f:
                 f.write(skill_md)
             print(f"🧩 Skill installed: {target}")
@@ -291,9 +336,9 @@ def _install_skill():
 
 def _install_system_deps():
     """Install system-level dependencies: gh CLI, Node.js (for mcporter)."""
+    import platform
     import shutil
     import subprocess
-    import platform
     import tempfile
 
     print("🔧 Checking system dependencies...")
@@ -573,7 +618,7 @@ def _detect_environment():
                 content = open(cloud_file).read().lower()
                 if any(x in content for x in ["amazon", "google", "microsoft", "digitalocean", "linode", "vultr", "hetzner"]):
                     indicators += 2
-            except:
+            except Exception:
                 pass
 
     # systemd-detect-virt
@@ -582,7 +627,7 @@ def _detect_environment():
         result = subprocess.run(["systemd-detect-virt"], capture_output=True, text=True, timeout=3)
         if result.returncode == 0 and result.stdout.strip() != "none":
             indicators += 1
-    except:
+    except Exception:
         pass
 
     return "server" if indicators >= 2 else "local"
@@ -591,6 +636,7 @@ def _detect_environment():
 def _cmd_configure(args):
     """Set a config value and test it, or auto-extract from browser."""
     import shutil
+
     from agent_reach.config import Config
 
     config = Config()
@@ -634,7 +680,7 @@ def _cmd_configure(args):
     if args.key == "proxy":
         config.set("reddit_proxy", value)
         config.set("bilibili_proxy", value)
-        print(f"✅ Proxy configured for Reddit + Bilibili!")
+        print("✅ Proxy configured for Reddit + Bilibili!")
 
         # Auto-test
         print("Testing Reddit access...", end=" ")
@@ -676,7 +722,7 @@ def _cmd_configure(args):
         if auth_token and ct0:
             config.set("twitter_auth_token", auth_token)
             config.set("twitter_ct0", ct0)
-            print(f"✅ Twitter cookies configured!")
+            print("✅ Twitter cookies configured!")
 
             print("Testing Twitter access...", end=" ")
             try:
@@ -697,7 +743,7 @@ def _cmd_configure(args):
                     if result.returncode == 0 and result.stdout.strip():
                         print("✅ Twitter Advanced works!")
                     else:
-                        print(f"⚠️ Test returned no results (cookies might be wrong)")
+                        print("⚠️ Test returned no results (cookies might be wrong)")
             except Exception as e:
                 print(f"❌ Failed: {e}")
         else:
@@ -713,11 +759,11 @@ def _cmd_configure(args):
 
     elif args.key == "github-token":
         config.set("github_token", value)
-        print(f"✅ GitHub token configured!")
+        print("✅ GitHub token configured!")
 
     elif args.key == "groq-key":
         config.set("groq_api_key", value)
-        print(f"✅ Groq key configured!")
+        print("✅ Groq key configured!")
 
 
 def _cmd_doctor():
@@ -793,7 +839,7 @@ def _cmd_setup():
     print("  获取: https://github.com/settings/tokens (无需任何权限)")
     current = config.get("github_token")
     if current:
-        print(f"  当前状态: ✅ 已配置")
+        print("  当前状态: ✅ 已配置")
     else:
         key = input("  GITHUB_TOKEN (回车跳过): ").strip()
         if key:
@@ -809,7 +855,7 @@ def _cmd_setup():
     print("  格式: http://用户名:密码@IP:端口")
     current = config.get("reddit_proxy")
     if current:
-        print(f"  当前状态: ✅ 已配置")
+        print("  当前状态: ✅ 已配置")
     else:
         proxy = input("  REDDIT_PROXY (回车跳过): ").strip()
         if proxy:
@@ -824,7 +870,7 @@ def _cmd_setup():
     print("  免费额度，注册: https://console.groq.com")
     current = config.get("groq_api_key")
     if current:
-        print(f"  当前状态: ✅ 已配置")
+        print("  当前状态: ✅ 已配置")
     else:
         key = input("  GROQ_API_KEY (回车跳过): ").strip()
         if key:
@@ -963,7 +1009,7 @@ def _cmd_check_update():
             print("更新命令:")
             print("  pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip")
             return "update_available"
-        print(f"✅ 已是最新版本")
+        print("✅ 已是最新版本")
         return "up_to_date"
 
     release_err = _classify_github_response_error(resp)
@@ -1001,9 +1047,9 @@ def _cmd_watch():
 
     Only outputs problems. If everything is fine, outputs a single line.
     """
+    from agent_reach import __version__
     from agent_reach.config import Config
     from agent_reach.doctor import check_all
-    from agent_reach import __version__
 
     config = Config()
     issues = []
@@ -1042,8 +1088,8 @@ def _cmd_watch():
         print(f"👁️ Agent Reach: 全部正常 ({ok}/{total} 渠道可用，v{__version__} 已是最新)")
         return
 
-    print(f"👁️ Agent Reach 监控报告")
-    print(f"=" * 40)
+    print("👁️ Agent Reach 监控报告")
+    print("=" * 40)
     print(f"📦 版本: v{__version__}  |  渠道: {ok}/{total}")
 
     if issues:
@@ -1057,7 +1103,7 @@ def _cmd_watch():
         if release_body:
             for line in release_body.strip().split("\n")[:10]:
                 print(f"    {line}")
-        print(f"  更新: pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip")
+        print("  更新: pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip")
 
 
 if __name__ == "__main__":
