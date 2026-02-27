@@ -6,6 +6,19 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.2.0] - 2026-02-27
+
+### 📈 Improvements / 改进
+
+- CLI command model clarified and unified around: `install`, `setup`, `configure`, `doctor`, `watch`, `check-update`, `version`
+- Removed stale command wording from docs (`read/search-*` examples were from older iterations)
+- Added CI regression workflow for `pytest`
+- 明确并统一当前 CLI 命令模型：`install`、`setup`、`configure`、`doctor`、`watch`、`check-update`、`version`
+- 清理文档中的历史命令表述（`read/search-*` 旧示例）
+- 新增 `pytest` 持续集成回归流程
+
+---
+
 ## [1.1.0] - 2025-02-25
 
 ### 🆕 New Channels / 新增渠道
@@ -35,11 +48,11 @@ All notable changes to this project will be documented in this file.
 
 - Channel count: 9 → 12
 - `agent-reach doctor` now detects all 12 channels
-- CLI: added `search-linkedin`, `search-bosszhipin` subcommands
+- CLI: expanded channel compatibility checks for LinkedIn and Boss直聘
 - Updated install guide with setup instructions for new channels
-- 渠道数量：9 → 11
-- `agent-reach doctor` 现在检测全部 11 个渠道
-- CLI：新增 `search-linkedin`、`search-bosszhipin` 子命令
+- 渠道数量：9 → 12
+- `agent-reach doctor` 现在检测全部 12 个渠道
+- CLI：增强 LinkedIn、Boss直聘 渠道兼容性检测
 - 安装指南新增渠道配置说明
 
 ---
@@ -49,13 +62,13 @@ All notable changes to this project will be documented in this file.
 ### 🎉 Initial Release / 首次发布
 
 - 9 channels: Web, Twitter/X, YouTube, Bilibili, GitHub, Reddit, XiaoHongShu, RSS, Exa Search
-- CLI with `read`, `search`, `doctor`, `install` commands
+- CLI with install/configure/doctor workflows (scaffold-style setup)
 - Unified channel interface — each platform is a single pluggable Python file
 - Auto-detection of local vs server environments
 - Built-in diagnostics via `agent-reach doctor`
 - Skill registration for Claude Code / OpenClaw / Cursor
 - 9 个渠道：网页、Twitter/X、YouTube、B站、GitHub、Reddit、小红书、RSS、Exa 搜索
-- CLI 支持 `read`、`search`、`doctor`、`install` 命令
+- CLI 采用脚手架式工作流（install/configure/doctor）
 - 统一渠道接口 — 每个平台一个独立可插拔的 Python 文件
 - 自动检测本地/服务器环境
 - 内置诊断 `agent-reach doctor`
