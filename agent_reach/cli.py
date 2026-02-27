@@ -13,6 +13,7 @@ import sys
 import argparse
 import json
 import os
+import time
 
 # Fix Windows console encoding — emoji/CJK characters crash on cp936/cp1252
 if sys.platform == 'win32':
@@ -31,6 +32,25 @@ def _configure_logging(verbose: bool = False):
     logger.remove()  # Remove default stderr handler
     if verbose:
         logger.add(sys.stderr, level="INFO")
+
+
+def _write_cli_telemetry(command: str, status: str, started_at: float, details=None):
+    """Best-effort telemetry sink for CLI command execution."""
+    try:
+        from agent_reach.config import Config
+        from agent_reach.telemetry import record_cli_event
+
+        duration_ms = int((time.perf_counter() - started_at) * 1000)
+        cfg = Config()
+        record_cli_event(
+            command=command,
+            status=status,
+            duration_ms=duration_ms,
+            config=cfg,
+            details=details or {},
+        )
+    except Exception:
+        return
 
 
 def main():
@@ -85,26 +105,44 @@ def main():
     # Suppress loguru noise unless --verbose
     _configure_logging(getattr(args, "verbose", False))
 
+    started_at = time.perf_counter()
+    command = args.command or "help"
+    status = "ok"
+    details = {}
+
     if not args.command:
         parser.print_help()
+        _write_cli_telemetry(command, status, started_at)
         sys.exit(0)
 
-    if args.command == "version":
-        print(f"Agent Reach v{__version__}")
-        sys.exit(0)
+    try:
+        if args.command == "version":
+            print(f"Agent Reach v{__version__}")
+            _write_cli_telemetry(command, status, started_at)
+            sys.exit(0)
 
-    if args.command == "doctor":
-        _cmd_doctor()
-    elif args.command == "check-update":
-        _cmd_check_update()
-    elif args.command == "watch":
-        _cmd_watch()
-    elif args.command == "setup":
-        _cmd_setup()
-    elif args.command == "install":
-        _cmd_install(args)
-    elif args.command == "configure":
-        _cmd_configure(args)
+        if args.command == "doctor":
+            _cmd_doctor()
+        elif args.command == "check-update":
+            result = _cmd_check_update()
+            details["result"] = result
+            if result == "error":
+                status = "warn"
+        elif args.command == "watch":
+            _cmd_watch()
+        elif args.command == "setup":
+            _cmd_setup()
+        elif args.command == "install":
+            _cmd_install(args)
+        elif args.command == "configure":
+            _cmd_configure(args)
+    except Exception as exc:
+        status = "error"
+        details["error_type"] = type(exc).__name__
+        _write_cli_telemetry(command, status, started_at, details)
+        raise
+
+    _write_cli_telemetry(command, status, started_at, details)
 
 
 # ── Command handlers ────────────────────────────────

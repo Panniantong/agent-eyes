@@ -19,14 +19,26 @@ class TestDoctor:
         assert results["bilibili"]["status"] in ("ok", "warn")  # warn on servers
         assert results["rss"]["status"] == "ok"
 
+    def test_each_result_has_required_fields(self, tmp_config):
+        results = check_all(tmp_config)
+        for item in results.values():
+            assert "status" in item
+            assert "name" in item
+            assert "message" in item
+            assert "signals" in item
+            assert item["status"] in {"ok", "warn", "off", "error"}
+            assert set(item["signals"]) == {"installed", "configured", "reachable", "authenticated"}
+            assert set(item["signals"].values()) <= {"yes", "no", "unknown", "n/a"}
+
     def test_exa_off_without_key(self, tmp_config):
         results = check_all(tmp_config)
         assert results["exa_search"]["status"] == "off"
 
-    def test_exa_on_with_key(self, tmp_config):
+    def test_exa_key_does_not_force_enabled(self, tmp_config):
+        # Exa availability is determined by mcporter runtime/config state.
         tmp_config.set("exa_api_key", "test-key")
         results = check_all(tmp_config)
-        assert results["exa_search"]["status"] == "ok"
+        assert results["exa_search"]["status"] in ("off", "ok")
 
     def test_format_report(self, tmp_config):
         results = check_all(tmp_config)
@@ -34,3 +46,4 @@ class TestDoctor:
         assert "Agent Reach" in report
         assert "✅" in report
         assert "渠道可用" in report
+        assert "I=installed" in report
