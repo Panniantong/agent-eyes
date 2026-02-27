@@ -15,15 +15,27 @@ import json
 import os
 import time
 
-# Fix Windows console encoding — emoji/CJK characters crash on cp936/cp1252
-if sys.platform == 'win32':
-    import io
-    if hasattr(sys.stdout, 'buffer'):
-        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    if hasattr(sys.stderr, 'buffer'):
-        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-
 from agent_reach import __version__
+
+
+def _ensure_utf8_console():
+    """Best-effort Windows console UTF-8 setup for CLI runtime only."""
+    if sys.platform != "win32":
+        return
+    # Avoid interfering with pytest/captured streams.
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return
+    if not getattr(sys.stdout, "isatty", lambda: False)():
+        return
+    try:
+        import io
+        if hasattr(sys.stdout, "buffer"):
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+        if hasattr(sys.stderr, "buffer"):
+            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+    except Exception:
+        # Do not crash CLI just because encoding patch failed.
+        pass
 
 
 def _configure_logging(verbose: bool = False):
@@ -35,6 +47,8 @@ def _configure_logging(verbose: bool = False):
 
 
 def main():
+    _ensure_utf8_console()
+
     parser = argparse.ArgumentParser(
         prog="agent-reach",
         description="👁️ Give your AI Agent eyes to see the entire internet",
@@ -280,6 +294,7 @@ def _install_system_deps():
     import shutil
     import subprocess
     import platform
+    import tempfile
 
     print("🔧 Checking system dependencies...")
 
@@ -291,15 +306,25 @@ def _install_system_deps():
         os_type = platform.system().lower()
         if os_type == "linux":
             try:
-                # Official GitHub method for Linux
-                cmds = [
-                    "curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg 2>/dev/null",
-                    'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null',
-                    "apt-get update -qq 2>/dev/null",
-                    "apt-get install -y -qq gh 2>/dev/null",
-                ]
-                for cmd in cmds:
-                    subprocess.run(cmd, shell=True, capture_output=True, timeout=60)
+                # Official GitHub apt source setup without invoking a shell.
+                keyring_path = "/usr/share/keyrings/githubcli-archive-keyring.gpg"
+                list_path = "/etc/apt/sources.list.d/github-cli.list"
+                arch = subprocess.run(
+                    ["dpkg", "--print-architecture"],
+                    capture_output=True, text=True, timeout=10,
+                ).stdout.strip() or "amd64"
+                subprocess.run(
+                    ["curl", "-fsSL", "https://cli.github.com/packages/githubcli-archive-keyring.gpg", "-o", keyring_path],
+                    capture_output=True, timeout=60,
+                )
+                repo_line = (
+                    f"deb [arch={arch} signed-by={keyring_path}] "
+                    "https://cli.github.com/packages stable main\n"
+                )
+                with open(list_path, "w", encoding="utf-8") as f:
+                    f.write(repo_line)
+                subprocess.run(["apt-get", "update", "-qq"], capture_output=True, timeout=60)
+                subprocess.run(["apt-get", "install", "-y", "-qq", "gh"], capture_output=True, timeout=60)
                 if shutil.which("gh"):
                     print("  ✅ gh CLI installed")
                 else:
@@ -327,10 +352,24 @@ def _install_system_deps():
     else:
         print("  📥 Installing Node.js...")
         try:
-            # Use NodeSource for quick install
+            # Use NodeSource setup script without invoking a shell pipeline.
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".sh") as tf:
+                script_path = tf.name
             subprocess.run(
-                "curl -fsSL https://deb.nodesource.com/setup_22.x | bash - 2>/dev/null && apt-get install -y -qq nodejs 2>/dev/null",
-                shell=True, capture_output=True, timeout=120,
+                ["curl", "-fsSL", "https://deb.nodesource.com/setup_22.x", "-o", script_path],
+                capture_output=True, timeout=60,
+            )
+            subprocess.run(
+                ["bash", script_path],
+                capture_output=True, timeout=120,
+            )
+            try:
+                os.unlink(script_path)
+            except Exception:
+                pass
+            subprocess.run(
+                ["apt-get", "install", "-y", "-qq", "nodejs"],
+                capture_output=True, timeout=120,
             )
             if shutil.which("node"):
                 print("  ✅ Node.js installed")
@@ -711,29 +750,41 @@ def _cmd_setup():
     print("=" * 40)
     print()
 
-    # Step 1: Exa
-    print("【推荐】全网搜索 — Exa Search API")
-    print("  免费 1000 次/月，注册地址: https://exa.ai")
-    current = config.get("exa_api_key")
-    if current:
-        print(f"  当前状态: ✅ 已配置 ({current[:8]}...)")
-        change = input("  要更换吗？[y/N]: ").strip().lower()
-        if change != "y":
-            print()
-        else:
-            key = input("  EXA_API_KEY: ").strip()
-            if key:
-                config.set("exa_api_key", key)
-                print("  ✅ 已更新！")
-            print()
+    # Step 1: Exa (via mcporter, no API key required)
+    import shutil
+    import subprocess
+
+    print("【推荐】全网搜索 — Exa（通过 mcporter）")
+    print("  免费，无需 API Key")
+
+    if not shutil.which("mcporter"):
+        print("  当前状态: ⬜ mcporter 未安装")
+        print("  安装：npm install -g mcporter")
+        print("  然后：mcporter config add exa https://mcp.exa.ai/mcp")
+        print()
     else:
-        print("  当前状态: ⬜ 未配置")
-        key = input("  EXA_API_KEY (回车跳过): ").strip()
-        if key:
-            config.set("exa_api_key", key)
-            print("  ✅ 全网搜索 + Reddit搜索 + Twitter搜索 已开启！")
-        else:
-            print("  ℹ️  跳过。稍后可运行 agent-reach setup 配置")
+        try:
+            r = subprocess.run(
+                ["mcporter", "list"], capture_output=True, text=True, timeout=10
+            )
+            if "exa" in r.stdout.lower():
+                print("  当前状态: ✅ 已配置")
+            else:
+                print("  当前状态: ⬜ 未配置")
+                setup_now = input("  现在自动配置 Exa 吗？[Y/n]: ").strip().lower()
+                if setup_now in ("", "y", "yes"):
+                    add_r = subprocess.run(
+                        ["mcporter", "config", "add", "exa", "https://mcp.exa.ai/mcp"],
+                        capture_output=True, text=True, timeout=10,
+                    )
+                    if add_r.returncode == 0:
+                        print("  ✅ Exa 已配置")
+                    else:
+                        print("  ⚠️ 自动配置失败，请手动执行：")
+                        print("     mcporter config add exa https://mcp.exa.ai/mcp")
+        except Exception:
+            print("  ⚠️ 无法检查 Exa 配置，请手动执行：")
+            print("     mcporter config add exa https://mcp.exa.ai/mcp")
         print()
 
     # Step 2: GitHub token

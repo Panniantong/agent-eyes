@@ -40,3 +40,11 @@ class AgentReach:
         """Get formatted health report."""
         from agent_reach.doctor import check_all, format_report
         return format_report(check_all(self.config))
+
+    def detect_platform(self, url: str) -> Optional[str]:
+        """Detect channel name for a URL."""
+        if not url:
+            return None
+        from agent_reach.channels import get_channel_for_url
+        ch = get_channel_for_url(url)
+        return ch.name if ch else None

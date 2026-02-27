@@ -56,9 +56,8 @@ class TestConfig:
         tmp_config.delete("to_delete")
         assert tmp_config.get("to_delete") is None
 
-    def test_is_configured(self, tmp_config):
-        assert not tmp_config.is_configured("exa_search")
-        tmp_config.set("exa_api_key", "test-key")
+    def test_is_configured_exa_search(self, tmp_config):
+        # Exa requires no local config key (runtime checks happen in doctor).
         assert tmp_config.is_configured("exa_search")
 
     def test_is_configured_reddit(self, tmp_config):
@@ -70,7 +69,10 @@ class TestConfig:
         features = tmp_config.get_configured_features()
         assert isinstance(features, dict)
         assert "exa_search" in features
-        assert all(v is False for v in features.values())
+        assert features["exa_search"] is True
+
+    def test_unknown_feature_returns_false(self, tmp_config):
+        assert tmp_config.is_configured("unknown_feature") is False
 
     def test_to_dict_masks_sensitive(self, tmp_config):
         tmp_config.set("exa_api_key", "super-secret-key-12345")

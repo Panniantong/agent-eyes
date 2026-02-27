@@ -51,8 +51,22 @@ def get_all_channels() -> List[Channel]:
     return ALL_CHANNELS
 
 
+def get_channel_for_url(url: str) -> Channel:
+    """Route a URL to the first matching channel, falling back to web."""
+    if not isinstance(url, str):
+        url = ""
+    for ch in ALL_CHANNELS:
+        try:
+            if ch.can_handle(url):
+                return ch
+        except Exception:
+            continue
+    # Should not happen because WebChannel.can_handle always returns True.
+    return WebChannel()
+
+
 __all__ = [
     "Channel",
     "ALL_CHANNELS",
-    "get_channel", "get_all_channels",
+    "get_channel", "get_all_channels", "get_channel_for_url",
 ]

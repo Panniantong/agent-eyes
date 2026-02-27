@@ -23,6 +23,7 @@ class TestAgentReach:
         assert eyes.detect_platform("https://youtube.com/watch?v=abc") == "youtube"
         assert eyes.detect_platform("https://bilibili.com/video/BV1xx") == "bilibili"
         assert eyes.detect_platform("https://example.com") == "web"
+        assert eyes.detect_platform("") is None
 
     def test_doctor(self, eyes):
         results = eyes.doctor()
