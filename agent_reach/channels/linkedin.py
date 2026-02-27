@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """LinkedIn — check if linkedin-scraper-mcp is available."""
 
-import shutil
 import subprocess
+
+from agent_reach.mcporter import find_mcporter
 from .base import Channel
 
 
@@ -17,7 +18,8 @@ class LinkedInChannel(Channel):
         return "linkedin.com" in urlparse(url).netloc.lower()
 
     def check(self, config=None):
-        if not shutil.which("mcporter"):
+        mcporter = find_mcporter()
+        if not mcporter:
             return "off", (
                 "基本内容可通过 Jina Reader 读取。完整功能需要：\n"
                 "  pip install linkedin-scraper-mcp\n"
@@ -26,7 +28,7 @@ class LinkedInChannel(Channel):
             )
         try:
             r = subprocess.run(
-                ["mcporter", "config", "list"], capture_output=True, text=True, timeout=5
+                [mcporter, "config", "list"], capture_output=True, text=True, timeout=5
             )
             if "linkedin" in r.stdout.lower():
                 return "ok", "完整可用（Profile、公司、职位搜索）"

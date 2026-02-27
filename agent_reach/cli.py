@@ -16,6 +16,7 @@ import os
 import time
 
 from agent_reach import __version__
+from agent_reach.mcporter import find_mcporter
 
 
 def _ensure_utf8_console():
@@ -477,7 +478,8 @@ def _install_mcporter():
 
     print("📦 Setting up mcporter (search + XiaoHongShu backend)...")
 
-    if shutil.which("mcporter"):
+    mcporter = find_mcporter()
+    if mcporter:
         print("  ✅ mcporter already installed")
     else:
         # Check for npm/npx
@@ -490,7 +492,8 @@ def _install_mcporter():
                 ["npm", "install", "-g", "mcporter"],
                 capture_output=True, text=True, timeout=120,
             )
-            if shutil.which("mcporter"):
+            mcporter = find_mcporter()
+            if mcporter:
                 print("  ✅ mcporter installed")
             else:
                 print("  ❌ mcporter install failed. Retry: npm install -g mcporter (check network/timeout), or try: npx mcporter@latest list")
@@ -499,14 +502,19 @@ def _install_mcporter():
             print(f"  ❌ mcporter install failed: {e}")
             return
 
+    mcporter = find_mcporter()
+    if not mcporter:
+        print("  ⚠️  mcporter executable not found after installation")
+        return
+
     # Configure Exa MCP (free, no key needed)
     try:
         r = subprocess.run(
-            ["mcporter", "config", "list"], capture_output=True, text=True, timeout=5
+            [mcporter, "config", "list"], capture_output=True, text=True, timeout=5
         )
         if "exa" not in r.stdout:
             subprocess.run(
-                ["mcporter", "config", "add", "exa", "https://mcp.exa.ai/mcp"],
+                [mcporter, "config", "add", "exa", "https://mcp.exa.ai/mcp"],
                 capture_output=True, text=True, timeout=10,
             )
             print("  ✅ Exa search configured (free, no API key needed)")
@@ -518,7 +526,7 @@ def _install_mcporter():
     # Check XiaoHongShu MCP (only if server is running)
     try:
         r = subprocess.run(
-            ["mcporter", "config", "list"], capture_output=True, text=True, timeout=5
+            [mcporter, "config", "list"], capture_output=True, text=True, timeout=5
         )
         if "xiaohongshu" in r.stdout:
             print("  ✅ XiaoHongShu MCP already configured")
@@ -528,7 +536,7 @@ def _install_mcporter():
             try:
                 requests.get("http://localhost:18060/", timeout=3)
                 subprocess.run(
-                    ["mcporter", "config", "add", "xiaohongshu", "http://localhost:18060/mcp"],
+                    [mcporter, "config", "add", "xiaohongshu", "http://localhost:18060/mcp"],
                     capture_output=True, text=True, timeout=10,
                 )
                 print("  ✅ XiaoHongShu MCP auto-detected and configured")
@@ -543,11 +551,9 @@ def _install_mcporter():
 
 def _install_mcporter_safe():
     """Safe mode: check mcporter status, print instructions."""
-    import shutil
-
     print("📦 Checking mcporter (safe mode)...")
 
-    if shutil.which("mcporter"):
+    if find_mcporter():
         print("  ✅ mcporter already installed")
         print("  To configure Exa search: mcporter config add exa https://mcp.exa.ai/mcp")
     else:
@@ -787,18 +793,19 @@ def _cmd_uninstall(args):
                     print(f"  Could not remove {skill_path}: {e}")
 
     # ── 3. mcporter MCP entries ──
-    if shutil.which("mcporter"):
+    mcporter = find_mcporter()
+    if mcporter:
         for mcp_name in ("exa", "xiaohongshu"):
             try:
                 r = subprocess.run(
-                    ["mcporter", "list"], capture_output=True, text=True, timeout=10
+                    [mcporter, "list"], capture_output=True, text=True, timeout=10
                 )
                 if mcp_name in r.stdout:
                     if dry_run:
                         print(f"[dry-run] Would remove mcporter entry: {mcp_name}")
                     else:
                         subprocess.run(
-                            ["mcporter", "config", "remove", mcp_name],
+                            [mcporter, "config", "remove", mcp_name],
                             capture_output=True, text=True, timeout=10,
                         )
                         print(f"  Removed mcporter entry: {mcp_name}")
@@ -845,13 +852,13 @@ def _cmd_setup():
     print()
 
     # Step 1: Exa (via mcporter, no API key required)
-    import shutil
     import subprocess
 
     print("【推荐】全网搜索 — Exa（通过 mcporter）")
     print("  免费，无需 API Key")
 
-    if not shutil.which("mcporter"):
+    mcporter = find_mcporter()
+    if not mcporter:
         print("  当前状态: ⬜ mcporter 未安装")
         print("  安装：npm install -g mcporter")
         print("  然后：mcporter config add exa https://mcp.exa.ai/mcp")
@@ -859,7 +866,7 @@ def _cmd_setup():
     else:
         try:
             r = subprocess.run(
-                ["mcporter", "config", "list"], capture_output=True, text=True, timeout=10
+                [mcporter, "config", "list"], capture_output=True, text=True, timeout=10
             )
             if "exa" in r.stdout.lower():
                 print("  当前状态: ✅ 已配置")
@@ -868,7 +875,7 @@ def _cmd_setup():
                 setup_now = input("  现在自动配置 Exa 吗？[Y/n]: ").strip().lower()
                 if setup_now in ("", "y", "yes"):
                     add_r = subprocess.run(
-                        ["mcporter", "config", "add", "exa", "https://mcp.exa.ai/mcp"],
+                        [mcporter, "config", "add", "exa", "https://mcp.exa.ai/mcp"],
                         capture_output=True, text=True, timeout=10,
                     )
                     if add_r.returncode == 0:

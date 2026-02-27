@@ -3,6 +3,7 @@
 
 import pytest
 import requests
+from types import SimpleNamespace
 from unittest.mock import patch
 import agent_reach.cli as cli
 from agent_reach.cli import main
@@ -112,3 +113,25 @@ class TestCheckUpdateRetry:
         assert result == "error"
         assert "网络超时" in captured.out
         assert "已重试 3 次" in captured.out
+
+
+class TestMcporterExecutableResolution:
+    def test_uninstall_uses_resolved_mcporter_path(self, capsys):
+        calls = []
+
+        class Result:
+            def __init__(self, stdout=""):
+                self.stdout = stdout
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            return Result(stdout="exa\nxiaohongshu\n")
+
+        args = SimpleNamespace(dry_run=True, keep_config=False)
+
+        with patch("agent_reach.cli.find_mcporter", return_value=r"C:\Tools\mcporter.CMD"):
+            with patch("subprocess.run", side_effect=fake_run):
+                cli._cmd_uninstall(args)
+
+        assert calls, "expected subprocess.run to be called"
+        assert calls[0][0] == r"C:\Tools\mcporter.CMD"

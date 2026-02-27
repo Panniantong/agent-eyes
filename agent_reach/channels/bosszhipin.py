@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """Boss直聘 — check if mcp-bosszp is available."""
 
-import shutil
 import subprocess
+
+from agent_reach.mcporter import find_mcporter
 from .base import Channel
 
 
@@ -18,7 +19,8 @@ class BossZhipinChannel(Channel):
         return "zhipin.com" in domain or "boss.com" in domain
 
     def check(self, config=None):
-        if not shutil.which("mcporter"):
+        mcporter = find_mcporter()
+        if not mcporter:
             return "off", (
                 "可通过 Jina Reader 读取职位页面。完整功能需要：\n"
                 "  1. git clone https://github.com/mucsbr/mcp-bosszp.git\n"
@@ -28,7 +30,7 @@ class BossZhipinChannel(Channel):
             )
         try:
             r = subprocess.run(
-                ["mcporter", "list"], capture_output=True, text=True, timeout=10
+                [mcporter, "list"], capture_output=True, text=True, timeout=10
             )
             out = r.stdout.lower()
             if "boss" in out or "zhipin" in out:
