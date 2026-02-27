@@ -20,7 +20,7 @@ Copy this to your AI Agent:
 
 ### Goal
 
-Install Agent Reach and all upstream tools so your user's agent has full internet access. After installation, you'll use the upstream tools directly (bird CLI, yt-dlp, mcporter, gh CLI, etc.) — Agent Reach is just the installer and health checker.
+Install Agent Reach and all upstream tools so your user's agent has full internet access. After installation, you'll use the upstream tools directly (xreach CLI, yt-dlp, mcporter, gh CLI, etc.) — Agent Reach is just the installer and health checker.
 
 ### ⚠️ Boundaries
 
@@ -41,7 +41,7 @@ pip install https://github.com/Panniantong/agent-reach/archive/main.zip
 agent-reach install --env=auto
 ```
 
-This auto-installs system dependencies (gh CLI, Node.js, mcporter, bird), configures Exa search, detects environment, and tests all channels.
+This auto-installs system dependencies (gh CLI, Node.js, mcporter, xreach), configures Exa search, detects environment, and tests all channels.
 
 **Safe mode (no automatic system changes):**
 
@@ -103,9 +103,9 @@ agent-reach configure twitter-cookies "PASTED_STRING"
 
 > **代理说明（中国大陆等需要翻墙的网络环境）：**
 >
-> bird CLI 使用 Node.js 原生 `fetch()`，默认不走系统代理（`HTTP_PROXY`/`HTTPS_PROXY`）。
+> xreach CLI 使用 Node.js 原生 `fetch()`，默认不走系统代理（`HTTP_PROXY`/`HTTPS_PROXY`）。
 > Agent Reach 已内置解决方案：安装时会自动安装 `undici`（`npm install -g undici`），
-> 运行 bird 时自动注入 `EnvHttpProxyAgent`，让 fetch 走用户配置的代理。
+> 运行 xreach 时自动注入 `EnvHttpProxyAgent`，让 fetch 走用户配置的代理。
 >
 > **你（Agent）需要做的：**
 > 1. 确认 `undici` 已全局安装：`npm list -g undici`，没有就装：`npm install -g undici`
@@ -277,7 +277,7 @@ After installation, use upstream tools directly. See SKILL.md for the full comma
 
 | Platform | Upstream Tool | Example |
 |----------|--------------|---------|
-| Twitter/X | `bird` | `bird search "query" --json` |
+| Twitter/X | `xreach` | `xreach search "query" --json` |
 | YouTube | `yt-dlp` | `yt-dlp --dump-json URL` |
 | Bilibili | `yt-dlp` | `yt-dlp --dump-json URL` |
 | Reddit | `curl` | `curl -s "https://reddit.com/r/xxx.json"` |

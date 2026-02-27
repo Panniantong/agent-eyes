@@ -50,7 +50,7 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 |---|---|
 | 💰 **完全免费** | 所有工具开源、所有 API 免费。唯一可能花钱的是服务器代理（$1/月），本地电脑不需要 |
 | 🔒 **隐私安全** | Cookie 只存在你本地，不上传不外传。代码完全开源，随时可审查 |
-| 🔄 **持续更新** | 底层工具（yt-dlp、bird、Jina Reader 等）定期追踪更新到最新版，你不用自己盯 |
+| 🔄 **持续更新** | 底层工具（yt-dlp、xreach、Jina Reader 等）定期追踪更新到最新版，你不用自己盯 |
 | 🤖 **兼容所有 Agent** | Claude Code、OpenClaw、Cursor、Windsurf……任何能跑命令行的 Agent 都能用 |
 | 🩺 **自带诊断** | `agent-reach doctor` 一条命令告诉你哪个通、哪个不通、怎么修 |
 
@@ -102,7 +102,7 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 <summary>它会做什么？（点击展开）</summary>
 
 1. **安装 CLI 工具** — `pip install` 装好 `agent-reach` 命令行
-2. **安装系统依赖** — 自动检测并安装 Node.js、gh CLI、mcporter、bird 等
+2. **安装系统依赖** — 自动检测并安装 Node.js、gh CLI、mcporter、xreach 等
 3. **配置搜索引擎** — 通过 MCP 接入 Exa（免费，无需 API Key）
 4. **检测环境** — 判断是本地电脑还是服务器，给出对应的配置建议
 5. **注册 SKILL.md** — 在 Agent 的 skills 目录安装使用指南，以后 Agent 遇到"搜推特"、"看视频"这类需求，会自动知道该调哪个上游工具
@@ -119,7 +119,7 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 - "帮我看看这个链接" → `curl https://r.jina.ai/URL` 读任意网页
 - "这个 GitHub 仓库是做什么的" → `gh repo view owner/repo`
 - "这个视频讲了什么" → `yt-dlp --dump-json URL` 提取字幕
-- "帮我看看这条推文" → `bird read URL --json`
+- "帮我看看这条推文" → `xreach tweet URL --json`
 - "订阅这个 RSS" → `feedparser` 解析
 - "搜一下 GitHub 上有什么 LLM 框架" → `gh search repos "LLM framework"`
 
@@ -135,7 +135,7 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 
 Agent Reach 做的事情很简单：**帮你把这些选型和配置的活儿做完了。**
 
-安装完成后，Agent 直接调用上游工具（bird CLI、yt-dlp、mcporter、gh CLI 等），不需要经过 Agent Reach 的包装层。
+安装完成后，Agent 直接调用上游工具（xreach CLI、yt-dlp、mcporter、gh CLI 等），不需要经过 Agent Reach 的包装层。
 
 ### 🔌 每个渠道都是可插拔的
 
@@ -144,7 +144,7 @@ Agent Reach 做的事情很简单：**帮你把这些选型和配置的活儿做
 ```
 channels/
 ├── web.py          → Jina Reader     ← 可以换成 Firecrawl、Crawl4AI……
-├── twitter.py      → bird            ← 可以换成 Nitter、官方 API……
+├── twitter.py      → xreach            ← 可以换成 Nitter、官方 API……
 ├── youtube.py      → yt-dlp          ← 可以换成 YouTube API、Whisper……
 ├── github.py       → gh CLI          ← 可以换成 REST API、PyGithub……
 ├── bilibili.py     → yt-dlp          ← 可以换成 bilibili-api……
@@ -165,7 +165,7 @@ channels/
 | 场景 | 选型 | 为什么选它 |
 |------|------|-----------|
 | 读网页 | [Jina Reader](https://github.com/jina-ai/reader) | 9.8K Star，免费，不需要 API Key |
-| 读推特 | [bird](https://www.npmjs.com/package/@steipete/bird) | Cookie 登录，免费。官方 API 按量付费（读一条 $0.005） |
+| 读推特 | [xreach](https://www.npmjs.com/package/xreach-cli) | Cookie 登录，免费。官方 API 按量付费（读一条 $0.005） |
 | 视频字幕 + 搜索 | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | 148K Star，YouTube + B站 + 1800 站通吃 |
 | 搜全网 | [Exa](https://exa.ai) via [mcporter](https://github.com/steipete/mcporter) | AI 语义搜索，MCP 接入免 Key |
 | GitHub | [gh CLI](https://cli.github.com) | 官方工具，认证后完整 API 能力 |
@@ -258,13 +258,13 @@ Star 一下，下次需要的时候能找到。⭐
 <details>
 <summary><strong>AI Agent 怎么搜索 Twitter / X？不想付 API 费用</strong></summary>
 
-Agent Reach 使用 [bird CLI](https://www.npmjs.com/package/@steipete/bird) 通过 Cookie 认证访问 Twitter，完全免费。安装 Agent Reach 后，用 Cookie-Editor 导出你的 Twitter Cookie，运行 `agent-reach configure twitter-cookies "your_cookies"` 即可。之后 Agent 就可以用 `bird search "关键词" --json` 搜索推文了。
+Agent Reach 使用 [xreach CLI](https://www.npmjs.com/package/xreach-cli) 通过 Cookie 认证访问 Twitter，完全免费。安装 Agent Reach 后，用 Cookie-Editor 导出你的 Twitter Cookie，运行 `agent-reach configure twitter-cookies "your_cookies"` 即可。之后 Agent 就可以用 `xreach search "关键词" --json` 搜索推文了。
 </details>
 
 <details>
 <summary><strong>How to search Twitter/X with AI agent for free (no API)?</strong></summary>
 
-Agent Reach uses the bird CLI with cookie auth — zero API fees. After installing, export your Twitter cookies with the Cookie-Editor extension, run `agent-reach configure twitter-cookies "your_cookies"`, then your agent can search with `bird search "query" --json`.
+Agent Reach uses the xreach CLI with cookie auth — zero API fees. After installing, export your Twitter cookies with the Cookie-Editor extension, run `agent-reach configure twitter-cookies "your_cookies"`, then your agent can search with `xreach search "query" --json`.
 </details>
 
 <details>
@@ -300,14 +300,14 @@ Yes! Agent Reach is an installer + configuration tool — any AI coding agent th
 <details>
 <summary><strong>Is this free? Any API costs?</strong></summary>
 
-100% free. All backends are open-source tools (bird CLI, yt-dlp, Jina Reader, Exa, etc.) that don't require paid API keys. The only optional cost is a residential proxy (~$1/month) if you need Reddit/Bilibili access from a server.
+100% free. All backends are open-source tools (xreach CLI, yt-dlp, Jina Reader, Exa, etc.) that don't require paid API keys. The only optional cost is a residential proxy (~$1/month) if you need Reddit/Bilibili access from a server.
 </details>
 
 ---
 
 ## 致谢
 
-[Jina Reader](https://github.com/jina-ai/reader) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [bird](https://www.npmjs.com/package/@steipete/bird) · [Exa](https://exa.ai) · [mcporter](https://github.com/steipete/mcporter) · [feedparser](https://github.com/kurtmckee/feedparser) · [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) · [douyin-mcp-server](https://github.com/yzfly/douyin-mcp-server) · [linkedin-scraper-mcp](https://github.com/stickerdaniel/linkedin-mcp-server) · [mcp-bosszp](https://github.com/mucsbr/mcp-bosszp)
+[Jina Reader](https://github.com/jina-ai/reader) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [xreach](https://www.npmjs.com/package/xreach-cli) · [Exa](https://exa.ai) · [mcporter](https://github.com/steipete/mcporter) · [feedparser](https://github.com/kurtmckee/feedparser) · [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) · [douyin-mcp-server](https://github.com/yzfly/douyin-mcp-server) · [linkedin-scraper-mcp](https://github.com/stickerdaniel/linkedin-mcp-server) · [mcp-bosszp](https://github.com/mucsbr/mcp-bosszp)
 
 ## License
 

@@ -387,24 +387,24 @@ def _install_system_deps():
         except Exception:
             print("  ⚠️  Node.js install failed. Try: apt install nodejs npm, or nvm install 22, or download from https://nodejs.org")
 
-    # ── bird CLI (for Twitter search) ──
-    if shutil.which("bird") or shutil.which("birdx"):
-        print("  ✅ bird CLI already installed")
+    # ── xreach CLI (for Twitter search) ──
+    if shutil.which("xreach"):
+        print("  ✅ xreach CLI already installed")
     else:
         if shutil.which("npm"):
             try:
                 subprocess.run(
-                    ["npm", "install", "-g", "@steipete/bird"],
+                    ["npm", "install", "-g", "xreach-cli"],
                     capture_output=True, text=True, timeout=120,
                 )
-                if shutil.which("bird"):
-                    print("  ✅ bird CLI installed (Twitter search + timeline)")
+                if shutil.which("xreach"):
+                    print("  ✅ xreach CLI installed (Twitter search + timeline)")
                 else:
-                    print("  ⬜ bird CLI install failed (optional — Twitter reading still works via Jina)")
+                    print("  ⬜ xreach CLI install failed (optional — Twitter reading still works via Jina)")
             except Exception:
-                print("  ⬜ bird CLI install failed (optional — Twitter reading still works via Jina)")
+                print("  ⬜ xreach CLI install failed (optional — Twitter reading still works via Jina)")
         else:
-            print("  ⬜ bird CLI requires Node.js (optional — Twitter reading still works via Jina)")
+            print("  ⬜ xreach CLI requires Node.js (optional — Twitter reading still works via Jina)")
 
     # ── undici (proxy support for Node.js fetch) ──
     if shutil.which("npm"):
@@ -417,7 +417,7 @@ def _install_system_deps():
                 subprocess.run(["npm", "install", "-g", "undici"], capture_output=True, text=True, timeout=60)
                 print("  ✅ undici installed (Node.js proxy support)")
             except Exception:
-                print("  ⬜ undici install failed (optional — bird may not work behind proxies)")
+                print("  ⬜ undici install failed (optional — xreach may not work behind proxies)")
 
 
 def _install_system_deps_safe():
@@ -429,7 +429,7 @@ def _install_system_deps_safe():
     deps = [
         ("gh", ["gh"], "GitHub CLI", "https://cli.github.com — or: apt install gh / brew install gh"),
         ("node", ["node", "npm"], "Node.js", "https://nodejs.org — or: apt install nodejs npm"),
-        ("bird", ["bird", "birdx"], "bird CLI (Twitter)", "npm install -g @steipete/bird"),
+        ("xreach", ["xreach"], "xreach CLI (Twitter)", "npm install -g xreach-cli"),
     ]
 
     missing = []
@@ -459,7 +459,7 @@ def _install_system_deps_dryrun():
     checks = [
         ("gh CLI", ["gh"], "apt install gh / brew install gh"),
         ("Node.js", ["node"], "curl NodeSource setup | bash + apt install nodejs"),
-        ("bird CLI", ["bird", "birdx"], "npm install -g @steipete/bird"),
+        ("xreach CLI", ["xreach"], "npm install -g xreach-cli"),
     ]
 
     for label, binaries, method in checks:
@@ -690,16 +690,16 @@ def _cmd_configure(args):
             print("Testing Twitter access...", end=" ")
             try:
                 import subprocess
-                bird = shutil.which("bird") or shutil.which("birdx")
-                if not bird:
-                    print("⚠️ bird CLI not installed. Run: npm install -g @steipete/bird")
+                xreach = shutil.which("xreach")
+                if not xreach:
+                    print("⚠️ xreach CLI not installed. Run: npm install -g xreach-cli")
                 else:
                     import os
                     env = os.environ.copy()
                     env["AUTH_TOKEN"] = auth_token
                     env["CT0"] = ct0
                     result = subprocess.run(
-                        [bird, "search", "test", "-n", "1"],
+                        [xreach, "search", "test", "-n", "1"],
                         capture_output=True, text=True, timeout=15,
                         env=env,
                     )
@@ -823,7 +823,7 @@ def _cmd_uninstall(args):
     print()
     print("Optional: remove tools installed by Agent Reach:")
     print("  npm uninstall -g mcporter")
-    print("  npm uninstall -g @steipete/bird")
+    print("  npm uninstall -g xreach-cli")
     print("  npm uninstall -g undici")
 
 

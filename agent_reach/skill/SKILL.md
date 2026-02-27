@@ -23,7 +23,7 @@ agent-reach install --env=auto
 agent-reach doctor
 ```
 
-`install` auto-detects your environment and installs core dependencies (Node.js, mcporter, bird CLI, gh CLI, yt-dlp, feedparser). Run `doctor` to see what's active.
+`install` auto-detects your environment and installs core dependencies (Node.js, mcporter, xreach CLI, gh CLI, yt-dlp, feedparser). Run `doctor` to see what's active.
 
 ## Management
 
@@ -78,17 +78,17 @@ When a user asks to configure/enable any channel:
 
 After `agent-reach install`, call the upstream tools directly. No need for `agent-reach read` or `agent-reach search`.
 
-### Twitter/X (bird CLI)
+### Twitter/X (xreach CLI)
 
 ```bash
 # Search tweets
-bird search "query" --json -n 10
+xreach search "query" --json -n 10
 
 # Read a specific tweet
-bird read https://x.com/user/status/123 --json
+xreach tweet https://x.com/user/status/123 --json
 
 # Read a user's timeline
-bird timeline @username --json -n 20
+xreach tweets @username --json -n 20
 ```
 
 ### YouTube (yt-dlp)
@@ -248,7 +248,7 @@ for e in d.entries[:5]:
 
 ### Twitter "fetch failed"
 
-bird CLI uses Node.js native `fetch()`, which doesn't respect `HTTP_PROXY`. Solutions:
+xreach CLI uses Node.js `undici`, which doesn't respect `HTTP_PROXY`. Solutions:
 1. Ensure `undici` is installed: `npm install -g undici`
 2. Configure proxy: `agent-reach configure proxy http://user:pass@ip:port`
 3. If still failing, use transparent proxy (Clash TUN, Proxifier)
