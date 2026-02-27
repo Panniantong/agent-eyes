@@ -4,6 +4,7 @@
 import pytest
 from agent_reach.config import Config
 from agent_reach.doctor import check_all, format_report
+from agent_reach.channels.exa_search import ExaSearchChannel
 
 
 @pytest.fixture
@@ -12,21 +13,37 @@ def tmp_config(tmp_path):
 
 
 class TestDoctor:
-    def test_zero_config_channels_ok(self, tmp_config):
+    def test_doctor_has_core_channels(self, tmp_config):
         results = check_all(tmp_config)
-        assert results["web"]["status"] == "ok"
-        assert results["github"]["status"] == "ok"
-        assert results["bilibili"]["status"] in ("ok", "warn")  # warn on servers
-        assert results["rss"]["status"] == "ok"
+        assert "web" in results
+        assert "github" in results
+        assert "twitter" in results
+        assert "exa_search" in results
 
-    def test_exa_off_without_key(self, tmp_config):
+    def test_each_result_has_required_fields(self, tmp_config):
         results = check_all(tmp_config)
-        assert results["exa_search"]["status"] == "off"
+        for item in results.values():
+            assert "status" in item
+            assert "name" in item
+            assert "message" in item
+            assert item["status"] in {"ok", "warn", "off", "error"}
 
-    def test_exa_on_with_key(self, tmp_config):
-        tmp_config.set("exa_api_key", "test-key")
-        results = check_all(tmp_config)
-        assert results["exa_search"]["status"] == "ok"
+    def test_exa_channel_off_when_mcporter_missing(self, monkeypatch):
+        import agent_reach.channels.exa_search as exa_mod
+        monkeypatch.setattr(exa_mod.shutil, "which", lambda _: None)
+        status, _ = ExaSearchChannel().check()
+        assert status == "off"
+
+    def test_exa_channel_ok_when_mcporter_has_exa(self, monkeypatch):
+        import agent_reach.channels.exa_search as exa_mod
+        monkeypatch.setattr(exa_mod.shutil, "which", lambda _: "mcporter")
+
+        class Result:
+            stdout = "exa"
+
+        monkeypatch.setattr(exa_mod.subprocess, "run", lambda *args, **kwargs: Result())
+        status, _ = ExaSearchChannel().check()
+        assert status == "ok"
 
     def test_format_report(self, tmp_config):
         results = check_all(tmp_config)

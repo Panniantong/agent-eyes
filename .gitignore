@@ -8,3 +8,10 @@ build/
 .env
 .agent-reach/
 *.log
+
+# Local memory/docs (do not push)
+AGENTS.md
+MEMORY.md
+RUNBOOK.md
+*技术文档*.md
+*技术文档*.MD

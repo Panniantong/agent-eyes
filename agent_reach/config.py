@@ -20,7 +20,7 @@ class Config:
 
     # Feature → required config keys
     FEATURE_REQUIREMENTS = {
-        "exa_search": ["exa_api_key"],
+        "exa_search": [],  # Config-wise no key required (mcporter runtime check in doctor)
         "reddit_proxy": ["reddit_proxy"],
         "twitter_bird": ["twitter_auth_token", "twitter_ct0"],
         "groq_whisper": ["groq_api_key"],
@@ -81,7 +81,9 @@ class Config:
 
     def is_configured(self, feature: str) -> bool:
         """Check if a feature has all required config."""
-        required = self.FEATURE_REQUIREMENTS.get(feature, [])
+        if feature not in self.FEATURE_REQUIREMENTS:
+            return False
+        required = self.FEATURE_REQUIREMENTS[feature]
         return all(self.get(k) for k in required)
 
     def get_configured_features(self) -> dict:
