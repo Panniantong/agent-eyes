@@ -93,7 +93,8 @@ xreach tweets @username --json -n 20
 
 ### YouTube (yt-dlp)
 
-> ⚠️ 服务器 IP 可能触发 YouTube 反爬（"Sign in to confirm you're not a bot"）。遇到时加 `--cookies-from-browser chrome` 或通过代理。
+> ⚠️ yt-dlp 需要 JS runtime 才能下载 YouTube。`agent-reach install` 会自动配置 Node.js 作为 runtime。
+> 如果遇到 "Sign in to confirm you're not a bot"，是 IP 被 YouTube 反爬，换代理或加 cookies。
 
 ```bash
 # Get video metadata
@@ -106,8 +107,8 @@ yt-dlp --write-sub --write-auto-sub --sub-lang "zh-Hans,zh,en" --skip-download -
 # Search (yt-dlp ytsearch)
 yt-dlp --dump-json "ytsearch5:query"
 
-# If blocked ("Sign in to confirm you're not a bot"):
-yt-dlp --cookies-from-browser chrome --dump-json "URL"
+# If "no JS runtime" warning: ensure Node.js is installed, then run:
+#   mkdir -p ~/.config/yt-dlp && echo "--js-runtimes node" >> ~/.config/yt-dlp/config
 ```
 
 ### Bilibili (yt-dlp)
