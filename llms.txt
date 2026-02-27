@@ -10,7 +10,7 @@
 
 ## Core Commands
 
-- [CLI Usage](https://github.com/Panniantong/Agent-Reach/blob/main/docs/install.md): `agent-reach read <url>` reads any URL, `agent-reach search-twitter "query"` searches Twitter, etc.
+- [CLI Usage](https://github.com/Panniantong/Agent-Reach/blob/main/docs/install.md): `agent-reach install --env=auto`, `agent-reach doctor`, `agent-reach configure ...`, `agent-reach watch`, `agent-reach check-update`
 
 ## Key Features
 
