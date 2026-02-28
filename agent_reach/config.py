@@ -73,6 +73,43 @@ class Config:
         """Set a config value and save."""
         self.data[key] = value
         self.save()
+        # Sync Twitter auth to xreach if setting twitter credentials
+        if key in ("twitter_auth_token", "twitter_ct0"):
+            self._sync_twitter_to_xreach()
+
+    def _sync_twitter_to_xreach(self):
+        """Sync Twitter credentials to xreach session file.
+        
+        This bridges the gap between agent-reach config and xreach CLI.
+        xreach reads from ~/.config/xfetch/session.json
+        """
+        import json
+        auth_token = self.data.get("twitter_auth_token")
+        ct0 = self.data.get("twitter_ct0")
+        
+        if not auth_token or not ct0:
+            return
+        
+        # Create xreach config directory
+        xreach_config_dir = Path.home() / ".config" / "xfetch"
+        xreach_config_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Write session file
+        session_file = xreach_config_dir / "session.json"
+        session = {
+            "authToken": auth_token,
+            "ct0": ct0
+        }
+        
+        with open(session_file, "w", encoding="utf-8") as f:
+            json.dump(session, f, indent=2)
+        
+        # Restrict permissions
+        try:
+            import stat
+            session_file.chmod(stat.S_IRUSR | stat.S_IWUSR)  # 0o600
+        except OSError:
+            pass
 
     def delete(self, key: str):
         """Delete a config key and save."""
