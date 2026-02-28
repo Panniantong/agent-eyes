@@ -719,6 +719,7 @@ def _cmd_configure(args):
                 session_data["ct0"] = ct0
                 with open(session_path, "w", encoding="utf-8") as sf:
                     json.dump(session_data, sf, indent=2)
+                os.chmod(session_path, 0o600)
                 print("✅ Twitter cookies configured (synced to xreach)!")
             except Exception as e:
                 print("✅ Twitter cookies configured!")
