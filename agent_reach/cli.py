@@ -275,8 +275,15 @@ def _install_skill():
             target = os.path.join(skill_dir, "agent-reach")
             try:
                 os.makedirs(target, exist_ok=True)
-                # Read SKILL.md from package data
-                skill_md = importlib.resources.files("agent_reach").joinpath("skill", "SKILL.md").read_text()
+                # Read SKILL.md: try agent_reach/skill first (editable install), then root skills/ (wheel)
+                try:
+                    skill_md = importlib.resources.files("agent_reach").joinpath("skill", "SKILL.md").read_text()
+                except FileNotFoundError:
+                    # Fallback to root skills/ directory for wheel builds
+                    import os as _os
+                    _root = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+                    with open(_os.path.join(_root, "skills", "SKILL.md")) as f:
+                        skill_md = f.read()
                 with open(os.path.join(target, "SKILL.md"), "w") as f:
                     f.write(skill_md)
                 platform_name = "OpenClaw" if "openclaw" in skill_dir else "Claude Code" if "claude" in skill_dir else "Agent"
@@ -290,7 +297,15 @@ def _install_skill():
         target = os.path.expanduser("~/.openclaw/skills/agent-reach")
         try:
             os.makedirs(target, exist_ok=True)
-            skill_md = importlib.resources.files("agent_reach").joinpath("skill", "SKILL.md").read_text()
+            # Read SKILL.md: try agent_reach/skill first (editable install), then root skills/ (wheel)
+            try:
+                skill_md = importlib.resources.files("agent_reach").joinpath("skill", "SKILL.md").read_text()
+            except FileNotFoundError:
+                # Fallback to root skills/ directory for wheel builds
+                import os as _os
+                _root = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+                with open(_os.path.join(_root, "skills", "SKILL.md")) as f:
+                    skill_md = f.read()
             with open(os.path.join(target, "SKILL.md"), "w") as f:
                 f.write(skill_md)
             print(f"🧩 Skill installed: {target}")
