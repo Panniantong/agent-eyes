@@ -28,3 +28,11 @@ jobs:
       - name: Run tests
         run: |
           pytest -q
+
+      - name: Lint (ruff)
+        run: |
+          ruff check agent_reach tests
+
+      - name: Type check (mypy)
+        run: |
+          mypy agent_reach

@@ -9,10 +9,9 @@ Usage:
     agent-reach setup
 """
 
-import sys
 import argparse
-import json
 import os
+import sys
 import time
 
 from agent_reach import __version__
@@ -136,6 +135,7 @@ def main():
 def _cmd_install(args):
     """One-shot deterministic installer."""
     import os
+
     from agent_reach.config import Config
     from agent_reach.doctor import check_all, format_report
 
@@ -164,18 +164,18 @@ def _cmd_install(args):
         env = _detect_environment()
     
     if env == "server":
-        print(f"📡 Environment: Server/VPS (auto-detected)")
+        print("📡 Environment: Server/VPS (auto-detected)")
     else:
-        print(f"💻 Environment: Local computer (auto-detected)")
+        print("💻 Environment: Local computer (auto-detected)")
 
     # Apply explicit flags
     if args.proxy:
         if dry_run:
-            print(f"[dry-run] Would configure proxy for Reddit + Bilibili")
+            print("[dry-run] Would configure proxy for Reddit + Bilibili")
         else:
             config.set("reddit_proxy", args.proxy)
             config.set("bilibili_proxy", args.proxy)
-            print(f"✅ Proxy configured for Reddit + Bilibili")
+            print("✅ Proxy configured for Reddit + Bilibili")
 
     # ── Install system dependencies ──
     print()
@@ -262,8 +262,8 @@ def _cmd_install(args):
 
 def _install_skill():
     """Install Agent Reach as an agent skill (OpenClaw / Claude Code)."""
-    import os
     import importlib.resources
+    import os
 
     # Determine skill install path
     skill_dirs = [
@@ -303,9 +303,9 @@ def _install_skill():
 
 def _install_system_deps():
     """Install system-level dependencies: gh CLI, Node.js (for mcporter)."""
+    import platform
     import shutil
     import subprocess
-    import platform
     import tempfile
 
     print("🔧 Checking system dependencies...")
@@ -565,7 +565,7 @@ def _install_system_deps_safe():
             pkgs.extend(["camoufox[geoip]", "markdownify", "beautifulsoup4", "httpx"])
         if not has_miku:
             pkgs.append("miku_ai")
-        print(f"  ⬜ WeChat article tools not found")
+        print("  ⬜ WeChat article tools not found")
         print(f"    Install: pip install {' '.join(pkgs)}")
 
 
@@ -718,7 +718,7 @@ def _detect_environment():
                 content = open(cloud_file).read().lower()
                 if any(x in content for x in ["amazon", "google", "microsoft", "digitalocean", "linode", "vultr", "hetzner"]):
                     indicators += 2
-            except:
+            except Exception:
                 pass
 
     # systemd-detect-virt
@@ -727,7 +727,7 @@ def _detect_environment():
         result = subprocess.run(["systemd-detect-virt"], capture_output=True, encoding="utf-8", errors="replace", timeout=3)
         if result.returncode == 0 and result.stdout.strip() != "none":
             indicators += 1
-    except:
+    except Exception:
         pass
 
     return "server" if indicators >= 2 else "local"
@@ -736,6 +736,7 @@ def _detect_environment():
 def _cmd_configure(args):
     """Set a config value and test it, or auto-extract from browser."""
     import shutil
+
     from agent_reach.config import Config
 
     config = Config()
@@ -779,7 +780,7 @@ def _cmd_configure(args):
     if args.key == "proxy":
         config.set("reddit_proxy", value)
         config.set("bilibili_proxy", value)
-        print(f"✅ Proxy configured for Reddit + Bilibili!")
+        print("✅ Proxy configured for Reddit + Bilibili!")
 
         # Auto-test
         print("Testing Reddit access...", end=" ")
@@ -849,7 +850,6 @@ def _cmd_configure(args):
                 if not xreach:
                     print("⚠️ xreach CLI not installed. Run: npm install -g xreach-cli")
                 else:
-                    import os
                     env = os.environ.copy()
                     env["AUTH_TOKEN"] = auth_token
                     env["CT0"] = ct0
@@ -861,7 +861,7 @@ def _cmd_configure(args):
                     if result.returncode == 0 and result.stdout.strip():
                         print("✅ Twitter Advanced works!")
                     else:
-                        print(f"⚠️ Test returned no results (cookies might be wrong)")
+                        print("⚠️ Test returned no results (cookies might be wrong)")
             except Exception as e:
                 print(f"❌ Failed: {e}")
         else:
@@ -877,11 +877,11 @@ def _cmd_configure(args):
 
     elif args.key == "github-token":
         config.set("github_token", value)
-        print(f"✅ GitHub token configured!")
+        print("✅ GitHub token configured!")
 
     elif args.key == "groq-key":
         config.set("groq_api_key", value)
-        print(f"✅ Groq key configured!")
+        print("✅ Groq key configured!")
 
 
 def _cmd_uninstall(args):
@@ -1042,7 +1042,7 @@ def _cmd_setup():
     print("  获取: https://github.com/settings/tokens (无需任何权限)")
     current = config.get("github_token")
     if current:
-        print(f"  当前状态: ✅ 已配置")
+        print("  当前状态: ✅ 已配置")
     else:
         key = input("  GITHUB_TOKEN (回车跳过): ").strip()
         if key:
@@ -1058,7 +1058,7 @@ def _cmd_setup():
     print("  格式: http://用户名:密码@IP:端口")
     current = config.get("reddit_proxy")
     if current:
-        print(f"  当前状态: ✅ 已配置")
+        print("  当前状态: ✅ 已配置")
     else:
         proxy = input("  REDDIT_PROXY (回车跳过): ").strip()
         if proxy:
@@ -1073,7 +1073,7 @@ def _cmd_setup():
     print("  免费额度，注册: https://console.groq.com")
     current = config.get("groq_api_key")
     if current:
-        print(f"  当前状态: ✅ 已配置")
+        print("  当前状态: ✅ 已配置")
     else:
         key = input("  GROQ_API_KEY (回车跳过): ").strip()
         if key:
@@ -1212,7 +1212,7 @@ def _cmd_check_update():
             print("更新命令:")
             print("  pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip")
             return "update_available"
-        print(f"✅ 已是最新版本")
+        print("✅ 已是最新版本")
         return "up_to_date"
 
     release_err = _classify_github_response_error(resp)
@@ -1250,9 +1250,9 @@ def _cmd_watch():
 
     Only outputs problems. If everything is fine, outputs a single line.
     """
+    from agent_reach import __version__
     from agent_reach.config import Config
     from agent_reach.doctor import check_all
-    from agent_reach import __version__
 
     config = Config()
     issues = []
@@ -1291,8 +1291,8 @@ def _cmd_watch():
         print(f"👁️ Agent Reach: 全部正常 ({ok}/{total} 渠道可用，v{__version__} 已是最新)")
         return
 
-    print(f"👁️ Agent Reach 监控报告")
-    print(f"=" * 40)
+    print("👁️ Agent Reach 监控报告")
+    print("=" * 40)
     print(f"📦 版本: v{__version__}  |  渠道: {ok}/{total}")
 
     if issues:
@@ -1306,7 +1306,7 @@ def _cmd_watch():
         if release_body:
             for line in release_body.strip().split("\n")[:10]:
                 print(f"    {line}")
-        print(f"  更新: pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip")
+        print("  更新: pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip")
 
 
 if __name__ == "__main__":

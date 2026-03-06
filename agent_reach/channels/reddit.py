@@ -2,6 +2,7 @@
 """Reddit — check if proxy and credentials are configured."""
 
 import os
+
 from .base import Channel
 
 

@@ -10,7 +10,6 @@ and provides:
 After installation, agents call upstream tools directly.
 """
 
-import shutil
 from abc import ABC, abstractmethod
 from typing import List, Tuple
 

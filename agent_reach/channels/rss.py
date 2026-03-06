@@ -15,7 +15,7 @@ class RSSChannel(Channel):
 
     def check(self, config=None):
         try:
-            import feedparser
+            import feedparser  # noqa: F401
             return "ok", "可读取 RSS/Atom 源"
         except ImportError:
             return "off", "feedparser 未安装。安装：pip install feedparser"

@@ -5,8 +5,6 @@ Read:   wechat-article-for-ai (Camoufox stealth browser)
 Search: miku_ai (Sogou WeChat search)
 """
 
-import shutil
-import subprocess
 from .base import Channel
 
 

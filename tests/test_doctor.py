@@ -2,6 +2,7 @@
 """Tests for doctor module."""
 
 import pytest
+
 from agent_reach.config import Config
 from agent_reach.doctor import check_all, format_report
 
