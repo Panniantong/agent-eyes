@@ -20,6 +20,8 @@ from .douyin import DouyinChannel
 from .linkedin import LinkedInChannel
 from .bosszhipin import BossZhipinChannel
 from .wechat import WeChatChannel
+from .toutiao import ToutiaoChannel
+from .tencent_news import TencentNewsChannel
 
 
 # Channel registry
@@ -33,6 +35,8 @@ ALL_CHANNELS: List[Channel] = [
     DouyinChannel(),
     LinkedInChannel(),
     BossZhipinChannel(),
+    ToutiaoChannel(),
+    TencentNewsChannel(),
     WeChatChannel(),
     RSSChannel(),
     ExaSearchChannel(),

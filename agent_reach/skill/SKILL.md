@@ -1,9 +1,10 @@
 ---
 name: agent-reach
 description: >
-  Use the internet: search, read, and interact with 13+ platforms including
+  Use the internet: search, read, and interact with 15+ platforms including
   Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu (小红书), Douyin (抖音),
-  WeChat Articles (微信公众号), LinkedIn, Boss直聘, RSS, Exa web search, and any web page.
+  WeChat Articles (微信公众号), LinkedIn, Boss直聘, 今日头条 (Toutiao), 腾讯新闻 (Tencent News),
+  RSS, Exa web search, and any web page.
   Use when: (1) user asks to search or read any of these platforms,
   (2) user shares a URL from any supported platform,
   (3) user asks to search the web, find information online, or research a topic,
@@ -14,12 +15,13 @@ description: >
   "read this link", "看这个链接", "B站", "bilibili", "抖音视频",
   "微信文章", "公众号", "LinkedIn", "GitHub issue", "RSS",
   "search online", "web search", "find information", "research",
-  "帮我配", "configure twitter", "configure proxy", "帮我安装".
+  "帮我配", "configure twitter", "configure proxy", "帮我安装",
+  "今日头条", "头条热搜", "腾讯新闻", "QQ新闻".
 ---
 
 # Agent Reach — Usage Guide
 
-Upstream tools for 13+ platforms. Call them directly.
+Upstream tools for 15+ platforms. Call them directly.
 
 Run `agent-reach doctor` to check which channels are available.
 
@@ -144,6 +146,43 @@ mcporter call 'bosszhipin.search_jobs_tool(keyword: "Python", city: "北京")'
 ```
 
 Fallback: `curl -s "https://r.jina.ai/https://www.zhipin.com/job_detail/xxx"`
+
+## 今日头条 / Toutiao (Free API)
+
+**Hot news feed:**
+```bash
+curl -s "https://www.toutiao.com/api/pc/feed/?category=news_hot&utm_source=toutiao&widen=1&max_behot_time=0" \
+  -H "User-Agent: Mozilla/5.0"
+```
+
+**Category feeds** — replace `news_hot` with: `news_tech`, `news_entertainment`, `news_sports`, `news_finance`, `news_military`, `news_car`, `news_world`, `news_fashion`, `news_travel`, `news_food`, `news_game`, `news_history`.
+
+**Read article content:**
+```bash
+# Extract article ID from URL, e.g. 7612594790944932406 from /article/7612594790944932406/
+curl -s "https://m.toutiao.com/i<ARTICLE_ID>/info/" -H "User-Agent: Mozilla/5.0 (iPhone)"
+```
+
+> Returns JSON with `data.title`, `data.content` (HTML), `data.source`. No API key needed.
+
+## 腾讯新闻 / Tencent News (Free API)
+
+**Hot ranking (trending):**
+```bash
+curl -s "https://i.news.qq.com/gw/event/pc_hot_ranking_list?ids_hash=&offset=0&page_size=20" \
+  -H "User-Agent: Mozilla/5.0"
+```
+
+> Returns JSON with `idlist[0].newslist[]` — each item has `title`, `url`, `abstract`, `source`, `hotEvent.ranking`, `hotEvent.hotScore`.
+
+**Read article content:**
+```bash
+# Fetch article page HTML and extract embedded data
+curl -sL "https://new.qq.com/rain/a/<ARTICLE_ID>" -H "User-Agent: Mozilla/5.0"
+# Parse window.DATA JSON from HTML for title, abstract, originContent.text (HTML content)
+```
+
+> Jina Reader returns 451 on QQ News. Use direct curl + `window.DATA` extraction instead.
 
 ## RSS
 
