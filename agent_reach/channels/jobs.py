@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Jobs (招聘聚合) — 猎聘、Boss直聘 via mcp-jobs."""
+"""Jobs (招聘聚合) — 猎聘 via mcp-jobs."""
 
 import shutil
 import subprocess
@@ -8,7 +8,7 @@ from .base import Channel
 
 class JobsChannel(Channel):
     name = "jobs"
-    description = "招聘聚合（猎聘、Boss直聘）"
+    description = "招聘搜索（猎聘）"
     backends = ["mcp-jobs"]
     tier = 0
 
@@ -16,7 +16,7 @@ class JobsChannel(Channel):
         from urllib.parse import urlparse
         d = urlparse(url).netloc.lower()
         return any(x in d for x in [
-            "liepin.com", "zhipin.com",
+            "liepin.com",
         ])
 
     def check(self, config=None):
@@ -37,7 +37,7 @@ class JobsChannel(Channel):
                     encoding="utf-8", errors="replace", timeout=5
                 )
                 if "jobs" in r.stdout or "mcp-jobs" in r.stdout:
-                    return "ok", "招聘聚合可用（猎聘、Boss直聘，零配置）"
+                    return "ok", "猎聘招聘搜索可用（零配置）"
             except Exception:
                 pass
         return "warn", (
