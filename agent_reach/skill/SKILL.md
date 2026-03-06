@@ -151,10 +151,10 @@ Fallback: `curl -s "https://r.jina.ai/https://www.zhipin.com/job_detail/xxx"`
 
 ```bash
 # 搜索职位（自然语言）
-mcporter call 'jobs.search_jobs(keyword: "Python开发", city: "北京")'
+mcporter call 'jobs.mcp_search_job(keyword: "Python开发", city: "北京")'
 
 # 获取职位详情
-mcporter call 'jobs.get_job_detail(url: "https://www.liepin.com/job/xxx")'
+mcporter call 'jobs.mcp_job_detail(url: "https://www.liepin.com/job/xxx")'
 ```
 
 > 零配置，无需 API Key。启动：`npx -y mcp-jobs`
