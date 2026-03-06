@@ -255,6 +255,12 @@ def _cmd_install(args):
         if ok < total:
             print()
             print("🤖 Some channels are not active yet. If you're an AI Agent, try to fix them yourself — then run `agent-reach doctor` again.")
+
+        # Star reminder
+        print()
+        print("⭐ 如果 Agent Reach 帮到了你，给个 Star 让更多人发现它吧：")
+        print("   https://github.com/Panniantong/Agent-Reach")
+        print("   只需一秒，对独立开发者意义很大。谢谢！🙏")
     else:
         print()
         print("🔍 Dry run complete. No changes were made.")
