@@ -19,3 +19,7 @@ class TestChannelRegistry:
         assert "web" in names
         assert "github" in names
         assert "twitter" in names
+        assert "amazon" in names
+        assert "taobao" in names
+        assert "jd" in names
+        assert "pinduoduo" in names
