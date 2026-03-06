@@ -19,8 +19,8 @@ class BiorxivChannel(Channel):
     def check(self, config=None):
         try:
             r = requests.get(
-                "https://api.biorxiv.org/details/biorxiv/2026-01-01/2026-01-02/0/1",
-                timeout=5,
+                "https://api.biorxiv.org/details/biorxiv/2025-01-01/2025-01-01/0/1",
+                timeout=15,
             )
             if r.status_code == 200:
                 data = r.json()

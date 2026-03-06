@@ -19,9 +19,9 @@ class ArxivChannel(Channel):
     def check(self, config=None):
         try:
             r = requests.get(
-                "http://export.arxiv.org/api/query",
+                "https://export.arxiv.org/api/query",
                 params={"search_query": "test", "max_results": "1"},
-                timeout=5,
+                timeout=10,
             )
             if r.status_code == 200 and "<entry>" in r.text:
                 return "ok", "arXiv API 可用（搜索、读取论文元数据）"
