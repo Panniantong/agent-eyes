@@ -51,7 +51,7 @@ def main():
 
     parser = argparse.ArgumentParser(
         prog="agent-reach",
-        description="👁️ Give your AI Agent eyes to see the entire internet",
+        description="Give your AI Agent eyes to see the entire internet",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="Show debug logs")
     parser.add_argument("--version", action="version", version=f"Agent Reach v{__version__}")
@@ -144,7 +144,7 @@ def _cmd_install(args):
 
     config = Config()
     print()
-    print("👁️  Agent Reach Installer")
+    print("Agent Reach Installer")
     print("=" * 40)
 
     # Ensure tools directory exists (for upstream tool repos)
@@ -152,10 +152,10 @@ def _cmd_install(args):
     os.makedirs(tools_dir, exist_ok=True)
 
     if dry_run:
-        print("🔍 DRY RUN — showing what would be done (no changes)")
+        print("DRY RUN — showing what would be done (no changes)")
         print()
     if safe_mode:
-        print("🛡️  SAFE MODE — skipping automatic system changes")
+        print("SAFE MODE — skipping automatic system changes")
         print()
 
     # Auto-detect environment
@@ -164,9 +164,9 @@ def _cmd_install(args):
         env = _detect_environment()
     
     if env == "server":
-        print(f"📡 Environment: Server/VPS (auto-detected)")
+        print(f"Environment: Server/VPS (auto-detected)")
     else:
-        print(f"💻 Environment: Local computer (auto-detected)")
+        print(f"Environment: Local computer (auto-detected)")
 
     # Apply explicit flags
     if args.proxy:
@@ -189,7 +189,7 @@ def _cmd_install(args):
     # ── mcporter (for Exa search + XiaoHongShu) ──
     print()
     if dry_run:
-        print("📦 [dry-run] Would install mcporter and configure Exa search")
+        print("[dry-run] Would install mcporter and configure Exa search")
     elif safe_mode:
         _install_mcporter_safe()
     else:
@@ -198,7 +198,7 @@ def _cmd_install(args):
     # Auto-import cookies on local computers
     if env == "local" and not safe_mode and not dry_run:
         print()
-        print("🍪 Trying to import cookies from browser...")
+        print("Trying to import cookies from browser...")
         try:
             from agent_reach.cookie_extract import configure_from_browser
             results = configure_from_browser("chrome", config)
@@ -215,21 +215,21 @@ def _cmd_install(args):
                         print(f"  ✅ {platform}: {message}")
                         found = True
             if not found:
-                print("  ⬜ No cookies found (normal if you haven't logged into these sites)")
+                print("  -- No cookies found (normal if you haven't logged into these sites)")
         except Exception:
-            print("  ⬜ Could not read browser cookies (browser might be open)")
+            print("  -- Could not read browser cookies (browser might be open)")
     elif env == "local" and safe_mode:
         print()
-        print("🍪 Skipped auto cookie import (safe mode).")
+        print("Skipped auto cookie import (safe mode).")
         print("   To import manually: agent-reach configure --from-browser chrome")
     elif env == "local" and dry_run:
         print()
-        print("🍪 [dry-run] Would try to import cookies from Chrome/Firefox")
+        print("[dry-run] Would try to import cookies from Chrome/Firefox")
 
     # Environment-specific advice
     if env == "server":
         print()
-        print("💡 Tip: Reddit and Bilibili block server IPs.")
+        print("Tip: Reddit and Bilibili block server IPs.")
         print("   Reddit search still works via Exa (free).")
         print("   For full access: agent-reach configure proxy http://user:pass@ip:port")
         print("   Cheap option: https://www.webshare.io ($1/month)")
@@ -254,16 +254,16 @@ def _cmd_install(args):
 
         if ok < total:
             print()
-            print("🤖 Some channels are not active yet. If you're an AI Agent, try to fix them yourself — then run `agent-reach doctor` again.")
+            print("Some channels are not active yet. If you're an AI Agent, try to fix them yourself — then run `agent-reach doctor` again.")
 
         # Star reminder
         print()
-        print("⭐ 如果 Agent Reach 帮到了你，给个 Star 让更多人发现它吧：")
+        print("如果 Agent Reach 帮到了你，给个 Star 让更多人发现它吧：")
         print("   https://github.com/Panniantong/Agent-Reach")
-        print("   只需一秒，对独立开发者意义很大。谢谢！🙏")
+        print("   只需一秒，对独立开发者意义很大。谢谢！")
     else:
         print()
-        print("🔍 Dry run complete. No changes were made.")
+        print("Dry run complete. No changes were made.")
 
 
 def _install_skill():
@@ -289,7 +289,7 @@ def _install_skill():
                 with open(os.path.join(target, "SKILL.md"), "w") as f:
                     f.write(skill_md)
                 platform_name = "OpenClaw" if "openclaw" in skill_dir else "Claude Code" if "claude" in skill_dir else "Agent"
-                print(f"🧩 Skill installed for {platform_name}: {target}")
+                print(f"Skill installed for {platform_name}: {target}")
                 installed = True
             except Exception:
                 pass
@@ -302,9 +302,9 @@ def _install_skill():
             skill_md = importlib.resources.files("agent_reach").joinpath("skill", "SKILL.md").read_text()
             with open(os.path.join(target, "SKILL.md"), "w") as f:
                 f.write(skill_md)
-            print(f"🧩 Skill installed: {target}")
+            print(f"Skill installed: {target}")
         except Exception:
-            print("  ⬜ Could not install agent skill (optional)")
+            print("  -- Could not install agent skill (optional)")
 
 
 def _install_system_deps():
@@ -314,13 +314,13 @@ def _install_system_deps():
     import platform
     import tempfile
 
-    print("🔧 Checking system dependencies...")
+    print("Checking system dependencies...")
 
     # ── gh CLI ──
     if shutil.which("gh"):
         print("  ✅ gh CLI already installed")
     else:
-        print("  📥 Installing gh CLI...")
+        print("  Installing gh CLI...")
         os_type = platform.system().lower()
         if os_type == "linux":
             try:
@@ -346,9 +346,9 @@ def _install_system_deps():
                 if shutil.which("gh"):
                     print("  ✅ gh CLI installed")
                 else:
-                    print("  ⚠️  gh CLI install failed. You can try: snap install gh, or download from https://github.com/cli/cli/releases")
+                    print("  [!]  gh CLI install failed. You can try: snap install gh, or download from https://github.com/cli/cli/releases")
             except Exception:
-                print("  ⚠️  gh CLI install failed. You can try: snap install gh, or download from https://github.com/cli/cli/releases")
+                print("  [!]  gh CLI install failed. You can try: snap install gh, or download from https://github.com/cli/cli/releases")
         elif os_type == "darwin":
             if shutil.which("brew"):
                 try:
@@ -356,19 +356,19 @@ def _install_system_deps():
                     if shutil.which("gh"):
                         print("  ✅ gh CLI installed")
                     else:
-                        print("  ⚠️  gh CLI install failed. Try: brew install gh")
+                        print("  [!]  gh CLI install failed. Try: brew install gh")
                 except Exception:
-                    print("  ⚠️  gh CLI install failed. Try: brew install gh")
+                    print("  [!]  gh CLI install failed. Try: brew install gh")
             else:
-                print("  ⚠️  gh CLI not found. Install: https://cli.github.com")
+                print("  [!]  gh CLI not found. Install: https://cli.github.com")
         else:
-            print("  ⚠️  gh CLI not found. Install: https://cli.github.com")
+            print("  [!]  gh CLI not found. Install: https://cli.github.com")
 
     # ── Node.js (needed for mcporter) ──
     if shutil.which("node") and shutil.which("npm"):
         print("  ✅ Node.js already installed")
     else:
-        print("  📥 Installing Node.js...")
+        print("  Installing Node.js...")
         try:
             # Use NodeSource setup script without invoking a shell pipeline.
             with tempfile.NamedTemporaryFile(delete=False, suffix=".sh") as tf:
@@ -392,9 +392,9 @@ def _install_system_deps():
             if shutil.which("node"):
                 print("  ✅ Node.js installed")
             else:
-                print("  ⚠️  Node.js install failed. Try: apt install nodejs npm, or nvm install 22, or download from https://nodejs.org")
+                print("  [!]  Node.js install failed. Try: apt install nodejs npm, or nvm install 22, or download from https://nodejs.org")
         except Exception:
-            print("  ⚠️  Node.js install failed. Try: apt install nodejs npm, or nvm install 22, or download from https://nodejs.org")
+            print("  [!]  Node.js install failed. Try: apt install nodejs npm, or nvm install 22, or download from https://nodejs.org")
 
     # ── xreach CLI (for Twitter search) ──
     if shutil.which("xreach"):
@@ -409,11 +409,11 @@ def _install_system_deps():
                 if shutil.which("xreach"):
                     print("  ✅ xreach CLI installed (Twitter search + timeline)")
                 else:
-                    print("  ⬜ xreach CLI install failed (optional — Twitter reading still works via Jina)")
+                    print("  -- xreach CLI install failed (optional — Twitter reading still works via Jina)")
             except Exception:
-                print("  ⬜ xreach CLI install failed (optional — Twitter reading still works via Jina)")
+                print("  -- xreach CLI install failed (optional — Twitter reading still works via Jina)")
         else:
-            print("  ⬜ xreach CLI requires Node.js (optional — Twitter reading still works via Jina)")
+            print("  -- xreach CLI requires Node.js (optional — Twitter reading still works via Jina)")
 
     # ── undici (proxy support for Node.js fetch) ──
     npm_cmd = shutil.which("npm")
@@ -427,7 +427,7 @@ def _install_system_deps():
                 subprocess.run([npm_cmd, "install", "-g", "undici"], capture_output=True, encoding="utf-8", errors="replace", timeout=60)
                 print("  ✅ undici installed (Node.js proxy support)")
             except Exception:
-                print("  ⬜ undici install failed (optional — xreach may not work behind proxies)")
+                print("  -- undici install failed (optional — xreach may not work behind proxies)")
 
     # ── yt-dlp JS runtime config (YouTube requires external JS runtime) ──
     if shutil.which("node"):
@@ -446,7 +446,7 @@ def _install_system_deps():
                     f.write("--js-runtimes node\n")
                 print("  ✅ yt-dlp configured to use Node.js as JS runtime (YouTube)")
             except Exception:
-                print("  ⬜ Could not configure yt-dlp JS runtime (YouTube may not work)")
+                print("  -- Could not configure yt-dlp JS runtime (YouTube may not work)")
 
     # ── WeChat Articles (miku_ai + camoufox + wechat-article-for-ai) ──
     _install_wechat_deps()
@@ -456,7 +456,7 @@ def _install_wechat_deps():
     """Install WeChat article reading and search dependencies."""
     import subprocess
 
-    print("📦 Setting up WeChat article tools...")
+    print("Setting up WeChat article tools...")
 
     # Check if already installed
     has_camoufox = False
@@ -497,9 +497,9 @@ def _install_wechat_deps():
             if ok:
                 print(f"  ✅ WeChat Python packages installed ({', '.join(pkgs)})")
             else:
-                print(f"  ⚠️  Some WeChat packages failed to install. Try: pip install {' '.join(pkgs)}")
+                print(f"  [!]  Some WeChat packages failed to install. Try: pip install {' '.join(pkgs)}")
         except Exception:
-            print(f"  ⚠️  WeChat packages install failed. Try: pip install {' '.join(pkgs)}")
+            print(f"  [!]  WeChat packages install failed. Try: pip install {' '.join(pkgs)}")
 
     # Clone wechat-article-for-ai tool
     tools_dir = os.path.expanduser("~/.agent-reach/tools")
@@ -517,16 +517,16 @@ def _install_wechat_deps():
             if os.path.isfile(os.path.join(wechat_dir, "main.py")):
                 print("  ✅ wechat-article-for-ai tool installed")
             else:
-                print("  ⚠️  wechat-article-for-ai clone failed. Try: git clone https://github.com/bzd6661/wechat-article-for-ai.git " + wechat_dir)
+                print("  [!]  wechat-article-for-ai clone failed. Try: git clone https://github.com/bzd6661/wechat-article-for-ai.git " + wechat_dir)
         except Exception:
-            print("  ⚠️  wechat-article-for-ai clone failed. Try: git clone https://github.com/bzd6661/wechat-article-for-ai.git " + wechat_dir)
+            print("  [!]  wechat-article-for-ai clone failed. Try: git clone https://github.com/bzd6661/wechat-article-for-ai.git " + wechat_dir)
 
 
 def _install_system_deps_safe():
     """Safe mode: check what's installed, print instructions for what's missing."""
     import shutil
 
-    print("🔧 Checking system dependencies (safe mode — no auto-install)...")
+    print("Checking system dependencies (safe mode — no auto-install)...")
 
     deps = [
         ("gh", ["gh"], "GitHub CLI", "https://cli.github.com — or: apt install gh / brew install gh"),
@@ -540,7 +540,7 @@ def _install_system_deps_safe():
         if found:
             print(f"  ✅ {label} already installed")
         else:
-            print(f"  ⬜ {label} not found")
+            print(f"  -- {label} not found")
             missing.append((label, install_hint))
 
     if missing:
@@ -571,7 +571,7 @@ def _install_system_deps_safe():
             pkgs.extend(["camoufox[geoip]", "markdownify", "beautifulsoup4", "httpx"])
         if not has_miku:
             pkgs.append("miku_ai")
-        print(f"  ⬜ WeChat article tools not found")
+        print(f"  -- WeChat article tools not found")
         print(f"    Install: pip install {' '.join(pkgs)}")
 
 
@@ -579,7 +579,7 @@ def _install_system_deps_dryrun():
     """Dry-run: just show what would be checked/installed."""
     import shutil
 
-    print("🔧 [dry-run] System dependency check:")
+    print("[dry-run] System dependency check:")
 
     checks = [
         ("gh CLI", ["gh"], "apt install gh / brew install gh"),
@@ -592,7 +592,7 @@ def _install_system_deps_dryrun():
         if found:
             print(f"  ✅ {label}: already installed, skip")
         else:
-            print(f"  📥 {label}: would install via: {method}")
+            print(f"  {label}: would install via: {method}")
 
     # WeChat
     has_camoufox = has_miku = False
@@ -609,7 +609,7 @@ def _install_system_deps_dryrun():
     if has_camoufox and has_miku:
         print("  ✅ WeChat article tools: already installed, skip")
     else:
-        print("  📥 WeChat article tools: would install via: pip install camoufox[geoip] markdownify beautifulsoup4 httpx miku_ai")
+        print("  WeChat article tools: would install via: pip install camoufox[geoip] markdownify beautifulsoup4 httpx miku_ai")
 
 
 def _install_mcporter():
@@ -617,14 +617,14 @@ def _install_mcporter():
     import shutil
     import subprocess
 
-    print("📦 Setting up mcporter (search + XiaoHongShu backend)...")
+    print("Setting up mcporter (search + XiaoHongShu backend)...")
 
     if shutil.which("mcporter"):
         print("  ✅ mcporter already installed")
     else:
         # Check for npm/npx
         if not shutil.which("npm") and not shutil.which("npx"):
-            print("  ⚠️  mcporter requires Node.js. Install Node.js first:")
+            print("  [!]  mcporter requires Node.js. Install Node.js first:")
             print("     https://nodejs.org/ or: curl -fsSL https://fnm.vercel.app/install | bash")
             return
         try:
@@ -635,10 +635,10 @@ def _install_mcporter():
             if shutil.which("mcporter"):
                 print("  ✅ mcporter installed")
             else:
-                print("  ❌ mcporter install failed. Retry: npm install -g mcporter (check network/timeout), or try: npx mcporter@latest list")
+                print("  [X] mcporter install failed. Retry: npm install -g mcporter (check network/timeout), or try: npx mcporter@latest list")
                 return
         except Exception as e:
-            print(f"  ❌ mcporter install failed: {e}")
+            print(f"  [X] mcporter install failed: {e}")
             return
 
     # Configure Exa MCP (free, no key needed)
@@ -655,7 +655,7 @@ def _install_mcporter():
         else:
             print("  ✅ Exa search already configured")
     except Exception:
-        print("  ⚠️  Could not configure Exa. Run manually: mcporter config add exa https://mcp.exa.ai/mcp")
+        print("  [!]  Could not configure Exa. Run manually: mcporter config add exa https://mcp.exa.ai/mcp")
 
     # Check XiaoHongShu MCP (only if server is running)
     try:
@@ -675,7 +675,7 @@ def _install_mcporter():
                 )
                 print("  ✅ XiaoHongShu MCP auto-detected and configured")
             except Exception:
-                print("  ⬜ XiaoHongShu MCP not detected (optional)")
+                print("  -- XiaoHongShu MCP not detected (optional)")
                 print("     Install: docker run -d --name xiaohongshu-mcp -p 18060:18060 xpzouying/xiaohongshu-mcp")
                 print("     Then:    mcporter config add xiaohongshu http://localhost:18060/mcp")
                 print("     Repo:    https://github.com/xpzouying/xiaohongshu-mcp")
@@ -687,13 +687,13 @@ def _install_mcporter_safe():
     """Safe mode: check mcporter status, print instructions."""
     import shutil
 
-    print("📦 Checking mcporter (safe mode)...")
+    print("Checking mcporter (safe mode)...")
 
     if shutil.which("mcporter"):
         print("  ✅ mcporter already installed")
         print("  To configure Exa search: mcporter config add exa https://mcp.exa.ai/mcp")
     else:
-        print("  ⬜ mcporter not installed")
+        print("  -- mcporter not installed")
         print("  To install: npm install -g mcporter")
         print("  Then configure Exa: mcporter config add exa https://mcp.exa.ai/mcp")
 
@@ -751,7 +751,7 @@ def _cmd_configure(args):
         from agent_reach.cookie_extract import configure_from_browser
 
         browser = args.from_browser
-        print(f"🔍 Extracting cookies from {browser}...")
+        print(f"Extracting cookies from {browser}...")
         print()
 
         results = configure_from_browser(browser, config)
@@ -762,7 +762,7 @@ def _cmd_configure(args):
                 print(f"  ✅ {platform}: {message}")
                 found_any = True
             else:
-                print(f"  ⬜ {platform}: {message}")
+                print(f"  -- {platform}: {message}")
 
         print()
         if found_any:
@@ -800,9 +800,9 @@ def _cmd_configure(args):
             if resp.status_code == 200:
                 print("✅ Reddit works!")
             else:
-                print(f"⚠️ Reddit returned {resp.status_code}")
+                print(f"[!] Reddit returned {resp.status_code}")
         except Exception as e:
-            print(f"❌ Failed: {e}")
+            print(f"[X] Failed: {e}")
 
     elif args.key == "twitter-cookies":
         # Accept two formats:
@@ -846,14 +846,14 @@ def _cmd_configure(args):
                 print("✅ Twitter cookies configured (synced to xreach)!")
             except Exception as e:
                 print("✅ Twitter cookies configured!")
-                print(f"⚠️ Could not sync to xreach session.json: {e}")
+                print(f"[!] Could not sync to xreach session.json: {e}")
 
             print("Testing Twitter access...", end=" ")
             try:
                 import subprocess
                 xreach = shutil.which("xreach")
                 if not xreach:
-                    print("⚠️ xreach CLI not installed. Run: npm install -g xreach-cli")
+                    print("[!] xreach CLI not installed. Run: npm install -g xreach-cli")
                 else:
                     import os
                     env = os.environ.copy()
@@ -867,11 +867,11 @@ def _cmd_configure(args):
                     if result.returncode == 0 and result.stdout.strip():
                         print("✅ Twitter Advanced works!")
                     else:
-                        print(f"⚠️ Test returned no results (cookies might be wrong)")
+                        print(f"[!] Test returned no results (cookies might be wrong)")
             except Exception as e:
-                print(f"❌ Failed: {e}")
+                print(f"[X] Failed: {e}")
         else:
-            print("❌ Could not find auth_token and ct0 in your input.")
+            print("[X] Could not find auth_token and ct0 in your input.")
             print("   Accepted formats:")
             print("   1. agent-reach configure twitter-cookies AUTH_TOKEN CT0")
             print('   2. agent-reach configure twitter-cookies "auth_token=xxx; ct0=yyy; ..."')
@@ -1001,7 +1001,7 @@ def _cmd_setup():
 
     config = Config()
     print()
-    print("👁️  Agent Reach Setup")
+    print("Agent Reach Setup")
     print("=" * 40)
     print()
 
@@ -1013,7 +1013,7 @@ def _cmd_setup():
     print("  免费，无需 API Key")
 
     if not shutil.which("mcporter"):
-        print("  当前状态: ⬜ mcporter 未安装")
+        print("  当前状态: -- mcporter 未安装")
         print("  安装：npm install -g mcporter")
         print("  然后：mcporter config add exa https://mcp.exa.ai/mcp")
         print()
@@ -1025,7 +1025,7 @@ def _cmd_setup():
             if "exa" in r.stdout.lower():
                 print("  当前状态: ✅ 已配置")
             else:
-                print("  当前状态: ⬜ 未配置")
+                print("  当前状态: -- 未配置")
                 setup_now = input("  现在自动配置 Exa 吗？[Y/n]: ").strip().lower()
                 if setup_now in ("", "y", "yes"):
                     add_r = subprocess.run(
@@ -1035,10 +1035,10 @@ def _cmd_setup():
                     if add_r.returncode == 0:
                         print("  ✅ Exa 已配置")
                     else:
-                        print("  ⚠️ 自动配置失败，请手动执行：")
+                        print("  [!] 自动配置失败，请手动执行：")
                         print("     mcporter config add exa https://mcp.exa.ai/mcp")
         except Exception:
-            print("  ⚠️ 无法检查 Exa 配置，请手动执行：")
+            print("  [!] 无法检查 Exa 配置，请手动执行：")
             print("     mcporter config add exa https://mcp.exa.ai/mcp")
         print()
 
@@ -1055,7 +1055,7 @@ def _cmd_setup():
             config.set("github_token", key)
             print("  ✅ GitHub API 已提升至 5000 次/小时！")
         else:
-            print("  ℹ️  跳过。公开 API 也能用")
+            print("  跳过。公开 API 也能用")
     print()
 
     # Step 3: Reddit proxy
@@ -1071,7 +1071,7 @@ def _cmd_setup():
             config.set("reddit_proxy", proxy)
             print("  ✅ Reddit 完整阅读已开启！")
         else:
-            print("  ℹ️  跳过。仍可通过搜索获取 Reddit 内容")
+            print("  跳过。仍可通过搜索获取 Reddit 内容")
     print()
 
     # Step 4: Groq (Whisper)
@@ -1086,7 +1086,7 @@ def _cmd_setup():
             config.set("groq_api_key", key)
             print("  ✅ 语音转文字已开启！")
         else:
-            print("  ℹ️  跳过")
+            print("  跳过")
     print()
 
     # Summary
@@ -1191,14 +1191,14 @@ def _cmd_check_update():
     """Check for newer versions on GitHub."""
     from agent_reach import __version__
 
-    print(f"📦 当前版本: v{__version__}")
+    print(f"当前版本: v{__version__}")
     release_url = "https://api.github.com/repos/Panniantong/Agent-Reach/releases/latest"
     commit_url = "https://api.github.com/repos/Panniantong/Agent-Reach/commits/main"
 
     # Fetch latest release with retry/backoff.
     resp, err, attempts = _github_get_with_retry(release_url, timeout=10, retries=3)
     if err:
-        print(f"⚠️ 无法检查更新（{_update_error_text(err)}，已重试 {attempts} 次）")
+        print(f"[!] 无法检查更新（{_update_error_text(err)}，已重试 {attempts} 次）")
         return "error"
 
     if resp.status_code == 200:
@@ -1207,7 +1207,7 @@ def _cmd_check_update():
         body = data.get("body", "")
 
         if latest and latest != __version__:
-            print(f"🆕 最新版本: v{latest} ← 有更新！")
+            print(f"最新版本: v{latest} ← 有更新！")
             if body:
                 print()
                 print("更新内容：")
@@ -1223,20 +1223,20 @@ def _cmd_check_update():
 
     release_err = _classify_github_response_error(resp)
     if release_err == "rate_limit":
-        print("⚠️ 无法检查更新（GitHub API 速率限制，请稍后重试）")
+        print("[!] 无法检查更新（GitHub API 速率限制，请稍后重试）")
         return "error"
 
     # No releases yet, fall back to latest main commit.
     resp2, err2, attempts2 = _github_get_with_retry(commit_url, timeout=10, retries=2)
     if err2:
-        print(f"⚠️ 无法检查更新（{_update_error_text(err2)}，已重试 {attempts + attempts2} 次）")
+        print(f"[!] 无法检查更新（{_update_error_text(err2)}，已重试 {attempts + attempts2} 次）")
         return "error"
     if resp2.status_code == 200:
         commit = resp2.json()
         sha = commit.get("sha", "")[:7]
         msg = commit.get("commit", {}).get("message", "").split("\n")[0]
         date = commit.get("commit", {}).get("committer", {}).get("date", "")[:10]
-        print(f"🔍 最新提交: {sha} ({date}) {msg}")
+        print(f"最新提交: {sha} ({date}) {msg}")
         print()
         print("更新命令:")
         print("  pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip")
@@ -1244,10 +1244,10 @@ def _cmd_check_update():
 
     commit_err = _classify_github_response_error(resp2)
     if commit_err == "rate_limit":
-        print("⚠️ 无法检查更新（GitHub API 速率限制，请稍后重试）")
+        print("[!] 无法检查更新（GitHub API 速率限制，请稍后重试）")
         return "error"
 
-    print(f"⚠️ 无法检查更新（GitHub 返回 {resp2.status_code}）")
+    print(f"[!] 无法检查更新（GitHub 返回 {resp2.status_code}）")
     return "error"
 
 
@@ -1271,9 +1271,9 @@ def _cmd_watch():
     # Find broken channels (were working, now broken)
     for key, r in results.items():
         if r["status"] in ("off", "error"):
-            issues.append(f"❌ {r['name']}：{r['message']}")
+            issues.append(f"[X] {r['name']}：{r['message']}")
         elif r["status"] == "warn":
-            issues.append(f"⚠️ {r['name']}：{r['message']}")
+            issues.append(f"[!] {r['name']}：{r['message']}")
 
     # Check for updates
     update_available = False
@@ -1294,12 +1294,12 @@ def _cmd_watch():
 
     # Output
     if not issues and not update_available:
-        print(f"👁️ Agent Reach: 全部正常 ({ok}/{total} 渠道可用，v{__version__} 已是最新)")
+        print(f"Agent Reach: 全部正常 ({ok}/{total} 渠道可用，v{__version__} 已是最新)")
         return
 
-    print(f"👁️ Agent Reach 监控报告")
+    print(f"Agent Reach 监控报告")
     print(f"=" * 40)
-    print(f"📦 版本: v{__version__}  |  渠道: {ok}/{total}")
+    print(f"版本: v{__version__}  |  渠道: {ok}/{total}")
 
     if issues:
         print()
@@ -1308,7 +1308,7 @@ def _cmd_watch():
 
     if update_available:
         print()
-        print(f"🆕 新版本可用: v{new_version}")
+        print(f"新版本可用: v{new_version}")
         if release_body:
             for line in release_body.strip().split("\n")[:10]:
                 print(f"    {line}")

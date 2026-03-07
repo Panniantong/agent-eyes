@@ -27,7 +27,7 @@ def check_all(config: Config) -> Dict[str, dict]:
 def format_report(results: Dict[str, dict]) -> str:
     """Format results as a readable text report."""
     lines = []
-    lines.append("👁️  Agent Reach 状态")
+    lines.append("Agent Reach 状态")
     lines.append("=" * 40)
 
     ok_count = sum(1 for r in results.values() if r["status"] == "ok")
@@ -41,33 +41,33 @@ def format_report(results: Dict[str, dict]) -> str:
             if r["status"] == "ok":
                 lines.append(f"  ✅ {r['name']} — {r['message']}")
             elif r["status"] == "warn":
-                lines.append(f"  ⚠️  {r['name']} — {r['message']}")
+                lines.append(f"  [!]  {r['name']} — {r['message']}")
             elif r["status"] in ("off", "error"):
-                lines.append(f"  ❌ {r['name']} — {r['message']}")
+                lines.append(f"  [X] {r['name']} — {r['message']}")
 
     # Tier 1 — needs free key
     tier1 = {k: r for k, r in results.items() if r["tier"] == 1}
     if tier1:
         lines.append("")
-        lines.append("🔍 搜索（mcporter 即可解锁）：")
+        lines.append("搜索（mcporter 即可解锁）：")
         for key, r in tier1.items():
             if r["status"] == "ok":
                 lines.append(f"  ✅ {r['name']} — {r['message']}")
             else:
-                lines.append(f"  ⬜ {r['name']} — {r['message']}")
+                lines.append(f"  -- {r['name']} — {r['message']}")
 
     # Tier 2 — optional setup
     tier2 = {k: r for k, r in results.items() if r["tier"] == 2}
     if tier2:
         lines.append("")
-        lines.append("🔧 配置后可用：")
+        lines.append("配置后可用：")
         for key, r in tier2.items():
             if r["status"] == "ok":
                 lines.append(f"  ✅ {r['name']} — {r['message']}")
             elif r["status"] == "warn":
-                lines.append(f"  ⚠️  {r['name']} — {r['message']}")
+                lines.append(f"  [!]  {r['name']} — {r['message']}")
             else:
-                lines.append(f"  ⬜ {r['name']} — {r['message']}")
+                lines.append(f"  -- {r['name']} — {r['message']}")
 
     lines.append("")
     lines.append(f"状态：{ok_count}/{total} 个渠道可用")
@@ -84,7 +84,7 @@ def format_report(results: Dict[str, dict]) -> str:
             mode = config_path.stat().st_mode
             if mode & (stat.S_IRGRP | stat.S_IROTH):
                 lines.append("")
-                lines.append("⚠️  安全提示：config.yaml 权限过宽（其他用户可读）")
+                lines.append("[!]  安全提示：config.yaml 权限过宽（其他用户可读）")
                 lines.append("   修复：chmod 600 ~/.agent-reach/config.yaml")
         except OSError:
             pass
