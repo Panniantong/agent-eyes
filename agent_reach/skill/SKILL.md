@@ -3,7 +3,8 @@ name: agent-reach
 description: >
   Use the internet: search, read, and interact with 13+ platforms including
   Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu (小红书), Douyin (抖音),
-  WeChat Articles (微信公众号), LinkedIn, Boss直聘, RSS, Exa web search, and any web page.
+  WeChat Articles (微信公众号), LinkedIn, Boss直聘, Hacker News,
+  RSS, Exa web search, and any web page.
   Use when: (1) user asks to search or read any of these platforms,
   (2) user shares a URL from any supported platform,
   (3) user asks to search the web, find information online, or research a topic,
@@ -14,7 +15,8 @@ description: >
   "read this link", "看这个链接", "B站", "bilibili", "抖音视频",
   "微信文章", "公众号", "LinkedIn", "GitHub issue", "RSS",
   "search online", "web search", "find information", "research",
-  "帮我配", "configure twitter", "configure proxy", "帮我安装".
+  "帮我配", "configure twitter", "configure proxy", "帮我安装",
+  "hacker news", "HN", "ycombinator".
 ---
 
 # Agent Reach — Usage Guide
@@ -144,6 +146,41 @@ mcporter call 'bosszhipin.search_jobs_tool(keyword: "Python", city: "北京")'
 ```
 
 Fallback: `curl -s "https://r.jina.ai/https://www.zhipin.com/job_detail/xxx"`
+
+## Hacker News (Official Firebase API + Algolia Search)
+
+**Top/New/Best stories:**
+```bash
+# Get story IDs (top/new/best/ask/show/jobs)
+curl -s "https://hacker-news.firebaseio.com/v0/topstories.json"
+
+# Get item details (story, comment, poll, job)
+curl -s "https://hacker-news.firebaseio.com/v0/item/<ID>.json"
+```
+
+> Returns JSON with `title`, `url`, `score`, `by`, `descendants` (comment count), `kids` (child comment IDs).
+
+**Read comments:**
+```bash
+# Get comment IDs from story's "kids" field, then fetch each
+curl -s "https://hacker-news.firebaseio.com/v0/item/<COMMENT_ID>.json"
+```
+
+> Returns `text` (HTML), `by`, `time`, `kids` (replies). Walk the tree for full thread.
+
+**Search (Algolia — full-text, free, no API key):**
+```bash
+# Search stories
+curl -s "https://hn.algolia.com/api/v1/search?query=QUERY&tags=story&hitsPerPage=10"
+
+# Search comments
+curl -s "https://hn.algolia.com/api/v1/search?query=QUERY&tags=comment&hitsPerPage=10"
+
+# Filter by date
+curl -s "https://hn.algolia.com/api/v1/search_by_date?query=QUERY&tags=story&hitsPerPage=10"
+```
+
+> Returns `hits[]` with `title`, `url`, `points`, `num_comments`, `author`, `story_text`. Supports `numericFilters` for score/date filtering.
 
 ## RSS
 
