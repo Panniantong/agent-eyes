@@ -3,7 +3,8 @@ name: agent-reach
 description: >
   Use the internet: search, read, and interact with 13+ platforms including
   Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu (小红书), Douyin (抖音),
-  WeChat Articles (微信公众号), LinkedIn, Boss直聘, RSS, Exa web search, and any web page.
+  WeChat Articles (微信公众号), LinkedIn, Boss直聘, 豆瓣 (Douban),
+  RSS, Exa web search, and any web page.
   Use when: (1) user asks to search or read any of these platforms,
   (2) user shares a URL from any supported platform,
   (3) user asks to search the web, find information online, or research a topic,
@@ -14,7 +15,8 @@ description: >
   "read this link", "看这个链接", "B站", "bilibili", "抖音视频",
   "微信文章", "公众号", "LinkedIn", "GitHub issue", "RSS",
   "search online", "web search", "find information", "research",
-  "帮我配", "configure twitter", "configure proxy", "帮我安装".
+  "帮我配", "configure twitter", "configure proxy", "帮我安装",
+  "豆瓣", "douban", "豆瓣电影", "豆瓣读书".
 ---
 
 # Agent Reach — Usage Guide
@@ -144,6 +146,35 @@ mcporter call 'bosszhipin.search_jobs_tool(keyword: "Python", city: "北京")'
 ```
 
 Fallback: `curl -s "https://r.jina.ai/https://www.zhipin.com/job_detail/xxx"`
+
+## 豆瓣 / Douban (Free API)
+
+**Search books:**
+```bash
+curl -s "https://book.douban.com/j/subject_suggest?q=QUERY" \
+  -H "User-Agent: Mozilla/5.0" -H "Referer: https://book.douban.com/"
+```
+
+> Returns JSON array with `title`, `year`, `id`, `type` ("b" for book). No login needed.
+
+**Movie chart (top rated by genre):**
+```bash
+# type: 11=剧情, 5=动作, 13=爱情, 17=动画, 25=纪录片, 10=喜剧, 19=科幻
+curl -s "https://movie.douban.com/j/chart/top_list?type=11&interval_id=100%3A90&action=&start=0&limit=20" \
+  -H "User-Agent: Mozilla/5.0" -H "Referer: https://movie.douban.com/typerank"
+```
+
+> Returns JSON array with `title`, `score`, `vote_count`, `id`, `types`, `regions`, `release_date`.
+
+**Read movie/book page (mobile SSR):**
+```bash
+# Movie
+curl -sL "https://m.douban.com/movie/subject/<ID>/" -H "User-Agent: Mozilla/5.0 (iPhone)"
+# Book
+curl -sL "https://m.douban.com/book/subject/<ID>/" -H "User-Agent: Mozilla/5.0 (iPhone)"
+```
+
+> Mobile pages have SSR content (~40KB). Extract summary from `class="bd"` div. Desktop pages are blocked; Jina Reader returns empty. Always use `m.douban.com`.
 
 ## RSS
 
