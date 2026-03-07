@@ -149,6 +149,14 @@ Fallback: `curl -s "https://r.jina.ai/https://www.zhipin.com/job_detail/xxx"`
 
 ## 豆瓣 / Douban (Free API)
 
+**Unified search (books + movies + music in one call):**
+```bash
+curl -s "https://www.douban.com/j/search_suggest?q=QUERY" \
+  -H "User-Agent: Mozilla/5.0" -H "Referer: https://www.douban.com/"
+```
+
+> Returns `{cards: [{title, url, card_subtitle, type, cover_url}]}`. Types: "movie", "book", "music". Subtitle includes rating/year. Best for cross-category discovery.
+
 **Search books:**
 ```bash
 curl -s "https://book.douban.com/j/subject_suggest?q=QUERY" \
@@ -156,6 +164,23 @@ curl -s "https://book.douban.com/j/subject_suggest?q=QUERY" \
 ```
 
 > Returns JSON array with `title`, `year`, `id`, `type` ("b" for book). No login needed.
+
+**Search movies:**
+```bash
+curl -s "https://movie.douban.com/j/subject_suggest?q=QUERY" \
+  -H "User-Agent: Mozilla/5.0" -H "Referer: https://movie.douban.com/"
+```
+
+> Returns JSON array with `title`, `year`, `id`, `type` ("movie"). Use `id` to fetch details via mobile SSR.
+
+**Trending movies/TV (by tag):**
+```bash
+# type: movie or tv | tag: 热门, 经典, 豆瓣高分, 冷门佳片
+curl -s "https://movie.douban.com/j/search_subjects?type=movie&tag=热门&page_limit=20&page_start=0" \
+  -H "User-Agent: Mozilla/5.0" -H "Referer: https://movie.douban.com/explore"
+```
+
+> Returns `{subjects: [{title, rate, url, cover, id}]}`. Change `type=tv` for TV shows. Tags: 热门/经典/豆瓣高分/冷门佳片.
 
 **Movie chart (top rated by genre):**
 ```bash

@@ -18,6 +18,10 @@ def test_metadata(ch):
     assert len(ch.backends) >= 2
 
 
+def test_description_covers_music(ch):
+    assert "音乐" in ch.description
+
+
 # ── can_handle: positive ──
 
 @pytest.mark.parametrize("url", [
@@ -41,6 +45,8 @@ def test_can_handle_positive(ch, url):
     "https://book.google.com/books?id=abc",
     "https://www.goodreads.com/book/show/1234",
     "https://example.com/douban.com",
+    "https://notdouban.com/subject/123/",
+    "https://douban.com.evil.cn/fake",
 ])
 def test_can_handle_negative(ch, url):
     assert not ch.can_handle(url)
@@ -52,6 +58,18 @@ def test_check_returns_tuple(ch):
     status, msg = ch.check()
     assert status in ("ok", "warn")
     assert isinstance(msg, str)
+
+
+def test_check_with_config(ch):
+    """check() should accept config dict without error."""
+    status, msg = ch.check(config={})
+    assert status in ("ok", "warn")
+
+
+def test_check_proxy_config(ch):
+    """check() should read douban_proxy from config."""
+    status, msg = ch.check(config={"douban_proxy": "http://127.0.0.1:10808"})
+    assert status in ("ok", "warn")
 
 
 # ── registration ──
