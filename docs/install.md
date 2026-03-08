@@ -174,6 +174,27 @@ mcporter config add weibo --command 'mcp-server-weibo'
 
 > 无需登录、无需 Cookie、无需代理。海外服务器也可以直接访问。
 
+**小宇宙播客 / Xiaoyuzhou Podcast (Groq Whisper):**
+> "小宇宙播客转文字已默认安装。需要一个免费的 Groq API Key 就能用。"
+
+```bash
+agent-reach configure groq-key gsk_xxxxx
+```
+
+> **获取 Groq API Key（免费、无需信用卡）：**
+> 1. 访问 https://console.groq.com
+> 2. 注册/登录
+> 3. 创建 API Key
+> 4. 发给 Agent 或运行上面的命令
+>
+> **使用方式：**
+> ```bash
+> bash ~/.agent-reach/tools/xiaoyuzhou/transcribe.sh https://www.xiaoyuzhoufm.com/episode/xxxxx
+> ```
+>
+> 自动下载音频 → 转码切片 → Groq Whisper 转录 → 输出完整中文文字稿。
+> 免费额度：每小时约 2 小时音频，日常使用完全够用。
+
 **抖音 / Douyin (douyin-mcp-server):**
 > "抖音视频解析需要一个 MCP 服务。安装 douyin-mcp-server 后即可解析视频、获取无水印下载链接。"
 
@@ -308,6 +329,7 @@ If the user wants a different agent to handle it, let them choose.
 | `agent-reach check-update` | Check for new versions |
 | `agent-reach configure twitter-cookies "..."` | Unlock Twitter search + posting |
 | `agent-reach configure proxy URL` | Unlock Reddit + Bilibili on servers |
+| `agent-reach configure groq-key gsk_xxx` | Unlock Xiaoyuzhou podcast transcription |
 
 After installation, use upstream tools directly. See SKILL.md for the full command reference:
 
@@ -322,6 +344,7 @@ After installation, use upstream tools directly. See SKILL.md for the full comma
 | Exa Search | `mcporter` | `mcporter call 'exa.web_search_exa(...)'` |
 | 小红书 | `mcporter` | `mcporter call 'xiaohongshu.search_feeds(...)'` |
 | 微博 | `mcporter` | `mcporter call 'weibo.get_trendings(limit: 10)'` |
+| 小宇宙播客 | `transcribe.sh` | `bash ~/.agent-reach/tools/xiaoyuzhou/transcribe.sh <URL>` |
 | 抖音 | `mcporter` | `mcporter call 'douyin.parse_douyin_video_info(...)'` |
 | LinkedIn | `mcporter` | `mcporter call 'linkedin.get_person_profile(...)'` |
 | Boss直聘 | `mcporter` | `mcporter call 'bosszhipin.search_jobs_tool(...)'` |
