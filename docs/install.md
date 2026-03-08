@@ -175,25 +175,33 @@ mcporter config add weibo --command 'mcp-server-weibo'
 > 无需登录、无需 Cookie、无需代理。海外服务器也可以直接访问。
 
 **小宇宙播客 / Xiaoyuzhou Podcast (Groq Whisper):**
-> "小宇宙播客转文字已默认安装。需要一个免费的 Groq API Key 就能用。"
+> "小宇宙播客转文字已默认安装，只需要一个免费的 Groq API Key。"
+
+脚本已随 Agent Reach 自动安装，用户只需提供 Key：
 
 ```bash
 agent-reach configure groq-key gsk_xxxxx
 ```
 
-> **获取 Groq API Key（免费、无需信用卡）：**
-> 1. 访问 https://console.groq.com
-> 2. 注册/登录
-> 3. 创建 API Key
-> 4. 发给 Agent 或运行上面的命令
+> **获取 Groq API Key（免费、无需信用卡、30 秒搞定）：**
+> 1. 打开 https://console.groq.com
+> 2. 用 Google/GitHub 账号登录（或注册）
+> 3. 左侧菜单 → API Keys → Create API Key
+> 4. 复制 Key（以 `gsk_` 开头），发给 Agent 即可
 >
 > **使用方式：**
+> 用户发一个小宇宙链接给 Agent，Agent 自动调用：
 > ```bash
 > bash ~/.agent-reach/tools/xiaoyuzhou/transcribe.sh https://www.xiaoyuzhoufm.com/episode/xxxxx
 > ```
 >
 > 自动下载音频 → 转码切片 → Groq Whisper 转录 → 输出完整中文文字稿。
-> 免费额度：每小时约 2 小时音频，日常使用完全够用。
+>
+> **免费额度和限制：**
+> - 每小时约 2 小时音频（7200 秒），超出后等 15 分钟自动恢复
+> - 日常听几期播客完全够用
+> - 转录质量高（Whisper large-v3），但不区分说话人
+> - 2 小时以上的播客建议分批处理
 
 **抖音 / Douyin (douyin-mcp-server):**
 > "抖音视频解析需要一个 MCP 服务。安装 douyin-mcp-server 后即可解析视频、获取无水印下载链接。"
