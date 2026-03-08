@@ -170,7 +170,7 @@ pip install mcp-server-weibo
 mcporter config add weibo --command 'mcp-server-weibo'
 ```
 
-> **注意：** 微博 API (m.weibo.cn) 仅限中国大陆 IP 访问。海外服务器需配置中国出口代理，否则 API 请求会被拦截返回空响应。
+> **注意：** 微博 API (m.weibo.cn) 海外访问时需要 Cookie 认证。首次使用前建议在浏览器登录微博，用 Cookie-Editor 导出 Cookie 并配置到 `WEIBO_COOKIE` 环境变量中，否则 API 请求可能返回空响应。
 
 **抖音 / Douyin (douyin-mcp-server):**
 > "抖音视频解析需要一个 MCP 服务。安装 douyin-mcp-server 后即可解析视频、获取无水印下载链接。"
