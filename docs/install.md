@@ -162,6 +162,16 @@ mcporter config add xiaohongshu http://localhost:18060/mcp
 >
 > **备选：** 本地电脑如果有浏览器，也可以打开 http://localhost:18060 扫码登录。
 
+**微博 / Weibo (mcp-server-weibo):**
+> "微博需要一个 MCP 服务。安装后可搜索微博内容、查看热搜、获取用户动态和评论。"
+
+```bash
+pip install mcp-server-weibo
+mcporter config add weibo --command 'mcp-server-weibo'
+```
+
+> **注意：** 微博 API (m.weibo.cn) 仅限中国大陆 IP 访问。海外服务器需配置中国出口代理，否则 API 请求会被拦截返回空响应。
+
 **抖音 / Douyin (douyin-mcp-server):**
 > "抖音视频解析需要一个 MCP 服务。安装 douyin-mcp-server 后即可解析视频、获取无水印下载链接。"
 
