@@ -112,6 +112,32 @@ def extract_all(browser: str = "chrome") -> Dict[str, dict]:
     return results
 
 
+def _sync_xfetch_session(auth_token: str, ct0: str) -> None:
+    """Sync Twitter credentials to ~/.config/xfetch/session.json for xreach CLI."""
+    import json
+    import os
+
+    try:
+        xfetch_dir = os.path.join(os.path.expanduser("~"), ".config", "xfetch")
+        os.makedirs(xfetch_dir, exist_ok=True)
+        session_path = os.path.join(xfetch_dir, "session.json")
+        session_data: dict = {}
+        if os.path.exists(session_path):
+            try:
+                with open(session_path, "r", encoding="utf-8") as sf:
+                    session_data = json.load(sf)
+            except (json.JSONDecodeError, OSError):
+                session_data = {}
+        session_data["authToken"] = auth_token
+        session_data["ct0"] = ct0
+        with open(session_path, "w", encoding="utf-8") as sf:
+            json.dump(session_data, sf, indent=2)
+        os.chmod(session_path, 0o600)
+    except Exception:
+        # Non-fatal: agent-reach config is the source of truth, xfetch sync is best-effort
+        pass
+
+
 def configure_from_browser(browser: str, config) -> List[Tuple[str, bool, str]]:
     """
     Extract cookies and configure all found platforms.
@@ -136,6 +162,8 @@ def configure_from_browser(browser: str, config) -> List[Tuple[str, bool, str]]:
         if "auth_token" in tc and "ct0" in tc:
             config.set("twitter_auth_token", tc["auth_token"])
             config.set("twitter_ct0", tc["ct0"])
+            # Sync credentials to xreach's session.json so `xreach auth check` works
+            _sync_xfetch_session(tc["auth_token"], tc["ct0"])
             results_list.append(("Twitter/X", True, "auth_token + ct0"))
         else:
             found = ", ".join(tc.keys())
