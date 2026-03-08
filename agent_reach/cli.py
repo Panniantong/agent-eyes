@@ -459,6 +459,8 @@ def _install_system_deps():
 
 def _install_xiaoyuzhou_deps():
     """Install Xiaoyuzhou podcast transcription script."""
+    import shutil
+
     print("Setting up Xiaoyuzhou podcast transcription...")
 
     tools_dir = os.path.expanduser("~/.agent-reach/tools/xiaoyuzhou")
@@ -506,6 +508,7 @@ def _install_xiaoyuzhou_deps():
 
 def _install_weibo_deps():
     """Install Weibo MCP server (Panniantong fork with visitor passport auth)."""
+    import shutil
     import subprocess
 
     print("Setting up Weibo MCP server...")
