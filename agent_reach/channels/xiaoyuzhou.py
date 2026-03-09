@@ -38,16 +38,8 @@ class XiaoyuzhouChannel(Channel):
         # Check GROQ_API_KEY
         if not os.environ.get("GROQ_API_KEY"):
             # Check if saved in config
-            config_path = os.path.expanduser("~/.agent-reach/config.json")
-            has_key = False
-            if os.path.isfile(config_path):
-                try:
-                    import json
-                    with open(config_path) as f:
-                        cfg = json.load(f)
-                    has_key = bool(cfg.get("groq_api_key"))
-                except Exception:
-                    pass
+            from ..config import Config
+            has_key = bool(Config().get("groq_api_key"))
             if not has_key:
                 return "warn", (
                     "需要配置 Groq API Key（免费）。步骤：\n"

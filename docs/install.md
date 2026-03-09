@@ -39,7 +39,7 @@ All Agent Reach files go in dedicated directories — **never in the agent works
 
 | Purpose | Directory | Example |
 |---------|-----------|---------|
-| Config & tokens | `~/.agent-reach/` | `~/.agent-reach/config.json` |
+| Config & tokens | `~/.agent-reach/` | `~/.agent-reach/config.yaml` |
 | Upstream tool repos | `~/.agent-reach/tools/` | `~/.agent-reach/tools/douyin-mcp-server/` |
 | Temporary files | `/tmp/` | `/tmp/yt-dlp-output/` |
 | Skills | `~/.openclaw/skills/agent-reach/` | SKILL.md |

@@ -490,15 +490,8 @@ def _install_xiaoyuzhou_deps():
         print("  -- ffmpeg not found. Install: apt install -y ffmpeg (or brew install ffmpeg)")
 
     # Check GROQ_API_KEY
-    config_path = os.path.expanduser("~/.agent-reach/config.json")
-    has_key = bool(os.environ.get("GROQ_API_KEY"))
-    if not has_key and os.path.isfile(config_path):
-        try:
-            with open(config_path) as f:
-                cfg = json.load(f)
-            has_key = bool(cfg.get("groq_api_key"))
-        except Exception:
-            pass
+    from .config import Config
+    has_key = bool(Config().get("groq_api_key"))
     if has_key:
         print("  ✅ Groq API key configured")
     else:
