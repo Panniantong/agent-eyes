@@ -355,6 +355,8 @@ Yes! Agent Reach is an installer + configuration tool — any AI coding agent th
 
 [FluxNode](https://fluxnode.org) — 低价 AI API 中转站，官方一折，可按量或按套餐付费。可用于 OpenClaw、Claude Code 等一切 Agent。
 
+[OpenClaw for Enterprise](https://github.com/littleben/openclaw-for-enterprise) — 企业级 OpenClaw 多用户部署方案，飞书里直接用 AI，容器隔离，一条命令管理。
+
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=Panniantong/Agent-Reach&type=Date&v=20260309)](https://star-history.com/#Panniantong/Agent-Reach&Date)
