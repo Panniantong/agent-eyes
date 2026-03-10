@@ -310,6 +310,12 @@ Interested in collaboration, have feature ideas, or just want to chat about AI A
   <img src="wechat-qr.jpg" width="280" alt="WeChat QR">
 </p>
 
+Want to exchange AI Agent tips, share workflows, and learn from power users? Join our WeChat community group:
+
+<p align="center">
+  <img src="wechat-group-qr.jpg" width="280" alt="WeChat Group QR">
+</p>
+
 > For bug reports and feature requests, please use [GitHub Issues](https://github.com/Panniantong/Agent-Reach/issues) — easier to track.
 
 ## License
