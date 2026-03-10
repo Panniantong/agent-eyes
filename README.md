@@ -346,6 +346,12 @@ Yes! Agent Reach is an installer + configuration tool — any AI coding agent th
   <img src="docs/wechat-qr.jpg" width="280" alt="WeChat QR">
 </p>
 
+想交流 AI Agent 使用心得、分享最新玩法和技巧？欢迎加入微信交流群，群里都是实战派：
+
+<p align="center">
+  <img src="docs/wechat-group-qr.jpg" width="280" alt="WeChat Group QR">
+</p>
+
 > Bug 反馈和功能请求请用 [GitHub Issues](https://github.com/Panniantong/Agent-Reach/issues)，更容易跟踪。
 
 ## License
