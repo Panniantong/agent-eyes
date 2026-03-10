@@ -9,11 +9,11 @@ URL="${1:?用法: bash transcribe.sh <小宇宙链接> [输出文件路径]}"
 OUTPUT="${2:-/tmp/podcast_transcript.txt}"
 TMPDIR="/tmp/xiaoyuzhou_$$"
 
-# Try env var first, then agent-reach config
+# Try env var first, then agent-reach config.yaml
 if [ -z "$GROQ_API_KEY" ]; then
-    CONFIG_FILE="$HOME/.agent-reach/config.json"
+    CONFIG_FILE="$HOME/.agent-reach/config.yaml"
     if [ -f "$CONFIG_FILE" ]; then
-        GROQ_API_KEY=$(python3 -c "import json; print(json.load(open('$CONFIG_FILE')).get('groq_api_key',''))" 2>/dev/null || true)
+        GROQ_API_KEY=$(python3 -c "import yaml; print((yaml.safe_load(open('$CONFIG_FILE')) or {}).get('groq_api_key',''))" 2>/dev/null || true)
     fi
 fi
 GROQ_API_KEY="${GROQ_API_KEY:?请设置 GROQ_API_KEY 环境变量或运行 agent-reach configure groq-key}"
