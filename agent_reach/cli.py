@@ -100,6 +100,16 @@ def main():
     # ── version ──
     sub.add_parser("version", help="Show version")
 
+    # ── read ──
+    p_read = sub.add_parser("read", help="Read a URL and output structured JSON (title, content, etc.)")
+    p_read.add_argument("url", help="URL to read (currently supports WeChat articles)")
+    p_read.add_argument("-o", "--output", default="/tmp/agent-reach-output",
+                        help="Output directory for downloaded content (default: /tmp/agent-reach-output)")
+    p_read.add_argument("--no-images", action="store_true",
+                        help="Skip image downloading")
+    p_read.add_argument("--content", action="store_true",
+                        help="Include full markdown content in JSON output")
+
     args = parser.parse_args()
 
     # Suppress loguru noise unless --verbose
@@ -127,9 +137,48 @@ def main():
         _cmd_configure(args)
     elif args.command == "uninstall":
         _cmd_uninstall(args)
+    elif args.command == "read":
+        _cmd_read(args)
 
 
 # ── Command handlers ────────────────────────────────
+
+
+def _cmd_read(args):
+    """Read a URL and output structured JSON to stdout.
+
+    Solves the problem where wechat-article-for-ai outputs the title
+    only to stderr logs, making it impossible for callers to reliably
+    capture article metadata. This command wraps the tool and returns
+    structured JSON including title, author, date, and optionally
+    the full markdown content.
+    """
+    import json as _json
+    from agent_reach.channels.wechat import WeChatChannel
+
+    url = args.url
+    wechat = WeChatChannel()
+
+    if wechat.can_handle(url):
+        result = wechat.read(
+            url=url,
+            output_dir=args.output,
+            no_images=args.no_images,
+        )
+        # By default, omit full content to keep output compact
+        # Use --content to include it
+        if not args.content:
+            result.pop("content", None)
+
+        print(_json.dumps(result, ensure_ascii=False, indent=2))
+        sys.exit(0 if result["success"] else 1)
+    else:
+        print(_json.dumps({
+            "success": False,
+            "url": url,
+            "error": f"Unsupported URL. Currently only WeChat articles (mp.weixin.qq.com) are supported.",
+        }, ensure_ascii=False, indent=2))
+        sys.exit(1)
 
 
 def _cmd_install(args):

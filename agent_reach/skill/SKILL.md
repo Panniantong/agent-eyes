@@ -125,7 +125,15 @@ asyncio.run(s())
 "
 ```
 
-**Read** (Camoufox — bypasses WeChat anti-bot):
+**Read** (structured JSON output — recommended):
+```bash
+agent-reach read "https://mp.weixin.qq.com/s/ARTICLE_ID"
+```
+
+Returns JSON with `title`, `author`, `date`, `url`, `output_path`, `char_count`, `image_count`.
+Add `--content` to include the full markdown body in the JSON output.
+
+**Read** (raw CLI — title only appears in stderr logs):
 ```bash
 cd ~/.agent-reach/tools/wechat-article-for-ai && python3 main.py "https://mp.weixin.qq.com/s/ARTICLE_ID"
 ```
