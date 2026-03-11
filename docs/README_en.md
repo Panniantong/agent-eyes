@@ -7,7 +7,7 @@
 <p align="center">
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10+-green.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+"></a>
-  <a href="https://github.com/Panniantong/agent-reach/stargazers"><img src="https://img.shields.io/github/stars/Panniantong/agent-reach?style=for-the-badge" alt="GitHub Stars"></a>
+  <a href="https://github.com/Mithranda/agent-reach-douyin/stargazers"><img src="https://img.shields.io/github/stars/Mithranda/agent-reach-douyin?style=for-the-badge" alt="GitHub Stars"></a>
 </p>
 
 <p align="center">
@@ -34,7 +34,7 @@ To connect your Agent to these platforms, you'd have to find tools, install depe
 **Agent Reach turns this into one command:**
 
 ```
-Install Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
+Install Agent Reach: https://raw.githubusercontent.com/Mithranda/agent-reach-douyin/main/docs/install.md
 ```
 
 Copy that to your Agent. A few minutes later, it can read tweets, search Reddit, and watch Bilibili.
@@ -42,7 +42,7 @@ Copy that to your Agent. A few minutes later, it can read tweets, search Reddit,
 **Already installed? Update in one command:**
 
 ```
-Update Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/update.md
+Update Agent Reach: https://raw.githubusercontent.com/Mithranda/agent-reach-douyin/main/docs/update.md
 ```
 
 ### ✅ Before you start, you might want to know
@@ -85,14 +85,14 @@ Update Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/ma
 Copy this to your AI Agent (Claude Code, OpenClaw, Cursor, etc.):
 
 ```
-Install Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
+Install Agent Reach: https://raw.githubusercontent.com/Mithranda/agent-reach-douyin/main/docs/install.md
 ```
 
 The Agent auto-installs, detects your environment, and tells you what's ready.
 
 > 🔄 **Already installed?** Update in one command:
 > ```
-> Update Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/update.md
+> Update Agent Reach: https://raw.githubusercontent.com/Mithranda/agent-reach-douyin/main/docs/update.md
 > ```
 
 <details>
@@ -232,13 +232,13 @@ Each channel file only checks whether its upstream tool is installed and working
 
 ## Contributing
 
-This project was entirely vibe-coded 🎸 There might be rough edges here and there — sorry about that! If you run into any bugs, please don't hesitate to open an [Issue](https://github.com/Panniantong/agent-reach/issues) and I'll fix it ASAP.
+This project was entirely vibe-coded 🎸 There might be rough edges here and there — sorry about that! If you run into any bugs, please open an [Issue](https://github.com/Mithranda/agent-reach-douyin/issues).
 
 **Want a new channel?** Open an Issue to request it, or submit a PR yourself.
 
 **Want to add one locally?** Just have your Agent clone the repo and modify it — each channel is a single standalone file, easy to add.
 
-[PRs](https://github.com/Panniantong/agent-reach/pulls) always welcome!
+[PRs](https://github.com/Mithranda/agent-reach-douyin/pulls) always welcome!
 
 ---
 
@@ -309,7 +309,7 @@ Want to exchange AI Agent tips, share workflows, and learn from power users? Joi
   <img src="wechat-group-qr.jpg" width="280" alt="WeChat Group QR">
 </p>
 
-> For bug reports and feature requests, please use [GitHub Issues](https://github.com/Panniantong/Agent-Reach/issues) — easier to track.
+> For bug reports and feature requests, please use [GitHub Issues](https://github.com/Mithranda/agent-reach-douyin/issues) — easier to track.
 
 ## License
 
@@ -317,4 +317,4 @@ Want to exchange AI Agent tips, share workflows, and learn from power users? Joi
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Panniantong/Agent-Reach&type=Date&v=20260309)](https://star-history.com/#Panniantong/Agent-Reach&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Mithranda/agent-reach-douyin&type=Date&v=20260309)](https://star-history.com/#Mithranda/agent-reach-douyin&Date)
