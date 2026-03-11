@@ -66,7 +66,7 @@ Update Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/ma
 | 📕 **XiaoHongShu** | Read · Search · **Post · Comment · Like** | mcporter | Via [xiaohongshu-mcp](https://github.com/user/xiaohongshu-mcp) internal API, install and go |
 | 🎵 **Douyin** | Video parsing · Watermark-free download | mcporter | Via [douyin-mcp-server](https://github.com/yzfly/douyin-mcp-server), no login needed |
 | 💼 **LinkedIn** | Jina Reader (public pages) | Full profiles, companies, job search | Tell your Agent "help me set up LinkedIn" |
-| 💬 **WeChat Articles** | Search + Read | Zero config | Search + read WeChat Official Account articles (full Markdown) ([wechat-article-for-ai](https://github.com/bzd6661/wechat-article-for-ai) + [miku_ai](https://github.com/GobinFan/Miku_Spider)) |
+| 💬 **WeChat Articles** | Search + Read | Zero config | Search + read WeChat Official Account articles (full Markdown) ([wechat-article-for-ai](https://github.com/Panniantong/wechat-article-for-ai) + [miku_ai](https://github.com/GobinFan/Miku_Spider)) |
 | 📰 **Weibo** | Trending · Search · Feeds · Comments | Zero config | Hot search, content/user/topic search, feeds, comments ([mcp-server-weibo](https://github.com/Panniantong/mcp-server-weibo)) |
 | 🎙️ **Xiaoyuzhou Podcast** | Transcription | Free API key | Podcast audio → full text transcript via Groq Whisper (free) |
 | 🔍 **Web Search** | Search | Auto-configured | Auto-configured during install, free, no API key ([Exa](https://exa.ai) via [mcporter](https://github.com/nicepkg/mcporter)) |
@@ -222,7 +222,7 @@ Each channel file only checks whether its upstream tool is installed and working
 | XiaoHongShu | [xiaohongshu-mcp](https://github.com/user/xiaohongshu-mcp) | Internal API, bypasses anti-bot |
 | Douyin | [douyin-mcp-server](https://github.com/yzfly/douyin-mcp-server) | MCP server, no login needed, video parsing + watermark-free download |
 | LinkedIn | [linkedin-scraper-mcp](https://github.com/stickerdaniel/linkedin-mcp-server) | 900+ stars, MCP server, browser automation |
-| WeChat Articles | [wechat-article-for-ai](https://github.com/bzd6661/wechat-article-for-ai) + [miku_ai](https://github.com/GobinFan/Miku_Spider) | Stealth browser for full article reading + Sogou search |
+| WeChat Articles | [wechat-article-for-ai](https://github.com/Panniantong/wechat-article-for-ai) + [miku_ai](https://github.com/GobinFan/Miku_Spider) | Stealth browser for full article reading + Sogou search |
 | Weibo | `mcporter` | `mcporter call 'weibo.get_trendings(limit: 10)'` |
 | Xiaoyuzhou Podcast | `transcribe.sh` | `bash ~/.agent-reach/tools/xiaoyuzhou/transcribe.sh <URL>` |
 

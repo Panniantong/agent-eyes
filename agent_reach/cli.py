@@ -604,15 +604,15 @@ def _install_wechat_deps():
             os.makedirs(tools_dir, exist_ok=True)
             subprocess.run(
                 ["git", "clone", "--depth", "1",
-                 "https://github.com/bzd6661/wechat-article-for-ai.git", wechat_dir],
+                 "https://github.com/Panniantong/wechat-article-for-ai.git", wechat_dir],
                 capture_output=True, encoding="utf-8", errors="replace", timeout=60,
             )
             if os.path.isfile(os.path.join(wechat_dir, "main.py")):
                 print("  ✅ wechat-article-for-ai tool installed")
             else:
-                print("  [!]  wechat-article-for-ai clone failed. Try: git clone https://github.com/bzd6661/wechat-article-for-ai.git " + wechat_dir)
+                print("  [!]  wechat-article-for-ai clone failed. Try: git clone https://github.com/Panniantong/wechat-article-for-ai.git " + wechat_dir)
         except Exception:
-            print("  [!]  wechat-article-for-ai clone failed. Try: git clone https://github.com/bzd6661/wechat-article-for-ai.git " + wechat_dir)
+            print("  [!]  wechat-article-for-ai clone failed. Try: git clone https://github.com/Panniantong/wechat-article-for-ai.git " + wechat_dir)
 
 
 def _install_system_deps_safe():

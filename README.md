@@ -196,7 +196,7 @@ channels/
 | 小红书 | [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) | ⭐9K+，Go 语言，Docker 一键部署 |
 | 抖音 | [douyin-mcp-server](https://github.com/yzfly/douyin-mcp-server) | MCP 服务，无需登录，视频解析 + 无水印下载 |
 | LinkedIn | [linkedin-scraper-mcp](https://github.com/stickerdaniel/linkedin-mcp-server) | ⭐900+，MCP 服务，浏览器自动化 |
-| 微信公众号 | [wechat-article-for-ai](https://github.com/bzd6661/wechat-article-for-ai) + [miku_ai](https://github.com/GobinFan/Miku_Spider) | Camoufox 隐身浏览器读全文 + 搜狗搜索 |
+| 微信公众号 | [wechat-article-for-ai](https://github.com/Panniantong/wechat-article-for-ai) + [miku_ai](https://github.com/GobinFan/Miku_Spider) | Camoufox 隐身浏览器读全文 + 搜狗搜索 |
 
 > 📌 这些都是「当前选型」。不满意？换掉对应文件就行。这正是脚手架的意义。
 
