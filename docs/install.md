@@ -40,7 +40,7 @@ All Agent Reach files go in dedicated directories — **never in the agent works
 | Purpose | Directory | Example |
 |---------|-----------|---------|
 | Config & tokens | `~/.agent-reach/` | `~/.agent-reach/config.json` |
-| Upstream tool repos | `~/.agent-reach/tools/` | `~/.agent-reach/tools/douyin-mcp-server/` |
+| Upstream tool repos | `~/.agent-reach/tools/` | `~/.agent-reach/tools/wechat-article-for-ai/` |
 | Temporary files | `/tmp/` | `/tmp/yt-dlp-output/` |
 | Skills | `~/.openclaw/skills/agent-reach/` | SKILL.md |
 
@@ -55,7 +55,7 @@ pip install https://github.com/Panniantong/agent-reach/archive/main.zip
 agent-reach install --env=auto
 ```
 
-This auto-installs system dependencies (gh CLI, Node.js, mcporter, xreach), configures Exa search, detects environment, and tests all channels.
+This auto-installs system dependencies (gh CLI, Node.js, ffmpeg, xreach), installs Douyin script helpers (`requests`, `ffmpeg-python`), configures Exa search, detects environment, and tests all channels.
 
 **Safe mode (no automatic system changes):**
 

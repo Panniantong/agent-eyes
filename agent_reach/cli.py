@@ -307,7 +307,7 @@ def _install_skill():
 
 
 def _install_system_deps():
-    """Install system-level dependencies: gh CLI, Node.js (for mcporter)."""
+    """Install system-level dependencies: gh CLI, Node.js, ffmpeg, and helpers."""
     import shutil
     import subprocess
     import platform
@@ -413,6 +413,63 @@ def _install_system_deps():
                 print("  -- xreach CLI install failed (optional — Twitter reading still works via Jina)")
         else:
             print("  -- xreach CLI requires Node.js (optional — Twitter reading still works via Jina)")
+
+    # ── ffmpeg (for Douyin + audio workflows) ──
+    if shutil.which("ffmpeg"):
+        print("  ✅ ffmpeg already installed")
+    else:
+        print("  Installing ffmpeg...")
+        os_type = platform.system().lower()
+        if os_type == "linux":
+            try:
+                subprocess.run(["apt-get", "install", "-y", "-qq", "ffmpeg"], capture_output=True, timeout=120)
+                if shutil.which("ffmpeg"):
+                    print("  ✅ ffmpeg installed")
+                else:
+                    print("  [!]  ffmpeg install failed. Try: apt install -y ffmpeg")
+            except Exception:
+                print("  [!]  ffmpeg install failed. Try: apt install -y ffmpeg")
+        elif os_type == "darwin":
+            if shutil.which("brew"):
+                try:
+                    subprocess.run(["brew", "install", "ffmpeg"], capture_output=True, timeout=300)
+                    if shutil.which("ffmpeg"):
+                        print("  ✅ ffmpeg installed")
+                    else:
+                        print("  [!]  ffmpeg install failed. Try: brew install ffmpeg")
+                except Exception:
+                    print("  [!]  ffmpeg install failed. Try: brew install ffmpeg")
+            else:
+                print("  [!]  ffmpeg not found. Install: brew install ffmpeg")
+        else:
+            print("  [!]  ffmpeg not found. Install it manually for Douyin/audio workflows")
+
+    # ── Python helpers for Douyin scripts ──
+    try:
+        import requests  # noqa: F401
+        has_requests = True
+    except Exception:
+        has_requests = False
+    try:
+        import ffmpeg as _ffmpeg  # noqa: F401
+        has_ffmpeg_python = True
+    except Exception:
+        has_ffmpeg_python = False
+
+    missing_py = []
+    if not has_requests:
+        missing_py.append("requests")
+    if not has_ffmpeg_python:
+        missing_py.append("ffmpeg-python")
+
+    if not missing_py:
+        print("  ✅ Douyin Python helpers already installed")
+    else:
+        try:
+            subprocess.run([sys.executable, "-m", "pip", "install", *missing_py], capture_output=True, encoding="utf-8", errors="replace", timeout=180)
+            print(f"  ✅ Installed Douyin Python helpers: {', '.join(missing_py)}")
+        except Exception:
+            print(f"  -- Could not auto-install Douyin Python helpers. Install manually: pip install {' '.join(missing_py)}")
 
     # ── undici (proxy support for Node.js fetch) ──
     npm_cmd = shutil.which("npm")
@@ -667,6 +724,35 @@ def _install_system_deps_safe():
         print(f"  -- WeChat article tools not found")
         print(f"    Install: pip install {' '.join(pkgs)}")
 
+    # Douyin script deps
+    if shutil.which("ffmpeg"):
+        print("  ✅ ffmpeg already installed")
+    else:
+        print("  -- ffmpeg not installed")
+        print("    Install: Ubuntu/Debian: apt install -y ffmpeg | macOS: brew install ffmpeg")
+
+    has_requests = has_ffmpeg_python = False
+    try:
+        import requests  # noqa: F401
+        has_requests = True
+    except ImportError:
+        pass
+    try:
+        import ffmpeg  # noqa: F401
+        has_ffmpeg_python = True
+    except ImportError:
+        pass
+    if has_requests and has_ffmpeg_python:
+        print("  ✅ Douyin Python helpers already installed")
+    else:
+        pkgs = []
+        if not has_requests:
+            pkgs.append("requests")
+        if not has_ffmpeg_python:
+            pkgs.append("ffmpeg-python")
+        print("  -- Douyin Python helpers not found")
+        print(f"    Install: pip install {' '.join(pkgs)}")
+
 
 def _install_system_deps_dryrun():
     """Dry-run: just show what would be checked/installed."""
@@ -703,6 +789,33 @@ def _install_system_deps_dryrun():
         print("  ✅ WeChat article tools: already installed, skip")
     else:
         print("  WeChat article tools: would install via: pip install camoufox[geoip] markdownify beautifulsoup4 httpx miku_ai")
+
+    # Douyin
+    if shutil.which("ffmpeg"):
+        print("  ✅ ffmpeg: already installed, skip")
+    else:
+        print("  ffmpeg: would install via: apt install -y ffmpeg / brew install ffmpeg")
+
+    has_requests = has_ffmpeg_python = False
+    try:
+        import requests  # noqa: F401
+        has_requests = True
+    except ImportError:
+        pass
+    try:
+        import ffmpeg  # noqa: F401
+        has_ffmpeg_python = True
+    except ImportError:
+        pass
+    if has_requests and has_ffmpeg_python:
+        print("  ✅ Douyin Python helpers: already installed, skip")
+    else:
+        pkgs = []
+        if not has_requests:
+            pkgs.append("requests")
+        if not has_ffmpeg_python:
+            pkgs.append("ffmpeg-python")
+        print(f"  Douyin Python helpers: would install via: pip install {' '.join(pkgs)}")
 
 
 def _install_mcporter():
