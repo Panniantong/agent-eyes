@@ -2,9 +2,9 @@
 name: agent-reach
 description: >
   Give your AI agent eyes to see the entire internet. 7500+ GitHub stars.
-  Search and read 14 platforms: Twitter/X, Reddit, YouTube, GitHub, Bilibili,
+  Search and read 15 platforms: Twitter/X, Reddit, YouTube, GitHub, Bilibili,
   XiaoHongShu (小红书), Douyin (抖音), Weibo (微博), WeChat Articles (微信公众号),
-  LinkedIn, Instagram, RSS, Exa web search, and any web page.
+  LinkedIn, Instagram, V2EX, RSS, Exa web search, and any web page.
   One command install, zero config for 8 channels, agent-reach doctor for diagnostics.
   Use when: (1) user asks to search or read any of these platforms,
   (2) user shares a URL from any supported platform,
@@ -15,6 +15,7 @@ description: >
   "search twitter", "read tweet", "youtube transcript", "search reddit",
   "read this link", "看这个链接", "B站", "bilibili", "抖音视频",
   "微信文章", "公众号", "LinkedIn", "GitHub issue", "RSS", "微博",
+  "V2EX", "v2ex", "节点", "看主题", "技术社区",
   "search online", "web search", "find information", "research",
   "帮我配", "configure twitter", "configure proxy", "帮我安装".
 metadata:
@@ -140,6 +141,27 @@ mcporter call 'linkedin.search_people(keyword: "AI engineer", limit: 10)'
 ```
 
 Fallback: `curl -s "https://r.jina.ai/https://linkedin.com/in/username"`
+
+## V2EX (public API)
+
+```bash
+# 热门主题
+curl -s "https://www.v2ex.com/api/v2/topics/hot" -H "User-Agent: agent-reach/1.0"
+
+# 节点主题（node_name 如 python、tech、jobs、qna）
+curl -s "https://www.v2ex.com/api/topics/show.json?node_name=python&page=1" -H "User-Agent: agent-reach/1.0"
+
+# 主题详情（topic_id 从 URL 获取，如 https://www.v2ex.com/t/1234567）
+curl -s "https://www.v2ex.com/api/topics/show.json?id=TOPIC_ID" -H "User-Agent: agent-reach/1.0"
+
+# 主题回复
+curl -s "https://www.v2ex.com/api/replies/show.json?topic_id=TOPIC_ID&page=1" -H "User-Agent: agent-reach/1.0"
+
+# 用户信息
+curl -s "https://www.v2ex.com/api/members/show.json?username=USERNAME" -H "User-Agent: agent-reach/1.0"
+```
+
+> No auth required. Results are public JSON. V2EX 节点名见 https://www.v2ex.com/planes
 
 ## RSS (feedparser)
 
