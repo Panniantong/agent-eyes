@@ -81,17 +81,21 @@ class TestV2EXChannel:
 
         fake_data = [
             {
+                "id": 111,
                 "title": "Python 3.13 发布了",
                 "url": "https://www.v2ex.com/t/111",
                 "replies": 42,
                 "content": "发布公告内容",
+                "created": 1700000000,
                 "node": {"name": "python", "title": "Python"},
             },
             {
+                "id": 222,
                 "title": "Rust 好学吗",
                 "url": "https://www.v2ex.com/t/222",
                 "replies": 10,
                 "content": "",
+                "created": 1700000001,
                 "node": {"name": "rust", "title": "Rust"},
             },
         ]
@@ -111,17 +115,19 @@ class TestV2EXChannel:
         monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: FakeResponse())
         topics = V2EXChannel().get_hot_topics(limit=5)
         assert len(topics) == 2
+        assert topics[0]["id"] == 111
         assert topics[0]["title"] == "Python 3.13 发布了"
         assert topics[0]["replies"] == 42
         assert topics[0]["node_name"] == "python"
         assert topics[0]["node_title"] == "Python"
+        assert topics[0]["created"] == 1700000000
 
     def test_get_hot_topics_respects_limit(self, monkeypatch):
         import urllib.request
 
         fake_data = [
-            {"title": f"Topic {i}", "url": f"https://v2ex.com/t/{i}", "replies": i,
-             "content": "", "node": {"name": "tech", "title": "Tech"}}
+            {"id": i, "title": f"Topic {i}", "url": f"https://v2ex.com/t/{i}", "replies": i,
+             "content": "", "created": 1700000000 + i, "node": {"name": "tech", "title": "Tech"}}
             for i in range(10)
         ]
 
@@ -134,6 +140,24 @@ class TestV2EXChannel:
         topics = V2EXChannel().get_hot_topics(limit=3)
         assert len(topics) == 3
 
+    def test_get_hot_topics_truncates_content(self, monkeypatch):
+        import urllib.request
+
+        long_content = "A" * 300
+        fake_data = [
+            {"id": 1, "title": "Long post", "url": "https://v2ex.com/t/1", "replies": 0,
+             "content": long_content, "created": 1700000000, "node": {"name": "tech", "title": "Tech"}}
+        ]
+
+        class FakeResponse:
+            def __enter__(self): return self
+            def __exit__(self, *_): pass
+            def read(self): return json.dumps(fake_data).encode()
+
+        monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: FakeResponse())
+        topics = V2EXChannel().get_hot_topics(limit=1)
+        assert len(topics[0]["content"]) == 200
+
     # ------------------------------------------------------------------ #
     # get_node_topics
     # ------------------------------------------------------------------ #
@@ -143,10 +167,12 @@ class TestV2EXChannel:
 
         fake_data = [
             {
+                "id": 333,
                 "title": "Flask 部署问题",
                 "url": "https://www.v2ex.com/t/333",
                 "replies": 5,
                 "content": "求帮助",
+                "created": 1710000000,
                 "node": {"name": "python", "title": "Python"},
             }
         ]
@@ -159,8 +185,10 @@ class TestV2EXChannel:
         monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: FakeResponse())
         topics = V2EXChannel().get_node_topics("python")
         assert len(topics) == 1
+        assert topics[0]["id"] == 333
         assert topics[0]["node_name"] == "python"
         assert topics[0]["title"] == "Flask 部署问题"
+        assert topics[0]["created"] == 1710000000
 
     # ------------------------------------------------------------------ #
     # get_topic

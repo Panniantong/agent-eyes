@@ -59,14 +59,17 @@ class V2EXChannel(Channel):
         results = []
         for item in data[:limit]:
             node = item.get("node") or {}
+            content = item.get("content", "") or ""
             results.append(
                 {
+                    "id": item.get("id", 0),
                     "title": item.get("title", ""),
                     "url": item.get("url", ""),
                     "replies": item.get("replies", 0),
                     "node_name": node.get("name", ""),
                     "node_title": node.get("title", ""),
-                    "content": item.get("content", ""),
+                    "content": content[:200],
+                    "created": item.get("created", 0),
                 }
             )
         return results
@@ -89,14 +92,17 @@ class V2EXChannel(Channel):
         results = []
         for item in data[:limit]:
             node = item.get("node") or {}
+            content = item.get("content", "") or ""
             results.append(
                 {
+                    "id": item.get("id", 0),
                     "title": item.get("title", ""),
                     "url": item.get("url", ""),
                     "replies": item.get("replies", 0),
                     "node_name": node.get("name", node_name),
                     "node_title": node.get("title", ""),
-                    "content": item.get("content", ""),
+                    "content": content[:200],
+                    "created": item.get("created", 0),
                 }
             )
         return results

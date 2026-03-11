@@ -169,22 +169,28 @@ from agent_reach.channels.v2ex import V2EXChannel
 ch = V2EXChannel()
 
 # 获取热门帖子（默认 20 条）
+# 返回字段：id, title, url, replies, node_name, node_title, content(前200字), created
 topics = ch.get_hot_topics(limit=10)
 for t in topics:
     print(f"[{t['node_title']}] {t['title']} ({t['replies']} 回复) {t['url']}")
+    print(f"  id={t['id']} created={t['created']}")
 
 # 获取指定节点的最新帖子
+# 返回字段：id, title, url, replies, node_name, node_title, content(前200字), created
 node_topics = ch.get_node_topics("python", limit=5)
 for t in node_topics:
-    print(t["title"], t["url"])
+    print(t["id"], t["title"], t["url"])
 
 # 获取单个帖子详情 + 回复列表
+# 返回字段：id, title, url, content, replies_count, node_name, node_title,
+#           author, created, replies (list of {author, content, created})
 topic = ch.get_topic(1234567)
 print(topic["title"], "—", topic["author"])
 for r in topic["replies"]:
     print(f"  {r['author']}: {r['content'][:80]}")
 
 # 获取用户信息
+# 返回字段：id, username, url, website, twitter, psn, github, btc, location, bio, avatar, created
 user = ch.get_user("Livid")
 print(user["username"], user["bio"], user["github"])
 
