@@ -191,6 +191,6 @@ for e in feedparser.parse('FEED_URL').entries[:5]:
 ## Setting Up a Channel ("帮我配 XXX")
 
 If a channel needs setup (cookies, Docker, etc.), fetch the install guide:
-https://raw.githubusercontent.com/Mithranda/agent-reach-douyin/main/docs/install.md
+https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
 
 User only provides cookies. Everything else is your job.

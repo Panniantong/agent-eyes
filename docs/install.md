@@ -5,12 +5,12 @@
 Copy this to your AI Agent:
 
 ```
-帮我安装 Agent Reach：https://raw.githubusercontent.com/Mithranda/agent-reach-douyin/main/docs/install.md
+帮我安装 Agent Reach：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
 ```
 
 > 🛡️ **Security-conscious?** Use safe mode — it won't auto-install system packages:
 > ```
-> 帮我安装 Agent Reach（安全模式）：https://raw.githubusercontent.com/Mithranda/agent-reach-douyin/main/docs/install.md
+> 帮我安装 Agent Reach（安全模式）：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
 > 安装时使用 --safe 参数
 > ```
 
