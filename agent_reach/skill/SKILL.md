@@ -146,7 +146,7 @@ Fallback: `curl -s "https://r.jina.ai/https://linkedin.com/in/username"`
 
 ```bash
 # 热门主题
-curl -s "https://www.v2ex.com/api/v2/topics/hot" -H "User-Agent: agent-reach/1.0"
+curl -s "https://www.v2ex.com/api/topics/hot.json" -H "User-Agent: agent-reach/1.0"
 
 # 节点主题（node_name 如 python、tech、jobs、qna）
 curl -s "https://www.v2ex.com/api/topics/show.json?node_name=python&page=1" -H "User-Agent: agent-reach/1.0"
@@ -159,6 +159,38 @@ curl -s "https://www.v2ex.com/api/replies/show.json?topic_id=TOPIC_ID&page=1" -H
 
 # 用户信息
 curl -s "https://www.v2ex.com/api/members/show.json?username=USERNAME" -H "User-Agent: agent-reach/1.0"
+```
+
+Python 调用示例（V2EXChannel）：
+
+```python
+from agent_reach.channels.v2ex import V2EXChannel
+
+ch = V2EXChannel()
+
+# 获取热门帖子（默认 20 条）
+topics = ch.get_hot_topics(limit=10)
+for t in topics:
+    print(f"[{t['node_title']}] {t['title']} ({t['replies']} 回复) {t['url']}")
+
+# 获取指定节点的最新帖子
+node_topics = ch.get_node_topics("python", limit=5)
+for t in node_topics:
+    print(t["title"], t["url"])
+
+# 获取单个帖子详情 + 回复列表
+topic = ch.get_topic(1234567)
+print(topic["title"], "—", topic["author"])
+for r in topic["replies"]:
+    print(f"  {r['author']}: {r['content'][:80]}")
+
+# 获取用户信息
+user = ch.get_user("Livid")
+print(user["username"], user["bio"], user["github"])
+
+# 搜索（V2EX 公开 API 不支持，会返回说明信息）
+result = ch.search("asyncio")
+print(result[0]["error"])  # 提示使用站内搜索或 Exa channel
 ```
 
 > No auth required. Results are public JSON. V2EX 节点名见 https://www.v2ex.com/planes
