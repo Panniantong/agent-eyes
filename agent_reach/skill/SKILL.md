@@ -1,25 +1,20 @@
 ---
 name: agent-reach
 description: >
-  Give your AI agent eyes to see the entire internet. 7500+ GitHub stars.
-  Search and read 14 platforms: Twitter/X, Reddit, YouTube, GitHub, Bilibili,
-  XiaoHongShu (小红书), Douyin (抖音), Weibo (微博), WeChat Articles (微信公众号),
-  LinkedIn, Instagram, RSS, Exa web search, and any web page.
-  One command install, zero config for 8 channels, agent-reach doctor for diagnostics.
+  Use the internet: search, read, and interact with 13+ platforms including
+  Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu (小红书), Douyin (抖音),
+  WeChat Articles (微信公众号), LinkedIn, Boss直聘, Weibo (微博), RSS, Exa web search, and any web page.
   Use when: (1) user asks to search or read any of these platforms,
-  (2) user shares a URL from any supported platform,
+  (2) user shares a URL from any of the supported platforms,
   (3) user asks to search the web, find information online, or research a topic,
   (4) user asks to post, comment, or interact on supported platforms,
   (5) user asks to configure or set up a platform channel.
   Triggers: "搜推特", "搜小红书", "看视频", "搜一下", "上网搜", "帮我查", "全网搜索",
   "search twitter", "read tweet", "youtube transcript", "search reddit",
   "read this link", "看这个链接", "B站", "bilibili", "抖音视频",
-  "微信文章", "公众号", "LinkedIn", "GitHub issue", "RSS", "微博",
+  "微信文章", "公众号", "微博", "weibo", "热搜", "LinkedIn", "GitHub issue", "RSS",
   "search online", "web search", "find information", "research",
   "帮我配", "configure twitter", "configure proxy", "帮我安装".
-metadata:
-  openclaw:
-    homepage: https://github.com/Panniantong/Agent-Reach
 ---
 
 # Agent Reach — Usage Guide
@@ -141,7 +136,14 @@ mcporter call 'linkedin.search_people(keyword: "AI engineer", limit: 10)'
 
 Fallback: `curl -s "https://r.jina.ai/https://linkedin.com/in/username"`
 
-## RSS (feedparser)
+## Boss直聘 (mcporter)
+
+```bash
+mcporter call 'bosszhipin.get_recommend_jobs_tool(page: 1)'
+mcporter call 'bosszhipin.search_jobs_tool(keyword: "Python", city: "北京")'
+```
+
+Fallback: `curl -s "https://r.jina.ai/https://www.zhipin.com/job_detail/xxx"`
 
 ## RSS
 
@@ -151,6 +153,19 @@ import feedparser
 for e in feedparser.parse('FEED_URL').entries[:5]:
     print(f'{e.title} — {e.link}')
 "
+```
+
+## 微博 / Weibo (mcporter)
+
+```bash
+mcporter call 'weibo.get_trendings(limit: 10)'                    # 获取热搜榜
+mcporter call 'weibo.search_topics(keyword: "query")'             # 搜索话题
+mcporter call 'weibo.search_content(keyword: "query", limit: 5)'  # 搜索微博内容
+mcporter call 'weibo.search_users(keyword: "query")'              # 搜索用户
+mcporter call 'weibo.get_profile(uid: 2803301701)'                # 获取用户信息
+mcporter call 'weibo.get_feeds(uid: 2803301701, limit: 10)'       # 获取用户微博
+mcporter call 'weibo.get_hot_feeds(uid: 2803301701)'              # 获取用户热门微博
+mcporter call 'weibo.get_comments(feed_id: 123456, page: 1)'      # 获取微博评论
 ```
 
 ## Troubleshooting
