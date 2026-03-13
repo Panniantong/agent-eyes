@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """XiaoHongShu -- check if mcporter + xiaohongshu MCP is available."""
 
+import json
 import platform
 import shutil
 import subprocess
@@ -11,6 +12,28 @@ def _is_arm64() -> bool:
     """Detect ARM64 architecture (e.g. Apple Silicon)."""
     machine = platform.machine().lower()
     return machine in ("arm64", "aarch64")
+
+
+def _mcporter_status_ok(stdout: str) -> bool:
+    """Return True if mcporter JSON output indicates status == 'ok'.
+
+    Uses proper JSON parsing to handle Windows BOM, CRLF line endings, and
+    whitespace variations.  Falls back to normalised string matching so the
+    check still works if mcporter ever returns non-JSON text.
+    """
+    text = stdout.strip()
+    # Strip UTF-8 BOM that Windows PowerShell sometimes prepends.
+    if text.startswith("\ufeff"):
+        text = text[1:]
+    try:
+        data = json.loads(text)
+        if isinstance(data, dict):
+            return str(data.get("status", "")).lower() == "ok"
+    except (json.JSONDecodeError, ValueError):
+        pass
+    # Fallback: normalise whitespace and CRLF, then do string search.
+    normalised = text.lower().replace("\r\n", "\n").replace("\r", "\n").replace(" ", "")
+    return '"status":"ok"' in normalised
 
 
 def _docker_run_hint() -> str:
@@ -49,13 +72,15 @@ class XiaoHongShuChannel(Channel):
                 "  3. mcporter config add xiaohongshu http://localhost:18060/mcp\n"
                 "  详见 https://github.com/xpzouying/xiaohongshu-mcp"
             )
+        is_windows = platform.system() == "Windows"
+        config_timeout = 15 if is_windows else 5
         try:
             r = subprocess.run(
                 [mcporter, "config", "get", "xiaohongshu", "--json"],
                 capture_output=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=5,
+                timeout=config_timeout,
             )
             if r.returncode != 0 or "xiaohongshu" not in r.stdout.lower():
                 return "off", (
@@ -66,16 +91,17 @@ class XiaoHongShuChannel(Channel):
         except Exception:
             return "off", "mcporter 连接异常"
 
+        # Use longer timeouts on Windows where mcporter may be slower to respond.
+        list_timeout = 30 if is_windows else 10
         try:
             r = subprocess.run(
                 [mcporter, "list", "xiaohongshu", "--json"],
                 capture_output=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=10,
+                timeout=list_timeout,
             )
-            out = r.stdout.lower()
-            if r.returncode == 0 and '"status": "ok"' in out:
+            if r.returncode == 0 and _mcporter_status_ok(r.stdout):
                 return "ok", "MCP 已连接（阅读、搜索、发帖、评论、点赞）"
             return "warn", "MCP 已配置，但连接异常；请检查 xiaohongshu-mcp 服务状态"
         except subprocess.TimeoutExpired:
