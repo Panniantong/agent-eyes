@@ -208,6 +208,17 @@ print(result[0]["error"])  # 提示使用站内搜索或 Exa channel
 
 > No auth required. Results are public JSON. V2EX 节点名见 https://www.v2ex.com/planes
 
+## 微博 / Weibo (mcporter)
+
+```bash
+mcporter call 'weibo.get_trendings(limit: 10)'                    # 热搜
+mcporter call 'weibo.search_posts(keyword: "关键词", limit: 10)'   # 搜索帖子
+mcporter call 'weibo.search_users(keyword: "关键词", limit: 10)'  # 搜索用户
+mcporter call 'weibo.get_user_feed(user_id: "用户ID", limit: 10)'  # 用户动态
+```
+
+> 无需配置，安装 agent-reach 后直接可用。
+
 ## RSS (feedparser)
 
 ## RSS
