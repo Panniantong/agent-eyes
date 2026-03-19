@@ -708,11 +708,11 @@ def _install_system_deps_dryrun():
 
 
 def _install_mcporter():
-    """Install mcporter and configure Exa + XiaoHongShu MCP servers."""
+    """Install mcporter and configure Exa plus optional MCP integrations."""
     import shutil
     import subprocess
 
-    print("Setting up mcporter (search + XiaoHongShu backend)...")
+    print("Setting up mcporter (search + optional MCP backends)...")
 
     if shutil.which("mcporter"):
         print("  ✅ mcporter already installed")
@@ -777,6 +777,22 @@ def _install_mcporter():
     except Exception:
         pass
 
+    # Check Xianyu MCP (optional, requires login)
+    try:
+        r = subprocess.run(
+            ["mcporter", "config", "list"], capture_output=True, encoding="utf-8", errors="replace", timeout=5
+        )
+        lower_stdout = r.stdout.lower()
+        if "xianyu" in lower_stdout or "goofish" in lower_stdout:
+            print("  ✅ Xianyu MCP already configured")
+        elif shutil.which("npx"):
+            print("  -- Xianyu MCP not configured yet (optional)")
+            print("     Configure: mcporter config add xianyu --command 'npx' --args 'mcp-goofish'")
+            print("     Login:     npx mcp-goofish login")
+            print("     Repo:      https://github.com/mercy719/mcp-goofish")
+    except Exception:
+        pass
+
 
 def _install_mcporter_safe():
     """Safe mode: check mcporter status, print instructions."""
@@ -787,10 +803,14 @@ def _install_mcporter_safe():
     if shutil.which("mcporter"):
         print("  ✅ mcporter already installed")
         print("  To configure Exa search: mcporter config add exa https://mcp.exa.ai/mcp")
+        print("  To configure Xianyu: mcporter config add xianyu --command 'npx' --args 'mcp-goofish'")
+        print("  Then login: npx mcp-goofish login")
     else:
         print("  -- mcporter not installed")
         print("  To install: npm install -g mcporter")
         print("  Then configure Exa: mcporter config add exa https://mcp.exa.ai/mcp")
+        print("  Optional Xianyu: mcporter config add xianyu --command 'npx' --args 'mcp-goofish'")
+        print("  Then login: npx mcp-goofish login")
 
 
 def _detect_environment():
@@ -1213,7 +1233,7 @@ def _cmd_uninstall(args):
 
     # ── 3. mcporter MCP entries ──
     if shutil.which("mcporter"):
-        for mcp_name in ("exa", "xiaohongshu"):
+        for mcp_name in ("exa", "xiaohongshu", "xianyu", "goofish"):
             try:
                 r = subprocess.run(
                     ["mcporter", "list"], capture_output=True, encoding="utf-8", errors="replace", timeout=10
@@ -1338,7 +1358,31 @@ def _cmd_setup():
             print("  跳过。仍可通过搜索获取 Reddit 内容")
     print()
 
-    # Step 4: Groq (Whisper)
+    # Step 4: Xianyu MCP
+    print("【可选】闲鱼 / Xianyu")
+    print("  需要 Node.js + mcporter + mcp-goofish，登录后可搜索商品和查看详情")
+    if not shutil.which("mcporter"):
+        print("  当前状态: -- mcporter 未安装")
+        print("  配置：mcporter config add xianyu --command 'npx' --args 'mcp-goofish'")
+        print("  登录：npx mcp-goofish login")
+    else:
+        try:
+            r = subprocess.run(
+                ["mcporter", "config", "list"], capture_output=True, encoding="utf-8", errors="replace", timeout=10
+            )
+            if "xianyu" in r.stdout.lower() or "goofish" in r.stdout.lower():
+                print("  当前状态: ✅ 已配置")
+            else:
+                print("  当前状态: -- 未配置")
+                print("  配置：mcporter config add xianyu --command 'npx' --args 'mcp-goofish'")
+                print("  登录：npx mcp-goofish login")
+        except Exception:
+            print("  [!] 无法检查闲鱼配置，请手动执行：")
+            print("     mcporter config add xianyu --command 'npx' --args 'mcp-goofish'")
+            print("     npx mcp-goofish login")
+    print()
+
+    # Step 5: Groq (Whisper)
     print("【可选】Groq API — 视频无字幕时的语音转文字")
     print("  免费额度，注册: https://console.groq.com")
     current = config.get("groq_api_key")

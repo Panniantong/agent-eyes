@@ -5,6 +5,12 @@
     },
     "xiaohongshu": {
       "baseUrl": "http://localhost:18060/mcp"
+    },
+    "xianyu": {
+      "command": "npx",
+      "args": [
+        "mcp-goofish"
+      ]
     }
   },
   "imports": []

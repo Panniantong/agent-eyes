@@ -197,6 +197,24 @@ mcporter config add weibo --command 'mcp-server-weibo'
 
 > 无需登录、无需 Cookie、无需代理。海外服务器也可以直接访问。
 
+**闲鱼 / Xianyu (mcp-goofish):**
+> "闲鱼需要一个基于 Node.js 的 MCP 服务。配置完成后，Agent 就能搜索商品、查看详情和做关键词监控。"
+
+```bash
+# 1. 确认已安装 Node.js 18+ 与 mcporter
+npm install -g mcporter
+
+# 2. 注册闲鱼 MCP
+mcporter config add xianyu --command 'npx' --args 'mcp-goofish'
+
+# 3. 登录闲鱼
+npx mcp-goofish login
+```
+
+> 登录完成后，可用 `mcporter list xianyu` 检查工具是否已就绪。
+>
+> 详见 https://github.com/mercy719/mcp-goofish
+
 **小宇宙播客 / Xiaoyuzhou Podcast (Groq Whisper):**
 > "小宇宙播客转文字已默认安装，只需要一个免费的 Groq API Key。"
 
@@ -344,6 +362,7 @@ After installation, use upstream tools directly. See SKILL.md for the full comma
 | Web | `curl` + Jina | `curl -s "https://r.jina.ai/URL"` |
 | Exa Search | `mcporter` | `mcporter call 'exa.web_search_exa(...)'` |
 | 小红书 | `mcporter` | `mcporter call 'xiaohongshu.search_feeds(...)'` |
+| 闲鱼 | `mcporter` | `mcporter list xianyu` |
 | 微博 | `mcporter` | `mcporter call 'weibo.get_trendings(limit: 10)'` |
 | 小宇宙播客 | `transcribe.sh` | `bash ~/.agent-reach/tools/xiaoyuzhou/transcribe.sh <URL>` |
 | 抖音 | `mcporter` | `mcporter call 'douyin.parse_douyin_video_info(...)'` |
