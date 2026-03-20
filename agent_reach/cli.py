@@ -1266,9 +1266,13 @@ def _cmd_uninstall(args):
 def _cmd_doctor():
     from agent_reach.config import Config
     from agent_reach.doctor import check_all, format_report
+    try:
+        from rich import print as rprint
+    except ImportError:
+        rprint = print
     config = Config()
     results = check_all(config)
-    print(format_report(results))
+    rprint(format_report(results))
 
 
 def _cmd_setup():
