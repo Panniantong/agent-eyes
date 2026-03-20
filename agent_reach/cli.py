@@ -951,7 +951,6 @@ def _cmd_configure(args):
                 if not xreach:
                     print("[!] xreach CLI not installed. Run: npm install -g xreach-cli")
                 else:
-                    import os
                     env = os.environ.copy()
                     env["AUTH_TOKEN"] = auth_token
                     env["CT0"] = ct0
