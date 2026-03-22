@@ -266,43 +266,66 @@ def _cmd_install(args):
 
 
 def _install_skill():
-    """Install Agent Reach as an agent skill (OpenClaw / Claude Code)."""
+    """Install Agent Reach as an agent skill (OpenClaw / Claude Code / .agents)."""
     import os
+    import shutil
     import importlib.resources
 
-    # Determine skill install path
+    def _copy_skill_dir(target: str) -> bool:
+        """Copy entire skill directory (SKILL.md + references/)."""
+        try:
+            # Clear existing installation
+            if os.path.exists(target):
+                shutil.rmtree(target)
+            os.makedirs(target, exist_ok=True)
+
+            # Get skill directory from package
+            skill_pkg = importlib.resources.files("agent_reach").joinpath("skill")
+
+            # Copy SKILL.md
+            skill_md = skill_pkg.joinpath("SKILL.md").read_text()
+            with open(os.path.join(target, "SKILL.md"), "w") as f:
+                f.write(skill_md)
+
+            # Copy references/ directory
+            refs_pkg = skill_pkg.joinpath("references")
+            refs_target = os.path.join(target, "references")
+            os.makedirs(refs_target, exist_ok=True)
+
+            for ref_file in refs_pkg.iterdir():
+                if ref_file.suffix == ".md":
+                    content = ref_file.read_text()
+                    with open(os.path.join(refs_target, ref_file.name), "w") as f:
+                        f.write(content)
+
+            return True
+        except Exception as e:
+            print(f"  Warning: Could not install skill: {e}")
+            return False
+
+    # Determine skill install path (priority: .agents > openclaw > claude)
     skill_dirs = [
-        os.path.expanduser("~/.openclaw/skills"),   # OpenClaw
+        os.path.expanduser("~/.agents/skills"),      # Generic agents (priority)
+        os.path.expanduser("~/.openclaw/skills"),    # OpenClaw
         os.path.expanduser("~/.claude/skills"),      # Claude Code (if exists)
-        os.path.expanduser("~/.agents/skills"),      # Generic agents
     ]
 
     installed = False
     for skill_dir in skill_dirs:
         if os.path.isdir(skill_dir):
             target = os.path.join(skill_dir, "agent-reach")
-            try:
-                os.makedirs(target, exist_ok=True)
-                # Read SKILL.md from package data
-                skill_md = importlib.resources.files("agent_reach").joinpath("skill", "SKILL.md").read_text()
-                with open(os.path.join(target, "SKILL.md"), "w") as f:
-                    f.write(skill_md)
-                platform_name = "OpenClaw" if "openclaw" in skill_dir else "Claude Code" if "claude" in skill_dir else "Agent"
+            if _copy_skill_dir(target):
+                platform_name = "Agent" if ".agents" in skill_dir else "OpenClaw" if "openclaw" in skill_dir else "Claude Code"
                 print(f"Skill installed for {platform_name}: {target}")
                 installed = True
-            except Exception:
-                pass
 
     if not installed:
-        # No known skill directory found — create for OpenClaw by default
-        target = os.path.expanduser("~/.openclaw/skills/agent-reach")
-        try:
-            os.makedirs(target, exist_ok=True)
-            skill_md = importlib.resources.files("agent_reach").joinpath("skill", "SKILL.md").read_text()
-            with open(os.path.join(target, "SKILL.md"), "w") as f:
-                f.write(skill_md)
+        # No known skill directory found — create for .agents by default
+        target = os.path.expanduser("~/.agents/skills/agent-reach")
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        if _copy_skill_dir(target):
             print(f"Skill installed: {target}")
-        except Exception:
+        else:
             print("  -- Could not install agent skill (optional)")
 
 
