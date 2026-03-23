@@ -97,6 +97,13 @@ mcporter call 'xiaohongshu.publish_content(title: "标题", content: "正文", i
 
 > Requires login. Use Cookie-Editor to import cookies.
 
+> **Tip: Clean bloated output.** XHS API returns large JSON with many unused fields.
+> Pipe through the formatter to save context:
+> ```bash
+> mcporter call 'xiaohongshu.search_feeds(keyword: "query")' | agent-reach format xhs
+> ```
+> This keeps only: title, content, author, engagement counts, image URLs, and tags.
+
 ## 抖音 / Douyin (mcporter)
 
 ```bash

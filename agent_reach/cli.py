@@ -91,6 +91,18 @@ def main():
     p_uninstall.add_argument("--keep-config", action="store_true",
                              help="Remove skill files only, keep ~/.agent-reach/ config and tokens")
 
+    # ── skill ──
+    p_skill = sub.add_parser("skill", help="Manage agent skill registration")
+    p_skill_group = p_skill.add_mutually_exclusive_group(required=True)
+    p_skill_group.add_argument("--install", action="store_true",
+                               help="Install SKILL.md to agent skill directories")
+    p_skill_group.add_argument("--uninstall", action="store_true",
+                               help="Remove SKILL.md from agent skill directories")
+
+    # ── format ──
+    p_format = sub.add_parser("format", help="Clean and format platform API output")
+    p_format.add_argument("platform", choices=["xhs"], help="Platform to format (xhs)")
+
     # ── check-update ──
     sub.add_parser("check-update", help="Check for new versions and changes")
 
@@ -127,6 +139,10 @@ def main():
         _cmd_configure(args)
     elif args.command == "uninstall":
         _cmd_uninstall(args)
+    elif args.command == "skill":
+        _cmd_skill(args)
+    elif args.command == "format":
+        _cmd_format(args)
 
 
 # ── Command handlers ────────────────────────────────
@@ -313,6 +329,69 @@ def _install_skill():
             print(f"Skill installed: {target}")
         except Exception:
             print("  -- Could not install agent skill (optional)")
+
+
+def _uninstall_skill():
+    """Remove SKILL.md from all known agent skill directories."""
+    import shutil
+
+    skill_dirs = [
+        ("~/.openclaw/skills/agent-reach", "OpenClaw"),
+        ("~/.claude/skills/agent-reach", "Claude Code"),
+        ("~/.agents/skills/agent-reach", "Agent"),
+    ]
+
+    # Also check OPENCLAW_HOME
+    openclaw_home = os.environ.get("OPENCLAW_HOME")
+    if openclaw_home:
+        skill_dirs.insert(
+            0,
+            (os.path.join(openclaw_home, ".openclaw", "skills", "agent-reach"), "OpenClaw"),
+        )
+
+    removed = False
+    for skill_path_template, platform_name in skill_dirs:
+        skill_path = os.path.expanduser(skill_path_template)
+        if os.path.isdir(skill_path):
+            try:
+                shutil.rmtree(skill_path)
+                print(f"  Removed {platform_name} skill: {skill_path}")
+                removed = True
+            except Exception as e:
+                print(f"  Could not remove {skill_path}: {e}")
+
+    if not removed:
+        print("  No skill installations found.")
+
+
+def _cmd_skill(args):
+    """Manage agent skill registration."""
+    if args.install:
+        _install_skill()
+    elif args.uninstall:
+        _uninstall_skill()
+
+
+def _cmd_format(args):
+    """Clean and format platform API output from stdin."""
+    import json
+    import sys
+
+    if args.platform == "xhs":
+        from agent_reach.channels.xiaohongshu import format_xhs_result
+
+        raw = sys.stdin.read().strip()
+        if not raw:
+            print("Error: no input on stdin", file=sys.stderr)
+            sys.exit(1)
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError as e:
+            print(f"Error: invalid JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+
+        cleaned = format_xhs_result(data)
+        print(json.dumps(cleaned, ensure_ascii=False, indent=2))
 
 
 def _install_system_deps():
@@ -1300,6 +1379,9 @@ def _cmd_doctor():
     config = Config()
     results = check_all(config)
     rprint(format_report(results))
+
+    # Auto-install skill if not already present (fixes #154)
+    _install_skill()
 
 
 def _cmd_setup():
