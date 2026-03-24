@@ -25,15 +25,12 @@ class TavilySearchChannel(Channel):
                 "  2. 设置环境变量：export TAVILY_API_KEY=tvly-xxx"
             )
         try:
-            from tavily import TavilyClient
-            client = TavilyClient(api_key=api_key)
-            # Lightweight connectivity check
-            client.search(query="test", max_results=1, search_depth="basic")
-            return "ok", "Tavily 全网搜索可用"
+            from tavily import TavilyClient  # noqa: F401
         except ImportError:
             return "off", (
                 "tavily-python 未安装。运行：\n"
                 "  pip install agent-reach[tavily]"
             )
-        except Exception as e:
-            return "off", f"Tavily 连接异常：{e}"
+        if not api_key.startswith("tvly-"):
+            return "warn", "TAVILY_API_KEY 格式异常（应以 tvly- 开头）"
+        return "ok", "Tavily 全网搜索可用"
