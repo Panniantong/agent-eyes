@@ -327,8 +327,9 @@ def _install_skill():
             with open(os.path.join(target, "SKILL.md"), "w") as f:
                 f.write(skill_md)
             print(f"Skill installed: {target}")
-        except Exception:
-            print("  -- Could not install agent skill (optional)")
+        except Exception as e:
+            print(f"  -- Could not install agent skill (optional): {e}")
+            print("  -- Tip: install OpenClaw, Claude Code, or create ~/.agents/skills/ manually")
 
 
 def _uninstall_skill():
