@@ -303,14 +303,23 @@ def _install_skill():
         skill_dirs.insert(0, os.path.join(openclaw_home, ".openclaw", "skills"))
 
     installed = False
+    from pathlib import Path
+
+    def _load_skill_md() -> str:
+        try:
+            return importlib.resources.files("agent_reach").joinpath("skill", "SKILL.md").read_text()
+        except Exception:
+            base = Path(__file__).resolve().parent
+            return (base / "skill" / "SKILL.md").read_text(encoding="utf-8")
+
     for skill_dir in skill_dirs:
         if os.path.isdir(skill_dir):
             target = os.path.join(skill_dir, "agent-reach")
             try:
                 os.makedirs(target, exist_ok=True)
                 # Read SKILL.md from package data
-                skill_md = importlib.resources.files("agent_reach").joinpath("skill", "SKILL.md").read_text()
-                with open(os.path.join(target, "SKILL.md"), "w") as f:
+                skill_md = _load_skill_md()
+                with open(os.path.join(target, "SKILL.md"), "w", encoding="utf-8") as f:
                     f.write(skill_md)
                 platform_name = "OpenClaw" if "openclaw" in skill_dir else "Claude Code" if "claude" in skill_dir else "Agent"
                 print(f"Skill installed for {platform_name}: {target}")

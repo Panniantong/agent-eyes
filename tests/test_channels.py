@@ -29,6 +29,17 @@ class TestChannelRegistry:
         assert "twitter" in names
         assert "v2ex" in names
 
+    def test_web_channel_can_handle_and_check(self):
+        from agent_reach.channels.web import WebChannel
+
+        ch = WebChannel()
+        assert ch.can_handle("https://example.com")
+        assert ch.can_handle("example.com")
+
+        status, message = ch.check()
+        assert status == "ok"
+        assert "Jina Reader" in message
+
 
 class TestV2EXChannel:
     def test_can_handle_v2ex_urls(self):

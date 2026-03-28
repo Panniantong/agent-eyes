@@ -21,9 +21,15 @@ cd Agent-Reach
 # Install in development mode
 pip install -e ".[dev]"
 
+# Run tests
+pytest -q
+
 # Install pre-commit hooks (optional but recommended)
 pre-commit install
 ```
+
+> 💡 If tests show `ModuleNotFoundError: No module named 'agent_reach'`, rerun `pip install -e .` before retrying.
+
 
 ## Code Style
 
