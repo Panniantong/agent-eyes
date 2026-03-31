@@ -46,9 +46,7 @@ All Agent Reach files go in dedicated directories — **never in the agent works
 
 **Why?** If you clone repos or create files in the workspace, it pollutes the user's project directory and can break their agent over time. Keep the workspace clean.
 
-### Step 1: Install
-
-**Default (fully automatic):**
+### Step 1: Install the basics
 
 ```bash
 # 推荐：pipx（最省心）
@@ -63,40 +61,53 @@ pip install https://github.com/Panniantong/agent-reach/archive/main.zip
 agent-reach install --env=auto
 ```
 
-This auto-installs system dependencies (gh CLI, Node.js, mcporter, bird), configures Exa search, detects environment, and tests all channels.
+This installs core infrastructure (gh CLI, Node.js, mcporter, Exa search, yt-dlp config) and activates these zero-config channels:
+
+- Web (Jina Reader), YouTube, GitHub, RSS, Exa Search, V2EX, Bilibili (basic)
 
 > 💡 **macOS / Homebrew Python 提示 `externally-managed-environment`？**
 > 这是 PEP 668 保护，不是 Agent Reach 本身的问题。优先用 `pipx install ...`，或先创建 `venv` 再安装。
 
-
-**Safe mode (no automatic system changes):**
-
-If the user asked for safe mode, or you're on a production machine:
+**Safe mode / Dry run:**
 
 ```bash
-pip install https://github.com/Panniantong/agent-reach/archive/main.zip
-agent-reach install --env=auto --safe
+agent-reach install --env=auto --safe      # Check only, no auto-install
+agent-reach install --env=auto --dry-run   # Preview what would be done
 ```
 
-Safe mode checks what's installed and tells you what's missing, but doesn't auto-install system packages. You can then install each dependency manually.
+### Step 2: Ask the user which optional channels they want
 
-**Dry run (preview only):**
+After installing the basics, **ask the user** which additional channels they need. Present this list:
+
+> 基础渠道装好了！你现在可以让我搜网页、看 YouTube、读 GitHub 等。
+>
+> 还有这些可选渠道，你需要哪些？
+>
+> - 🐦 **Twitter/X** — 搜推文、看时间线（需要登录 Cookie）
+> - 📰 **微博** — 热搜、搜索、用户动态
+> - 💬 **微信公众号** — 搜索和阅读公众号文章
+> - 📈 **雪球** — 股票行情、热门帖子（需要登录 Cookie）
+> - 🎙️ **小宇宙播客** — 音频转文字（需要免费 Groq Key）
+> - 📕 **小红书** — 阅读、搜索、发帖（需要登录）
+> - 📖 **Reddit** — 搜索和阅读帖子
+> - 📺 **B站完整版** — 热门、排行、搜索
+> - 🎵 **抖音** — 视频解析
+> - 💼 **LinkedIn** — Profile、职位搜索
+>
+> 告诉我你要哪些，比如"帮我装微博和 Twitter"。或者说"全部装"。
+
+Based on the user's choice, run:
 
 ```bash
-agent-reach install --env=auto --dry-run
+agent-reach install --env=auto --channels=twitter,weibo   # Example: user chose Twitter + Weibo
+agent-reach install --env=auto --channels=all              # User wants everything
 ```
 
-Shows what would be done without making any changes.
+Supported channel names: `twitter`, `weibo`, `wechat`, `xiaoyuzhou`, `xueqiu`, `xiaohongshu`, `reddit`, `bilibili`, `douyin`, `linkedin`, `all`
 
-**Read the output carefully**, then run:
+### Step 3: Fix what's broken
 
-```bash
-agent-reach doctor
-```
-
-### Step 2: Fix what's broken
-
-`agent-reach doctor` shows you which channels are active and which aren't.
+Run `agent-reach doctor` and check the output.
 
 Try to get as many channels to ✅ as possible. If something failed during install or shows as ❌/⚠️ in doctor, diagnose the problem and try to fix it — but stay within the boundaries above. If a fix requires elevated permissions or system changes, ask the user first.
 
@@ -358,7 +369,9 @@ If the user wants a different agent to handle it, let them choose.
 
 | Command | What it does |
 |---------|-------------|
-| `agent-reach install --env=auto` | Full auto-setup (installs deps + configures) |
+| `agent-reach install --env=auto` | Install core channels (lightweight, zero-config) |
+| `agent-reach install --env=auto --channels=twitter,weibo` | Install core + optional channels |
+| `agent-reach install --env=auto --channels=all` | Install everything |
 | `agent-reach install --env=auto --safe` | Safe setup (no auto system changes) |
 | `agent-reach install --env=auto --dry-run` | Preview what would be done |
 | `agent-reach doctor` | Show channel status |
