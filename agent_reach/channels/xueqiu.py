@@ -79,14 +79,22 @@ def _load_cookies_from_browser() -> bool:
     a local browser keep working.
     """
     try:
-        import browser_cookie3
-
-        cookies = list(browser_cookie3.chrome(domain_name=".xueqiu.com"))
-        if not any(c.name == "xq_a_token" for c in cookies):
-            return False
-        for c in cookies:
-            _cookie_jar.set_cookie(c)
-        return True
+        try:
+            import rookiepy
+            cookies = rookiepy.chrome([".xueqiu.com"])
+            if not any(c.get("name") == "xq_a_token" for c in cookies):
+                return False
+            for c in cookies:
+                _cookie_jar.set(c["name"], c["value"], domain=c.get("domain", ".xueqiu.com"))
+            return True
+        except ImportError:
+            import browser_cookie3
+            cookies = list(browser_cookie3.chrome(domain_name=".xueqiu.com"))
+            if not any(c.name == "xq_a_token" for c in cookies):
+                return False
+            for c in cookies:
+                _cookie_jar.set_cookie(c)
+            return True
     except Exception:
         return False
 
@@ -96,7 +104,7 @@ def _ensure_cookies() -> None:
 
     Priority order:
     1. Saved cookie string in ~/.agent-reach/config.yaml  (set by configure --from-browser)
-    2. Live Chrome browser cookies via browser_cookie3     (if installed + logged in)
+    2. Live Chrome browser cookies via rookiepy/browser_cookie3 (if installed + logged in)
     3. Homepage visit fallback                             (only yields anti-DDoS acw_tc,
                                                            not enough for stock APIs)
     """
