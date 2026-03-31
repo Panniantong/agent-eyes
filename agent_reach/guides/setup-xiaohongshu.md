@@ -45,12 +45,17 @@ agent-reach doctor
 
 ## 需要用户手动做的步骤
 
-如果 doctor 显示"MCP 已连接但未登录"：
+如果 doctor 显示"MCP 已连接但未登录"，需要导入 cookies：
 
-> 小红书需要登录一次（之后会记住你的登录状态）。
+> **推荐方式：Cookie-Editor 浏览器导出（最可靠）**
 >
-> 打开 http://localhost:18060 ，用手机小红书 App 扫描二维码登录。
-> 登录后 cookie 会自动保存在 Docker 容器内，大约 1-3 个月有效。
+> 1. 在 Chrome 中安装 [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) 扩展
+> 2. 浏览器登录 xiaohongshu.com
+> 3. 点击 Cookie-Editor 图标 → Export → Header String
+> 4. 把导出的字符串发给 Agent，运行：`agent-reach configure xhs-cookies "导出的cookie字符串"`
+>
+> **注意**：`http://localhost:18060` 根路径可能返回 404，这是正常的——MCP 服务在 `/mcp` 路径。
+> 不要依赖 QR 扫码登录，Docker 容器内的 QR 登录页面不一定可用，且 cookies 不会自动共享到 MCP 服务。
 
 ## 常见问题
 

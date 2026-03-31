@@ -171,7 +171,7 @@ mcporter config add xiaohongshu http://localhost:18060/mcp
 > agent-reach configure xhs-cookies "key1=val1; key2=val2; ..."
 > ```
 >
-> **备选：** 本地电脑如果有浏览器，也可以打开 http://localhost:18060 扫码登录。
+> **注意：** `http://localhost:18060` 根路径可能返回 404，MCP 服务在 `/mcp` 路径。推荐使用 Cookie-Editor 导出方式，不要依赖 Docker 容器内的 QR 扫码登录。
 
 **微博 / Weibo (mcp-server-weibo):**
 > "微博已默认安装，装好即用。可搜索微博内容、查看热搜、获取用户动态和评论。"
