@@ -1,0 +1,27 @@
+{
+  "name": "agent-reach",
+  "version": "0.1.0",
+  "description": "Read and search Twitter, Reddit, YouTube, GitHub and more from Codex",
+  "author": {
+    "name": "Panniantong",
+    "url": "https://github.com/Panniantong/Agent-Reach"
+  },
+  "homepage": "https://github.com/Panniantong/Agent-Reach",
+  "repository": "https://github.com/Panniantong/Agent-Reach",
+  "keywords": [
+    "mcp",
+    "agent",
+    "search",
+    "social",
+    "codex"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Agent Reach",
+    "shortDescription": "Search the internet from Codex - Twitter, Reddit, YouTube, GitHub",
+    "longDescription": "Give your AI agent eyes to see the entire internet. Read and search Twitter, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu via one CLI.",
+    "category": "Productivity",
+    "websiteURL": "https://github.com/Panniantong/Agent-Reach"
+  },
+  "skills": "./skills/"
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "agent-reach": {
+      "command": "agent-reach",
+      "args": []
+    }
+  }
+}
