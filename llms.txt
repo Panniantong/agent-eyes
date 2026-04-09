@@ -1,32 +1,27 @@
 # Agent Reach
 
-> Give your AI agent eyes to see the entire internet. A unified CLI tool that lets AI agents read and search across 12+ platforms — Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Instagram, LinkedIn, Boss直聘, RSS, and any web page. One install, zero API fees.
+Agent Reach is a Windows-first integration layer for research tooling on Codex-style agents.
 
-## Quick Start
+## Quick start
 
-- [Installation Guide](https://github.com/Panniantong/Agent-Reach/blob/main/docs/install.md): Step-by-step setup instructions for AI agents
-- [README (中文)](https://github.com/Panniantong/Agent-Reach/blob/main/README.md): Full documentation in Chinese
-- [README (English)](https://github.com/Panniantong/Agent-Reach/blob/main/docs/README_en.md): Full documentation in English
+- Install guide: https://github.com/Panniantong/Agent-Reach/blob/main/docs/install.md
+- Python SDK: https://github.com/Panniantong/Agent-Reach/blob/main/docs/python-sdk.md
+- Repository README: https://github.com/Panniantong/Agent-Reach/blob/main/README.md
+- Skill guide: https://github.com/Panniantong/Agent-Reach/blob/main/agent_reach/skill/SKILL.md
 
-## Core Commands
+## Stable external surfaces
 
-- [CLI Usage](https://github.com/Panniantong/Agent-Reach/blob/main/docs/install.md): `agent-reach read <url>` reads any URL, `agent-reach search-twitter "query"` searches Twitter, etc.
+- `agent-reach channels --json`
+- `agent-reach doctor --json`
+- `agent-reach doctor --json --probe`
+- `agent-reach collect --channel <name> --operation <op> --input <value> --json`
+- `agent-reach install --dry-run --json`
+- `agent-reach export-integration --client codex --format json`
+- `agent-reach check-update --json`
+- Python: `from agent_reach import AgentReachClient`
 
-## Key Features
+## Current scope
 
-- Read any URL: tweets, Reddit posts, YouTube videos (transcripts), GitHub repos, articles, XiaoHongShu notes, Bilibili videos, RSS feeds
-- Search across platforms: Twitter/X, Reddit, GitHub, YouTube, Bilibili, XiaoHongShu, Instagram, LinkedIn, Boss直聘, Web (via Exa)
-- Self-diagnosis: `agent-reach doctor` checks what works and what needs setup
-- Auto-installs dependencies: `agent-reach install --env=auto`
-- Cookie-based auth for platforms that require login (Twitter, XiaoHongShu, Instagram)
-- Proxy support for platforms that block server IPs (Reddit, Bilibili)
-- Zero API fees: all backends are free and open-source (bird CLI, yt-dlp, Jina Reader, instaloader, etc.)
-
-## Troubleshooting
-
-- [Troubleshooting Guide](https://github.com/Panniantong/Agent-Reach/blob/main/docs/troubleshooting.md): Common issues and solutions
-
-## Optional
-
-- [SKILL.md](https://github.com/Panniantong/Agent-Reach/blob/main/agent_reach/skill/SKILL.md): Integration guide for AI agent frameworks (OpenClaw, Claude Code, etc.)
-- [PyPI Package](https://pypi.org/project/agent-reach/): `pip install agent-reach`
+- Supported channels: `web`, `exa_search`, `github`, `youtube`, `rss`, optional `twitter`
+- Purpose: bootstrapper, channel registry, readiness diagnostics, thin read-only collection helper
+- Non-goal in this phase: full workflow orchestration such as scheduling, ranking, summarization, or publishing

@@ -3,15 +3,13 @@
 Use Jina Reader for readable markdown from normal pages.
 
 ```powershell
-curl.exe -L "https://r.jina.ai/http://example.com"
+agent-reach collect --channel web --operation read --input "https://example.com" --json
 ```
 
 Use RSS feeds when the source exposes one:
 
-```python
-import feedparser
-feed = feedparser.parse("https://example.com/feed.xml")
-print(feed.entries[0].title)
+```powershell
+agent-reach collect --channel rss --operation read --input "https://example.com/feed.xml" --limit 3 --json
 ```
 
 Prefer `web` over bespoke scraping for documentation, release notes, blog posts, note, Qiita, and Zenn.

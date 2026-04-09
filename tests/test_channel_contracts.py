@@ -12,10 +12,20 @@ def test_channel_registry_contract():
     assert len(names) == len(set(names))
 
     for channel in channels:
-        assert isinstance(channel.name, str) and channel.name
-        assert isinstance(channel.description, str) and channel.description
-        assert isinstance(channel.backends, list)
-        assert channel.tier in {0, 1, 2}
+        contract = channel.to_contract()
+        assert isinstance(contract["name"], str) and contract["name"]
+        assert isinstance(contract["description"], str) and contract["description"]
+        assert isinstance(contract["backends"], list)
+        assert contract["tier"] in {0, 1, 2}
+        assert contract["auth_kind"] in {"none", "token", "cookie", "runtime"}
+        assert contract["entrypoint_kind"] in {"cli", "mcp", "http_reader", "python"}
+        assert isinstance(contract["operations"], list)
+        assert contract["operations"]
+        assert isinstance(contract["required_commands"], list)
+        assert isinstance(contract["host_patterns"], list)
+        assert isinstance(contract["example_invocations"], list)
+        assert isinstance(contract["supports_probe"], bool)
+        assert isinstance(contract["install_hints"], list)
 
 
 def test_channel_check_contract_with_minimal_runtime(monkeypatch, tmp_path):

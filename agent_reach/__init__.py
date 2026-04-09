@@ -4,6 +4,6 @@
 __version__ = "1.4.0"
 __author__ = "Neo Reid"
 
-from agent_reach.core import AgentReach
+from agent_reach.core import AgentReach, AgentReachClient
 
-__all__ = ["AgentReach"]
+__all__ = ["AgentReach", "AgentReachClient"]

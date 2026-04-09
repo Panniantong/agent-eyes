@@ -31,6 +31,18 @@ class TestConfig:
         monkeypatch.setenv("TEST_ENV_KEY", "env_value")
         assert tmp_config.get("test_env_key") == "env_value"
 
+    def test_get_uses_known_env_aliases(self, tmp_config, monkeypatch):
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.delenv("TWITTER_AUTH_TOKEN", raising=False)
+        monkeypatch.delenv("TWITTER_CT0", raising=False)
+        monkeypatch.setenv("GH_TOKEN", "gh-token")
+        monkeypatch.setenv("AUTH_TOKEN", "auth-token")
+        monkeypatch.setenv("CT0", "ct0-token")
+
+        assert tmp_config.get("github_token") == "gh-token"
+        assert tmp_config.get("twitter_auth_token") == "auth-token"
+        assert tmp_config.get("twitter_ct0") == "ct0-token"
+
     def test_config_file_priority_over_env(self, tmp_config, monkeypatch):
         monkeypatch.setenv("MY_KEY", "from_env")
         tmp_config.set("my_key", "from_config")
@@ -56,7 +68,13 @@ class TestConfig:
         tmp_config.set("github_token", "test-key")
         assert tmp_config.is_configured("github_token")
 
-    def test_get_configured_features(self, tmp_config):
+    def test_get_configured_features(self, tmp_config, monkeypatch):
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.delenv("GH_TOKEN", raising=False)
+        monkeypatch.delenv("TWITTER_AUTH_TOKEN", raising=False)
+        monkeypatch.delenv("TWITTER_CT0", raising=False)
+        monkeypatch.delenv("AUTH_TOKEN", raising=False)
+        monkeypatch.delenv("CT0", raising=False)
         features = tmp_config.get_configured_features()
         assert isinstance(features, dict)
         assert "github_token" in features

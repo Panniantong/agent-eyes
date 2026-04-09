@@ -1,39 +1,35 @@
 # Agent Reach
 
-Windows-first research tooling for Codex and similar CLI agents.
+Windows-first research integration tooling with a stable Python SDK and JSON CLI for downstream projects.
 
-This fork narrows the original project on purpose. It focuses on a small set of channels that are practical on a native Windows machine:
+Agent Reach is intentionally narrow. It is designed to help other tools collect information safely and predictably, not to own scheduling, ranking, summarization, or posting. In practice this fork does four jobs:
 
-- Web pages via Jina Reader
-- Cross-web search via Exa MCP
-- GitHub via `gh`
-- YouTube via `yt-dlp`
-- RSS and Atom feeds via `feedparser`
-- Optional Twitter/X via `twitter-cli`
+- bootstrap the Windows-friendly toolchain needed for research workflows
+- expose a stable registry of supported channels
+- provide readiness diagnostics and integration exports
+- offer a thin read-only collection surface for external apps, bots, and CI jobs
 
-Platforms that need extra regional tooling or are outside this fork's scope are not surfaced in the installer, doctor output, or skill routing.
+## Supported channels
 
-## Why this fork exists
-
-The upstream project is broad and platform-rich. This fork optimizes for:
-
-- Native Windows setup without `apt`, `brew`, `bash`, or WSL
-- Codex skill installation under `CODEX_HOME/skills` or `~/.codex/skills`
-- A smaller, predictable public surface for research-heavy workflows
+- `web` via Jina Reader
+- `exa_search` via Exa MCP and `mcporter`
+- `github` via `gh`
+- `youtube` via `yt-dlp`
+- `rss` via `feedparser`
+- optional `twitter` via `twitter-cli`
 
 ## Install
-
-From a local checkout:
 
 ```powershell
 uv tool install .
 agent-reach install --env=auto
 ```
 
-Safe mode:
+Preview the Windows commands without changing anything:
 
 ```powershell
 agent-reach install --env=auto --safe
+agent-reach install --env=auto --dry-run --json
 ```
 
 Optional Twitter/X support:
@@ -43,44 +39,69 @@ agent-reach install --env=auto --channels=twitter
 agent-reach configure twitter-cookies "auth_token=...; ct0=..."
 ```
 
-Browser import for Twitter/X:
+## Public surfaces
+
+Python SDK:
+
+```python
+from agent_reach import AgentReachClient
+
+client = AgentReachClient()
+result = client.github.read("openai/openai-python")
+print(result["items"][0]["title"])
+```
+
+CLI JSON:
 
 ```powershell
-agent-reach configure --from-browser chrome
+agent-reach collect --channel github --operation read --input "openai/openai-python" --json
+agent-reach collect --channel exa_search --operation search --input "latest gpt-5.4 release notes" --limit 3 --json
 ```
+
+Discovery and diagnostics:
+
+```powershell
+agent-reach channels --json
+agent-reach doctor --json
+agent-reach doctor --json --probe
+agent-reach export-integration --client codex --format json
+agent-reach check-update --json
+```
+
+These are the supported machine-readable entry points for external projects. They are designed so bots, GitHub Actions, and other codebases do not need to scrape README text or SKILL.md.
+
+## Typical downstream use
+
+- Python apps and Discord bots call `AgentReachClient`
+- GitHub Actions and other non-Python jobs call `agent-reach collect --json`
+- setup tooling calls `agent-reach channels --json`, `doctor --json`, and `export-integration`
+
+Agent Reach normalizes results into `items`, keeps the backend-native payload in `raw`, and never prompts interactively during collection.
+
+## Guides
+
+- Install guide: [docs/install.md](docs/install.md)
+- Python SDK: [docs/python-sdk.md](docs/python-sdk.md)
+- Codex integration: [docs/codex-integration.md](docs/codex-integration.md)
+- Codex compatibility: [docs/codex-compatibility.md](docs/codex-compatibility.md)
+- Troubleshooting: [docs/troubleshooting.md](docs/troubleshooting.md)
 
 ## What `install` does on Windows
 
-- Installs `gh` with `winget`
-- Installs `yt-dlp` with `winget`
-- Uses the existing `node`/`npm` install, or installs Node.js LTS with `winget`
-- Installs `mcporter` with `npm install -g mcporter`
-- Registers Exa in the user config with `mcporter --config "$HOME\\.mcporter\\mcporter.json" config add exa https://mcp.exa.ai/mcp`
-- Writes the `yt-dlp` JS runtime config for Node.js
-- Installs the bundled skill into Codex and other known agent skill roots
+- installs `gh` with `winget`
+- installs `yt-dlp` with `winget`
+- uses the existing `node`/`npm` install, or installs Node.js LTS with `winget`
+- installs `mcporter` with `npm install -g mcporter`
+- registers Exa in the user config with `mcporter --config "$HOME\\.mcporter\\mcporter.json" config add exa https://mcp.exa.ai/mcp`
+- writes the `yt-dlp` JS runtime config for Node.js
+- installs the bundled skill into `CODEX_HOME/skills`, `~/.codex/skills`, or `~/.agents/skills`
 
-## Health Check
+## Integration artifacts
 
-```powershell
-agent-reach doctor
-```
+This repo ships integration-oriented artifacts directly:
 
-Typical commands after install:
+- `.codex-plugin/plugin.json`
+- `.mcp.json`
+- `agent_reach/skill/`
 
-```powershell
-mcporter --config "$HOME\.mcporter\mcporter.json" call "exa.web_search_exa(query: \"latest agent frameworks\", numResults: 5)"
-curl.exe -L "https://r.jina.ai/http://example.com"
-gh search repos "agent reach" --limit 10
-yt-dlp --dump-single-json "https://www.youtube.com/watch?v=VIDEO_ID"
-twitter search "gpt-5.4" --limit 10
-```
-
-GitHub authentication can also be stored explicitly:
-
-```powershell
-agent-reach configure github-token YOUR_TOKEN
-```
-
-## Publishing your fork
-
-This local implementation keeps the package name `agent-reach` for compatibility, but does not assume a published GitHub namespace yet. After you publish your fork, update the repository URLs and install snippets if you want remote installs from ZIP or Git.
+These artifacts exist to make downstream composition easier. Scheduling, message formatting, and publishing remain responsibilities of the host project.

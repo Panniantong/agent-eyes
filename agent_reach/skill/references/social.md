@@ -23,7 +23,8 @@ agent-reach configure --from-browser chrome
 Basic usage:
 
 ```powershell
+agent-reach collect --channel twitter --operation search --input "gpt-5.4" --limit 10 --json
 twitter status
-twitter search "gpt-5.4" --limit 10
+twitter search "gpt-5.4" -n 10
 twitter tweet "https://x.com/openai/status/123"
 ```

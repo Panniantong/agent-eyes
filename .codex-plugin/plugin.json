@@ -1,0 +1,38 @@
+{
+  "name": "agent-reach",
+  "version": "1.4.0",
+  "description": "Windows-first research integration substrate for Codex and similar agents.",
+  "author": {
+    "name": "Neo Reid"
+  },
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "windows",
+    "research",
+    "mcp",
+    "diagnostics",
+    "integration"
+  ],
+  "skills": "../agent_reach/skill",
+  "mcpServers": "../.mcp.json",
+  "interface": {
+    "displayName": "Agent Reach",
+    "shortDescription": "Windows/Codex research integration substrate",
+    "longDescription": "Bootstraps, documents, diagnoses, and exposes thin read-only collection for downstream Codex workflows on Windows.",
+    "developerName": "Neo Reid",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Readiness",
+      "Registry",
+      "Collection"
+    ],
+    "defaultPrompt": [
+      "Show me which research channels are ready on this Windows machine.",
+      "Export the Codex integration settings for Agent Reach.",
+      "List the supported channels and their setup requirements.",
+      "Run a read-only collection for GitHub, web, RSS, Exa, YouTube, or Twitter/X."
+    ],
+    "brandColor": "#0F766E"
+  }
+}

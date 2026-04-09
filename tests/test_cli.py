@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 """Tests for the Windows/Codex CLI surface."""
 
+import json
 from unittest.mock import patch
-
-import pytest
 
 import agent_reach.cli as cli
 from agent_reach.cli import main
@@ -11,15 +10,11 @@ from agent_reach.cli import main
 
 class TestCLI:
     def test_version(self, capsys):
-        with pytest.raises(SystemExit) as exc_info:
-            main(["version"])
-        assert exc_info.value.code == 0
+        assert main(["version"]) == 0
         assert "Agent Reach v" in capsys.readouterr().out
 
     def test_no_command_shows_help(self):
-        with pytest.raises(SystemExit) as exc_info:
-            main([])
-        assert exc_info.value.code == 0
+        assert main([]) == 0
 
     def test_parse_twitter_cookie_input_separate_values(self):
         auth_token, ct0 = cli._parse_twitter_cookie_input("token123 ct0abc")
@@ -37,7 +32,7 @@ class TestCLI:
         monkeypatch.setattr("shutil.which", lambda _name: None)
         monkeypatch.setattr("agent_reach.cli.find_command", lambda _name: None)
         with patch("agent_reach.cli.render_ytdlp_fix_command", return_value="FIX-YTDLP"):
-            main(["install", "--safe", "--channels=twitter"])
+            assert main(["install", "--safe", "--channels=twitter"]) == 0
         output = capsys.readouterr().out
         assert "GitHub.cli" in output
         assert "yt-dlp.yt-dlp" in output
@@ -45,6 +40,17 @@ class TestCLI:
         assert ".mcporter\\mcporter.json" in output
         assert "uv tool install twitter-cli" in output
         assert "FIX-YTDLP" in output
+
+    def test_install_dry_run_json(self, capsys, monkeypatch):
+        monkeypatch.setattr("shutil.which", lambda _name: None)
+        monkeypatch.setattr("agent_reach.cli.find_command", lambda _name: None)
+        with patch("agent_reach.cli.render_ytdlp_fix_command", return_value="FIX-YTDLP"):
+            assert main(["install", "--dry-run", "--json", "--channels=twitter"]) == 0
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["command"] == "install"
+        assert payload["mode"] == "dry-run"
+        assert payload["optional_channels_requested"] == ["twitter"]
+        assert "FIX-YTDLP" in payload["commands"]
 
     def test_install_parses_all_as_twitter(self, monkeypatch):
         calls = []
@@ -66,13 +72,180 @@ class TestCLI:
         monkeypatch.setattr(
             "agent_reach.doctor.check_all",
             lambda _config: {
-                "web": {"status": "ok", "name": "Any web page", "message": "ok", "tier": 0, "backends": []}
+                "web": {
+                    "status": "ok",
+                    "name": "web",
+                    "description": "Any web page",
+                    "message": "ok",
+                    "tier": 0,
+                    "backends": [],
+                }
             },
         )
         monkeypatch.setattr("agent_reach.doctor.format_report", lambda _results: "report")
 
-        main(["install", "--channels=all"])
+        assert main(["install", "--channels=all"]) == 0
         assert calls == ["twitter"]
+
+    def test_doctor_json(self, capsys, monkeypatch):
+        monkeypatch.setattr(
+            "agent_reach.doctor.check_all",
+            lambda _config, probe=False: {
+                "web": {
+                    "name": "web",
+                    "description": "Any web page",
+                    "status": "ok",
+                    "message": "ready",
+                    "tier": 0,
+                }
+            },
+        )
+        monkeypatch.setattr("agent_reach.doctor.doctor_exit_code", lambda _results: 0)
+        assert main(["doctor", "--json"]) == 0
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["summary"]["ready"] == 1
+        assert payload["channels"][0]["name"] == "web"
+
+    def test_collect_json_success(self, capsys, monkeypatch):
+        class _FakeClient:
+            def collect(self, channel, operation, value, limit=None):
+                return {
+                    "ok": True,
+                    "channel": channel,
+                    "operation": operation,
+                    "items": [{"id": "1", "title": "Example", "url": value}],
+                    "raw": {"limit": limit},
+                    "meta": {"count": 1, "limit": limit},
+                    "error": None,
+                }
+
+        monkeypatch.setattr("agent_reach.cli.AgentReachClient", _FakeClient)
+
+        assert (
+            main(
+                [
+                    "collect",
+                    "--channel",
+                    "github",
+                    "--operation",
+                    "read",
+                    "--input",
+                    "openai/openai-python",
+                    "--json",
+                ]
+            )
+            == 0
+        )
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["ok"] is True
+        assert payload["channel"] == "github"
+        assert payload["items"][0]["url"] == "openai/openai-python"
+
+    def test_collect_unknown_channel_returns_exit_2(self, capsys, monkeypatch):
+        class _FakeClient:
+            def collect(self, channel, operation, value, limit=None):
+                return {
+                    "ok": False,
+                    "channel": channel,
+                    "operation": operation,
+                    "items": [],
+                    "raw": None,
+                    "meta": {"input": value},
+                    "error": {
+                        "code": "unknown_channel",
+                        "message": "Unknown channel",
+                        "details": {},
+                    },
+                }
+
+        monkeypatch.setattr("agent_reach.cli.AgentReachClient", _FakeClient)
+
+        assert (
+            main(
+                [
+                    "collect",
+                    "--channel",
+                    "nope",
+                    "--operation",
+                    "read",
+                    "--input",
+                    "value",
+                ]
+            )
+            == 2
+        )
+        output = capsys.readouterr().out
+        assert "unknown_channel" in output
+
+    def test_collect_read_with_limit_stays_json_safe(self, capsys, monkeypatch):
+        class _FakeClient:
+            def collect(self, channel, operation, value, limit=None):
+                return {
+                    "ok": True,
+                    "channel": channel,
+                    "operation": operation,
+                    "items": [{"id": "1", "title": "Example", "url": value}],
+                    "raw": None,
+                    "meta": {"count": 1, "limit": limit},
+                    "error": None,
+                }
+
+        monkeypatch.setattr("agent_reach.cli.AgentReachClient", _FakeClient)
+
+        assert (
+            main(
+                [
+                    "collect",
+                    "--channel",
+                    "web",
+                    "--operation",
+                    "read",
+                    "--input",
+                    "https://example.com",
+                    "--limit",
+                    "1",
+                    "--json",
+                ]
+            )
+            == 0
+        )
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["meta"]["limit"] == 1
+
+    def test_parser_does_not_expose_watch_command(self):
+        parser = cli._build_parser()
+        help_text = parser.format_help()
+        assert "watch" not in help_text
+
+    def test_channels_json(self, capsys):
+        assert main(["channels", "github", "--json"]) == 0
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["channel"]["name"] == "github"
+        assert payload["channel"]["entrypoint_kind"] == "cli"
+
+    def test_export_integration_json(self, capsys):
+        assert main(["export-integration", "--client", "codex", "--format", "json"]) == 0
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["client"] == "codex"
+        assert payload["mcp_snippet"]["mcpServers"]["exa"]["url"] == "https://mcp.exa.ai/mcp"
+
+    def test_check_update_json(self, capsys, monkeypatch):
+        monkeypatch.setattr(
+            cli,
+            "_build_update_payload",
+            lambda: {
+                "schema_version": "2026-04-10",
+                "generated_at": "2026-04-10T00:00:00Z",
+                "command": "check-update",
+                "current_version": "1.4.0",
+                "upstream_repo": "Panniantong/Agent-Reach",
+                "status": "up_to_date",
+                "latest_version": "1.4.0",
+            },
+        )
+        assert main(["check-update", "--json"]) == 0
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["status"] == "up_to_date"
 
 
 class TestCheckUpdateRetry:

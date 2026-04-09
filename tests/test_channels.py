@@ -62,6 +62,17 @@ def test_github_warns_when_gh_missing(monkeypatch):
     assert "GitHub.cli" in message
 
 
+def test_github_reports_ok_when_env_token_exists(monkeypatch, tmp_path):
+    monkeypatch.setenv("GH_TOKEN", "token-from-env")
+    monkeypatch.setattr("agent_reach.channels.github.find_command", lambda _cmd: "C:/gh.exe")
+    monkeypatch.setattr("agent_reach.channels.github.Path.home", lambda: tmp_path)
+
+    status, message = GitHubChannel().check()
+
+    assert status == "ok"
+    assert "Ready for repo view" in message
+
+
 def test_exa_search_uses_user_scoped_mcporter_config(monkeypatch, tmp_path):
     captured = {}
 

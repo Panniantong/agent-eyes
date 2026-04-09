@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -14,6 +15,9 @@ from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
 from agent_reach import __version__
+from agent_reach.client import AgentReachClient
+from agent_reach.results import CollectionResult
+from agent_reach.schemas import SCHEMA_VERSION, utc_timestamp
 from agent_reach.utils.commands import ensure_command_on_path, find_command
 from agent_reach.utils.paths import (
     get_mcporter_config_path,
@@ -55,6 +59,12 @@ def _configure_logging(verbose: bool = False) -> None:
         logger.add(sys.stderr, level="INFO")
 
 
+def _print_json(payload: object) -> None:
+    """Render a stable JSON payload."""
+
+    print(json.dumps(payload, indent=2, ensure_ascii=False))
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="agent-reach",
@@ -86,6 +96,11 @@ def _build_parser() -> argparse.ArgumentParser:
         default="",
         help="Comma-separated optional channels to install (twitter,all)",
     )
+    p_install.add_argument(
+        "--json",
+        action="store_true",
+        help="Print a machine-readable install plan. Requires --dry-run or --safe",
+    )
 
     p_configure = sub.add_parser("configure", help="Save credentials or import them from a browser")
     p_configure.add_argument(
@@ -102,7 +117,36 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Import Twitter cookies from a local browser",
     )
 
-    sub.add_parser("doctor", help="Check supported channel availability")
+    p_doctor = sub.add_parser("doctor", help="Check supported channel availability")
+    p_doctor.add_argument("--json", action="store_true", help="Print machine-readable diagnostics")
+    p_doctor.add_argument(
+        "--probe",
+        action="store_true",
+        help="Run lightweight live probes after readiness checks",
+    )
+
+    p_collect = sub.add_parser("collect", help="Run a read-only collection operation")
+    p_collect.add_argument("--channel", required=True, help="Stable channel name")
+    p_collect.add_argument("--operation", required=True, help="Supported operation for the channel")
+    p_collect.add_argument("--input", required=True, help="Input value such as a URL, repo, or query")
+    p_collect.add_argument("--limit", type=int, help="Optional item limit for search/read operations")
+    p_collect.add_argument("--json", action="store_true", help="Print machine-readable collection output")
+
+    p_channels = sub.add_parser("channels", help="Show the stable channel registry")
+    p_channels.add_argument("name", nargs="?", help="Optional stable channel name to inspect")
+    p_channels.add_argument("--json", action="store_true", help="Print machine-readable channel data")
+
+    p_export = sub.add_parser(
+        "export-integration",
+        help="Export non-mutating integration data for downstream clients",
+    )
+    p_export.add_argument("--client", choices=["codex"], required=True, help="Target client")
+    p_export.add_argument(
+        "--format",
+        choices=["text", "json", "powershell"],
+        default="text",
+        help="Output format for the integration export",
+    )
 
     p_uninstall = sub.add_parser("uninstall", help="Remove local Agent Reach state and skill files")
     p_uninstall.add_argument("--dry-run", action="store_true", help="Preview what would be removed")
@@ -117,13 +161,14 @@ def _build_parser() -> argparse.ArgumentParser:
     skill_group.add_argument("--install", action="store_true", help="Install the bundled skill")
     skill_group.add_argument("--uninstall", action="store_true", help="Remove the bundled skill")
 
-    sub.add_parser("check-update", help="Check the upstream project for new releases")
-    sub.add_parser("watch", help="Health check plus update check for scheduled runs")
+    p_check_update = sub.add_parser("check-update", help="Check the upstream project for new releases")
+    p_check_update.add_argument("--json", action="store_true", help="Print machine-readable update data")
+
     sub.add_parser("version", help="Show the current Agent Reach version")
     return parser
 
 
-def main(argv: Optional[Sequence[str]] = None) -> None:
+def main(argv: Optional[Sequence[str]] = None) -> int:
     _ensure_utf8_console()
 
     parser = _build_parser()
@@ -132,25 +177,30 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
 
     if not args.command:
         parser.print_help()
-        raise SystemExit(0)
+        return 0
 
     if args.command == "version":
         print(f"Agent Reach v{__version__}")
-        raise SystemExit(0)
+        return 0
     if args.command == "install":
-        _cmd_install(args)
-    elif args.command == "configure":
-        _cmd_configure(args)
-    elif args.command == "doctor":
-        _cmd_doctor()
-    elif args.command == "uninstall":
-        _cmd_uninstall(args)
-    elif args.command == "skill":
-        _cmd_skill(args)
-    elif args.command == "check-update":
-        _cmd_check_update()
-    elif args.command == "watch":
-        _cmd_watch()
+        return _cmd_install(args)
+    if args.command == "configure":
+        return _cmd_configure(args)
+    if args.command == "doctor":
+        return _cmd_doctor(args)
+    if args.command == "collect":
+        return _cmd_collect(args)
+    if args.command == "channels":
+        return _cmd_channels(args)
+    if args.command == "export-integration":
+        return _cmd_export_integration(args)
+    if args.command == "uninstall":
+        return _cmd_uninstall(args)
+    if args.command == "skill":
+        return _cmd_skill(args)
+    if args.command == "check-update":
+        return _cmd_check_update(args)
+    return 0
 
 
 def _parse_requested_channels(raw: str) -> List[str]:
@@ -167,13 +217,56 @@ def _parse_requested_channels(raw: str) -> List[str]:
     return items
 
 
-def _cmd_install(args) -> None:
+def _build_install_plan_payload(
+    env: str,
+    requested_channels: Sequence[str],
+    dry_run: bool = False,
+    safe: bool = False,
+) -> dict:
+    repo_root = Path(__file__).resolve().parent.parent
+    mode = "dry-run" if dry_run else "safe"
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": utc_timestamp(),
+        "command": "install",
+        "mode": mode,
+        "environment": env,
+        "platform": sys.platform,
+        "core_channels": list(CORE_CHANNELS),
+        "optional_channels_requested": list(requested_channels),
+        "commands": _manual_install_commands(requested_channels),
+        "skill_targets": [str(root / "agent-reach") for root in _candidate_skill_roots()],
+        "plugin_manifest": str(repo_root / ".codex-plugin" / "plugin.json"),
+        "mcp_config": str(repo_root / ".mcp.json"),
+        "safe": safe,
+        "dry_run": dry_run,
+    }
+
+
+def _cmd_install(args) -> int:
     from agent_reach.config import Config
     from agent_reach.doctor import check_all, format_report
+
+    if args.json and not (args.safe or args.dry_run):
+        raise SystemExit("install --json is only supported with --dry-run or --safe")
 
     config = Config()
     requested_channels = _parse_requested_channels(args.channels)
     env = args.env if args.env != "auto" else _detect_environment()
+
+    if args.safe or args.dry_run:
+        if args.json:
+            _print_json(
+                _build_install_plan_payload(
+                    env,
+                    requested_channels,
+                    dry_run=bool(args.dry_run),
+                    safe=bool(args.safe),
+                )
+            )
+        else:
+            _print_install_plan(requested_channels, dry_run=args.dry_run)
+        return 0
 
     print()
     print("Agent Reach Installer")
@@ -182,10 +275,6 @@ def _cmd_install(args) -> None:
     print(f"Core channels: {', '.join(CORE_CHANNELS)}")
     print(f"Optional channels requested: {', '.join(requested_channels) if requested_channels else 'none'}")
     print()
-
-    if args.safe or args.dry_run:
-        _print_install_plan(requested_channels, dry_run=args.dry_run)
-        return
 
     failures: List[str] = []
 
@@ -234,9 +323,11 @@ def _cmd_install(args) -> None:
         for item in failures:
             print(f"  - {item}")
         print("Run `agent-reach install --safe` to print the exact Windows commands again.")
-    else:
-        print()
-        print("Install complete.")
+        return 1
+
+    print()
+    print("Install complete.")
+    return 0
 
 
 def _print_install_plan(requested_channels: Sequence[str], dry_run: bool = False) -> None:
@@ -525,7 +616,6 @@ def _ensure_local_bin_wrapper(command_name: str, executable_path: str) -> None:
             encoding="utf-8",
         )
     except OSError:
-        # Best-effort only. The tool can still be used via its discovered absolute path.
         return
 
 
@@ -536,13 +626,6 @@ def _candidate_skill_roots() -> List[Path]:
         roots.append(Path(codex_home) / "skills")
     roots.append(Path.home() / ".codex" / "skills")
     roots.append(Path.home() / ".agents" / "skills")
-
-    openclaw_home = os.environ.get("OPENCLAW_HOME")
-    if openclaw_home:
-        roots.append(Path(openclaw_home) / ".openclaw" / "skills")
-
-    roots.append(Path.home() / ".openclaw" / "skills")
-    roots.append(Path.home() / ".claude" / "skills")
 
     deduped: List[Path] = []
     seen = set()
@@ -583,7 +666,7 @@ def _uninstall_skill() -> List[Path]:
     return removed
 
 
-def _cmd_skill(args) -> None:
+def _cmd_skill(args) -> int:
     if args.install:
         installed = _install_skill()
         if installed:
@@ -598,16 +681,17 @@ def _cmd_skill(args) -> None:
                 print(f"Removed skill: {path}")
         else:
             print("No skill installations found.")
+    return 0
 
 
-def _cmd_configure(args) -> None:
+def _cmd_configure(args) -> int:
     from agent_reach.config import Config
 
     config = Config()
 
     if args.from_browser:
         _configure_from_browser(args.from_browser, config)
-        return
+        return 0
 
     if not args.key:
         raise SystemExit("configure requires either a key or --from-browser")
@@ -635,7 +719,7 @@ def _cmd_configure(args) -> None:
                     print("gh auth login did not complete cleanly. You can retry with `gh auth login`.")
             except Exception as exc:
                 print(f"Could not update gh auth automatically: {exc}")
-        return
+        return 0
 
     if args.key == "twitter-cookies":
         if not value:
@@ -646,7 +730,7 @@ def _cmd_configure(args) -> None:
         _persist_twitter_env(auth_token, ct0)
         print("Saved Twitter/X cookies to config.")
         print("Verify with: twitter status")
-        return
+        return 0
 
     raise SystemExit(f"Unsupported configure key: {args.key}")
 
@@ -728,15 +812,134 @@ def _persist_twitter_env(auth_token: str, ct0: str) -> None:
             pass
 
 
-def _cmd_doctor() -> None:
+def _cmd_doctor(args) -> int:
     from agent_reach.config import Config
-    from agent_reach.doctor import check_all, format_report
+    from agent_reach.doctor import check_all, doctor_exit_code, format_report, make_doctor_payload
 
     config = Config()
-    print(format_report(check_all(config)))
+    results = check_all(config, probe=args.probe)
+    if args.json:
+        _print_json(make_doctor_payload(results, probe=args.probe))
+    else:
+        print(format_report(results, probe=args.probe))
+    return doctor_exit_code(results)
 
 
-def _cmd_uninstall(args) -> None:
+def _render_collect_text(payload: CollectionResult) -> str:
+    lines = [
+        "Agent Reach Collection",
+        "========================================",
+        f"Channel: {payload['channel']}",
+        f"Operation: {payload['operation']}",
+        f"OK: {'yes' if payload['ok'] else 'no'}",
+    ]
+    if payload["ok"]:
+        lines.append(f"Items: {len(payload['items'])}")
+        for item in payload["items"][:5]:
+            title = item.get("title") or item.get("id")
+            url = item.get("url") or ""
+            lines.append(f"  - {title} {url}".rstrip())
+    else:
+        error = payload["error"]
+        code = error["code"] if error else "unknown"
+        message = error["message"] if error else ""
+        lines.append(f"Error: {code} - {message}".rstrip())
+    return "\n".join(lines)
+
+
+def _cmd_collect(args) -> int:
+    client = AgentReachClient()
+    payload = client.collect(args.channel, args.operation, args.input, limit=args.limit)
+    if args.json:
+        _print_json(payload)
+    else:
+        print(_render_collect_text(payload))
+
+    if payload["ok"]:
+        return 0
+    error = payload["error"]
+    if error and error["code"] in {"unknown_channel", "unsupported_operation", "invalid_input"}:
+        return 2
+    return 1
+
+
+def _render_channels_text(contracts: Sequence[dict]) -> str:
+    lines = [
+        "Agent Reach Channels",
+        "========================================",
+        "",
+    ]
+    for contract in contracts:
+        tier = "core" if contract["tier"] == 0 else "optional"
+        lines.append(f"{contract['name']} ({tier})")
+        lines.append(f"  {contract['description']}")
+        lines.append(f"  backends: {', '.join(contract['backends']) or 'none'}")
+        lines.append(
+            f"  auth: {contract['auth_kind']} | entrypoint: {contract['entrypoint_kind']}"
+        )
+        if contract.get("operations"):
+            lines.append(f"  operations: {', '.join(contract['operations'])}")
+        lines.append(f"  probe: {'yes' if contract['supports_probe'] else 'no'}")
+        if contract["required_commands"]:
+            lines.append(f"  commands: {', '.join(contract['required_commands'])}")
+        if contract["host_patterns"]:
+            lines.append(f"  hosts: {', '.join(contract['host_patterns'])}")
+        lines.append("")
+    return "\n".join(lines).rstrip()
+
+
+def _cmd_channels(args) -> int:
+    from agent_reach.channels import get_all_channel_contracts, get_channel_contract
+
+    if args.name:
+        contract = get_channel_contract(args.name)
+        if contract is None:
+            print(f"Unknown channel: {args.name}", file=sys.stderr)
+            return 2
+        if args.json:
+            _print_json(
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "generated_at": utc_timestamp(),
+                    "channel": contract,
+                }
+            )
+        else:
+            print(_render_channels_text([contract]))
+        return 0
+
+    contracts = get_all_channel_contracts()
+    if args.json:
+        _print_json(
+            {
+                "schema_version": SCHEMA_VERSION,
+                "generated_at": utc_timestamp(),
+                "channels": contracts,
+            }
+        )
+    else:
+        print(_render_channels_text(contracts))
+    return 0
+
+
+def _cmd_export_integration(args) -> int:
+    from agent_reach.integrations.codex import (
+        export_codex_integration,
+        render_codex_integration_powershell,
+        render_codex_integration_text,
+    )
+
+    payload = export_codex_integration()
+    if args.format == "json":
+        _print_json(payload)
+    elif args.format == "powershell":
+        print(render_codex_integration_powershell(payload))
+    else:
+        print(render_codex_integration_text(payload))
+    return 0
+
+
+def _cmd_uninstall(args) -> int:
     from agent_reach.config import Config
 
     config_path = Config.CONFIG_FILE
@@ -751,7 +954,7 @@ def _cmd_uninstall(args) -> None:
             if path.exists():
                 print(f"  Remove skill: {path}")
         print("  Remove Exa MCP entry if mcporter is installed")
-        return
+        return 0
 
     removed_any = False
     if not args.keep_config and config_dir.exists():
@@ -780,7 +983,7 @@ def _cmd_uninstall(args) -> None:
 
     if not removed_any:
         print("Nothing to remove.")
-        return
+        return 0
 
     print()
     print("Optional tool cleanup:")
@@ -788,6 +991,7 @@ def _cmd_uninstall(args) -> None:
     print("  winget uninstall --id yt-dlp.yt-dlp -e")
     print("  npm uninstall -g mcporter")
     print("  uv tool uninstall twitter-cli")
+    return 0
 
 
 def _import_requests():
@@ -887,69 +1091,126 @@ def _github_get_with_retry(url: str, timeout: int = 10, retries: int = 3, sleepe
     return None, "unknown", retries
 
 
-def _cmd_check_update():
-    print(f"Current version: v{__version__}")
+def _build_update_payload() -> dict[str, object]:
+    payload: dict[str, object] = {
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": utc_timestamp(),
+        "command": "check-update",
+        "current_version": __version__,
+        "upstream_repo": UPSTREAM_REPO,
+        "status": "error",
+    }
     release_url = f"https://api.github.com/repos/{UPSTREAM_REPO}/releases/latest"
     commit_url = f"https://api.github.com/repos/{UPSTREAM_REPO}/commits/main"
 
     response, err, attempts = _github_get_with_retry(release_url, timeout=10, retries=3)
     if err:
-        print(f"[WARN] Could not check releases: {_update_error_text(err)} after {attempts} attempt(s)")
-        return "error"
+        payload.update(
+            {
+                "status": "error",
+                "error": _update_error_text(err),
+                "error_kind": err,
+                "attempts": attempts,
+            }
+        )
+        return payload
 
-    if response.status_code == 200:
-        payload = response.json()
-        latest = payload.get("tag_name", "").lstrip("v")
+    if response is not None and response.status_code == 200:
+        release_payload = response.json()
+        latest = release_payload.get("tag_name", "").lstrip("v")
+        payload["latest_version"] = latest or __version__
         if latest and latest != __version__:
-            print(f"Update available: v{latest}")
-            body = payload.get("body", "").strip()
-            if body:
-                print()
-                for line in body.splitlines()[:20]:
-                    print(f"  {line}")
-            return "update_available"
-        print("Already up to date.")
-        return "up_to_date"
+            payload["status"] = "update_available"
+            body = release_payload.get("body", "").strip()
+            payload["release_notes_preview"] = body.splitlines()[:20] if body else []
+        else:
+            payload["status"] = "up_to_date"
+        return payload
 
     response, err, attempts = _github_get_with_retry(commit_url, timeout=10, retries=2)
     if err:
-        print(f"[WARN] Could not check the latest main commit: {_update_error_text(err)}")
-        return "error"
+        payload.update(
+            {
+                "status": "error",
+                "error": _update_error_text(err),
+                "error_kind": err,
+                "attempts": attempts,
+            }
+        )
+        return payload
 
-    if response.status_code == 200:
-        payload = response.json()
-        sha = payload.get("sha", "")[:7]
-        date = payload.get("commit", {}).get("committer", {}).get("date", "")[:10]
-        message = payload.get("commit", {}).get("message", "").splitlines()[0]
-        print(f"Latest main commit: {sha} ({date}) {message}")
-        return "unknown"
+    if response is not None and response.status_code == 200:
+        commit_payload = response.json()
+        payload.update(
+            {
+                "status": "unknown",
+                "latest_main_commit": {
+                    "sha": commit_payload.get("sha", "")[:7],
+                    "date": commit_payload.get("commit", {})
+                    .get("committer", {})
+                    .get("date", "")[:10],
+                    "message": commit_payload.get("commit", {}).get("message", "").splitlines()[0],
+                },
+            }
+        )
+        return payload
 
-    print(f"[WARN] GitHub returned HTTP {response.status_code}")
-    return "error"
+    payload.update(
+        {
+            "status": "error",
+            "error": f"GitHub returned HTTP {response.status_code if response is not None else 'unknown'}",
+            "error_kind": "http",
+        }
+    )
+    return payload
 
 
-def _cmd_watch() -> None:
-    from agent_reach.config import Config
-    from agent_reach.doctor import check_all
+def _render_update_payload(payload: dict) -> str:
+    lines = [f"Current version: v{payload['current_version']}"]
+    status = payload["status"]
 
-    results = check_all(Config())
-    issues = [
-        f"{item['name']}: {item['message']}"
-        for item in results.values()
-        if item["status"] != "ok"
-    ]
+    if status == "error":
+        attempts = payload.get("attempts")
+        detail = payload.get("error", "unknown error")
+        if attempts:
+            lines.append(f"[WARN] Could not check releases: {detail} after {attempts} attempt(s)")
+        else:
+            lines.append(f"[WARN] Could not check releases: {detail}")
+        return "\n".join(lines)
 
-    update_status = _cmd_check_update()
-    if not issues and update_status != "update_available":
-        print("Agent Reach: all monitored channels look healthy")
-        return
+    if status == "update_available":
+        lines.append(f"Update available: v{payload.get('latest_version', 'unknown')}")
+        notes = payload.get("release_notes_preview", [])
+        if notes:
+            lines.append("")
+            for line in notes:
+                lines.append(f"  {line}")
+        return "\n".join(lines)
 
-    print()
-    print("Agent Reach Watch")
-    print("========================================")
-    for issue in issues:
-        print(f"  {issue}")
+    if status == "up_to_date":
+        lines.append("Already up to date.")
+        return "\n".join(lines)
+
+    if status == "unknown":
+        commit = payload.get("latest_main_commit", {})
+        lines.append(
+            "Latest main commit: "
+            f"{commit.get('sha', '')} ({commit.get('date', '')}) {commit.get('message', '')}"
+        )
+        return "\n".join(lines)
+
+    lines.append("[WARN] Unknown update status")
+    return "\n".join(lines)
+
+
+def _cmd_check_update(args) -> int:
+    payload = _build_update_payload()
+    if args.json:
+        _print_json(payload)
+    else:
+        print(_render_update_payload(payload))
+    return 1 if payload["status"] == "error" else 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

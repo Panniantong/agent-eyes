@@ -1,6 +1,6 @@
 # Agent Reach Install Guide
 
-This fork targets native Windows installs for Codex and similar agents.
+This fork targets native Windows installs for Codex, GitHub Actions, and other downstream tooling that needs a predictable read-only collection surface.
 
 ## Local install from source
 
@@ -9,12 +9,13 @@ uv tool install .
 agent-reach install --env=auto
 ```
 
-## Safe mode
+## Preview mode
 
-Use safe mode when you want to see the exact Windows commands first.
+Use preview mode when you want to inspect commands or consume the plan from another tool.
 
 ```powershell
 agent-reach install --env=auto --safe
+agent-reach install --env=auto --dry-run --json
 ```
 
 The installer only automates these Windows-friendly steps:
@@ -26,35 +27,62 @@ The installer only automates these Windows-friendly steps:
 - `mcporter --config "$HOME\\.mcporter\\mcporter.json" config add exa https://mcp.exa.ai/mcp`
 - `uv tool install twitter-cli` for the optional Twitter channel
 
-## Optional Twitter/X support
+## Authentication options
 
-```powershell
-agent-reach install --env=auto --channels=twitter
-```
-
-Then configure cookies explicitly:
-
-```powershell
-agent-reach configure twitter-cookies "auth_token=...; ct0=..."
-```
-
-Or import them from a local browser:
-
-```powershell
-agent-reach configure --from-browser chrome
-```
-
-GitHub can be authenticated either with the native CLI flow or by storing a token:
+GitHub:
 
 ```powershell
 gh auth login
 agent-reach configure github-token YOUR_TOKEN
 ```
 
-## Final verification
+Environment-only execution is also supported:
 
 ```powershell
-agent-reach doctor
+$env:GITHUB_TOKEN = "YOUR_TOKEN"
 ```
 
-Core channels should report ready or give a specific Windows command to fix the remaining gap.
+Twitter/X is optional and cookie-based:
+
+```powershell
+agent-reach install --env=auto --channels=twitter
+agent-reach configure twitter-cookies "auth_token=...; ct0=..."
+```
+
+You can also import Twitter/X cookies from a local browser:
+
+```powershell
+agent-reach configure --from-browser chrome
+```
+
+Browser import assumptions:
+
+- `browser-cookie3` is already installed with the package
+- the selected browser is closed
+- you are already logged into `x.com`
+
+Environment-only Twitter/X execution is supported too:
+
+```powershell
+$env:TWITTER_AUTH_TOKEN = "..."
+$env:TWITTER_CT0 = "..."
+```
+
+## Integration discovery
+
+```powershell
+agent-reach channels --json
+agent-reach doctor --json
+agent-reach doctor --json --probe
+agent-reach export-integration --client codex --format json
+```
+
+## Read-only collection smoke commands
+
+```powershell
+agent-reach collect --channel web --operation read --input "https://example.com" --json
+agent-reach collect --channel github --operation read --input "openai/openai-python" --json
+agent-reach collect --channel rss --operation read --input "https://hnrss.org/frontpage" --limit 1 --json
+```
+
+These commands are the supported integration surface for downstream tools. They are non-interactive by default and keep errors in JSON when collection fails.

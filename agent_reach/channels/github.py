@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 from pathlib import Path
 
 from agent_reach.utils.commands import find_command
@@ -16,6 +17,20 @@ class GitHubChannel(Channel):
     description = "GitHub repositories and code search"
     backends = ["gh CLI"]
     tier = 0
+    auth_kind = "token"
+    entrypoint_kind = "cli"
+    operations = ["search", "read"]
+    required_commands = ["gh"]
+    host_patterns = ["https://github.com/*", "https://api.github.com/*"]
+    example_invocations = [
+        'agent-reach collect --channel github --operation read --input "openai/openai-python" --json',
+        'agent-reach collect --channel github --operation search --input "agent reach" --limit 10 --json',
+    ]
+    supports_probe = True
+    install_hints = [
+        "Install gh with winget and authenticate with gh auth login.",
+        "You can also store a token with agent-reach configure github-token <TOKEN>.",
+    ]
 
     def can_handle(self, url: str) -> bool:
         from urllib.parse import urlparse
@@ -27,12 +42,50 @@ class GitHubChannel(Channel):
         if not gh:
             return "warn", "gh CLI is missing. Install it with winget install --id GitHub.cli -e"
 
-        if _has_gh_auth_material():
+        if _has_gh_auth_material(config):
             return "ok", "Ready for repo view, code search, issues, PRs, and forks"
         return "warn", "gh CLI is installed but not authenticated. Run gh auth login"
 
+    def probe(self, config=None):
+        gh = find_command("gh")
+        if not gh:
+            return "warn", "gh CLI is missing. Install it with winget install --id GitHub.cli -e"
 
-def _has_gh_auth_material() -> bool:
+        try:
+            result = subprocess.run(
+                [gh, "auth", "status"],
+                capture_output=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=30,
+                env=_github_runtime_env(config),
+            )
+        except Exception as exc:
+            return "warn", f"gh auth status failed: {exc}"
+
+        output = f"{result.stdout}\n{result.stderr}".lower()
+        if result.returncode == 0:
+            return "ok", "gh auth status completed successfully"
+        if "not logged into any hosts" in output or "authentication failed" in output:
+            return "warn", "gh CLI is installed but not authenticated. Run gh auth login"
+        return "warn", "gh auth status did not complete cleanly"
+
+
+def _github_runtime_env(config=None) -> dict[str, str]:
+    env = os.environ.copy()
+    token = env.get("GITHUB_TOKEN") or env.get("GH_TOKEN")
+    if not token and config is not None:
+        token = config.get("github_token")
+    if token:
+        env["GITHUB_TOKEN"] = str(token)
+        env["GH_TOKEN"] = str(token)
+    return env
+
+
+def _has_gh_auth_material(config=None) -> bool:
+    if _github_runtime_env(config).get("GITHUB_TOKEN"):
+        return True
+
     appdata = os.environ.get("APPDATA", "")
     candidates = [
         Path(appdata) / "GitHub CLI" / "hosts.yml",

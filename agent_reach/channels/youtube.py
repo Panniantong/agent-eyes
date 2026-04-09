@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
 
 from agent_reach.utils.commands import find_command
 from agent_reach.utils.paths import get_ytdlp_config_path, render_ytdlp_fix_command
@@ -17,6 +18,19 @@ class YouTubeChannel(Channel):
     description = "YouTube video metadata and subtitles"
     backends = ["yt-dlp"]
     tier = 0
+    auth_kind = "runtime"
+    entrypoint_kind = "cli"
+    operations = ["read"]
+    required_commands = ["yt-dlp"]
+    host_patterns = ["https://www.youtube.com/*", "https://youtu.be/*"]
+    example_invocations = [
+        'agent-reach collect --channel youtube --operation read --input "https://www.youtube.com/watch?v=jNQXAC9IVRw" --json',
+    ]
+    supports_probe = True
+    install_hints = [
+        "Install yt-dlp with winget.",
+        "Install Node.js or Deno, then wire a JS runtime with agent-reach install.",
+    ]
 
     def can_handle(self, url: str) -> bool:
         from urllib.parse import urlparse
@@ -50,3 +64,34 @@ class YouTubeChannel(Channel):
             )
 
         return "ok", "Ready to inspect video metadata and subtitles"
+
+    def probe(self, config=None):
+        status, message = self.check(config)
+        if status != "ok":
+            return status, message
+
+        ytdlp = find_command("yt-dlp")
+        if not ytdlp:
+            return "off", "yt-dlp is missing. Install it with winget install --id yt-dlp.yt-dlp -e"
+
+        try:
+            result = subprocess.run(
+                [
+                    ytdlp,
+                    "--dump-single-json",
+                    "--no-playlist",
+                    "--simulate",
+                    "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+                ],
+                capture_output=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=60,
+            )
+        except Exception as exc:
+            return "warn", f"yt-dlp probe failed: {exc}"
+
+        output = f"{result.stdout}\n{result.stderr}"
+        if result.returncode == 0 and "\"id\"" in output:
+            return "ok", "yt-dlp completed a live metadata probe"
+        return "warn", "yt-dlp is installed but the live probe did not complete cleanly"

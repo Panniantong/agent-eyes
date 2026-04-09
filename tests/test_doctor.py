@@ -10,6 +10,15 @@ from agent_reach.config import Config
 
 
 class _StubChannel:
+    auth_kind = "none"
+    entrypoint_kind = "cli"
+    operations = ["read"]
+    required_commands = []
+    host_patterns = []
+    example_invocations = []
+    supports_probe = True
+    install_hints = []
+
     def __init__(self, name, description, tier, status, message, backends=None):
         self.name = name
         self.description = description
@@ -20,6 +29,25 @@ class _StubChannel:
 
     def check(self, config=None):
         return self._status, self._message
+
+    def probe(self, config=None):
+        return "ok", f"probe:{self.name}"
+
+    def to_contract(self):
+        return {
+            "name": self.name,
+            "description": self.description,
+            "tier": self.tier,
+            "backends": self.backends,
+            "auth_kind": self.auth_kind,
+            "entrypoint_kind": self.entrypoint_kind,
+            "operations": self.operations,
+            "required_commands": self.required_commands,
+            "host_patterns": self.host_patterns,
+            "example_invocations": self.example_invocations,
+            "supports_probe": self.supports_probe,
+            "install_hints": self.install_hints,
+        }
 
 
 @pytest.fixture
@@ -38,29 +66,21 @@ def test_check_all_collects_channel_results(tmp_config, monkeypatch):
         ],
     )
 
-    assert doctor.check_all(tmp_config) == {
-        "web": {
-            "status": "ok",
-            "name": "Any web page",
-            "message": "Jina Reader is ready",
-            "tier": 0,
-            "backends": ["Jina"],
-        },
-        "github": {
-            "status": "warn",
-            "name": "GitHub repositories and code search",
-            "message": "gh missing",
-            "tier": 0,
-            "backends": ["gh"],
-        },
-        "twitter": {
-            "status": "warn",
-            "name": "Twitter/X search and timeline access",
-            "message": "twitter missing",
-            "tier": 1,
-            "backends": ["twitter-cli"],
-        },
-    }
+    results = doctor.check_all(tmp_config)
+    assert results["web"]["name"] == "web"
+    assert results["web"]["description"] == "Any web page"
+    assert results["web"]["status"] == "ok"
+    assert results["github"]["backends"] == ["gh"]
+    assert results["twitter"]["tier"] == 1
+    assert results["twitter"]["supports_probe"] is True
+
+
+def test_check_all_uses_probe_when_requested(tmp_config, monkeypatch):
+    monkeypatch.setattr(doctor, "get_all_channels", lambda: [_StubChannel("web", "Any web page", 0, "warn", "ignored")])
+
+    results = doctor.check_all(tmp_config, probe=True)
+    assert results["web"]["status"] == "ok"
+    assert results["web"]["message"] == "probe:web"
 
 
 def test_format_report_groups_core_and_optional():
@@ -68,21 +88,24 @@ def test_format_report_groups_core_and_optional():
         {
             "web": {
                 "status": "ok",
-                "name": "Any web page",
+                "name": "web",
+                "description": "Any web page",
                 "message": "Jina Reader is ready",
                 "tier": 0,
                 "backends": ["Jina"],
             },
             "exa_search": {
                 "status": "off",
-                "name": "Cross-web search via Exa",
+                "name": "exa_search",
+                "description": "Cross-web search via Exa",
                 "message": "mcporter missing",
                 "tier": 0,
                 "backends": ["mcporter"],
             },
             "twitter": {
                 "status": "warn",
-                "name": "Twitter/X search and timeline access",
+                "name": "twitter",
+                "description": "Twitter/X search and timeline access",
                 "message": "not authenticated",
                 "tier": 1,
                 "backends": ["twitter-cli"],
@@ -96,3 +119,39 @@ def test_format_report_groups_core_and_optional():
     assert "Optional channels" in plain
     assert "Summary: 1/3 channels ready" in plain
     assert "Not ready: Cross-web search via Exa, Twitter/X search and timeline access" in plain
+
+
+def test_doctor_payload_and_exit_code():
+    results = {
+        "web": {"name": "web", "description": "Any web page", "status": "ok", "message": "ok", "tier": 0},
+        "github": {
+            "name": "github",
+            "description": "GitHub repositories and code search",
+            "status": "warn",
+            "message": "auth missing",
+            "tier": 0,
+        },
+    }
+
+    payload = doctor.make_doctor_payload(results, probe=True)
+    assert payload["schema_version"]
+    assert payload["probe"] is True
+    assert payload["summary"]["ready"] == 1
+    assert payload["channels"][0]["name"] == "web"
+    assert doctor.doctor_exit_code(results) == 1
+
+
+def test_check_all_handles_channel_crash(tmp_config, monkeypatch):
+    class _BrokenChannel(_StubChannel):
+        def check(self, config=None):
+            raise RuntimeError("broken")
+
+    monkeypatch.setattr(
+        doctor,
+        "get_all_channels",
+        lambda: [_BrokenChannel("web", "Any web page", 0, "ok", "unused")],
+    )
+
+    results = doctor.check_all(tmp_config)
+    assert results["web"]["status"] == "error"
+    assert "Health check crashed" in results["web"]["message"]

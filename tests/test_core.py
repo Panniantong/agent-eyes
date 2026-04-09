@@ -27,3 +27,13 @@ class TestAgentReach:
         report = eyes.doctor_report()
         assert isinstance(report, str)
         assert "Agent Reach" in report
+
+    def test_doctor_payload(self, eyes):
+        payload = eyes.doctor_payload()
+        assert payload["schema_version"]
+        assert "channels" in payload
+
+    def test_channels(self, eyes):
+        channels = eyes.channels()
+        assert isinstance(channels, list)
+        assert any(channel["name"] == "github" for channel in channels)

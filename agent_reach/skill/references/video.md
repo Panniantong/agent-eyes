@@ -1,6 +1,10 @@
 # YouTube
 
-Use `yt-dlp` for metadata and subtitles.
+Use Agent Reach for normalized metadata, or `yt-dlp` directly when you need subtitles and other extractor-specific features.
+
+```powershell
+agent-reach collect --channel youtube --operation read --input "https://www.youtube.com/watch?v=VIDEO_ID" --json
+```
 
 ```powershell
 yt-dlp --dump-single-json "https://www.youtube.com/watch?v=VIDEO_ID"

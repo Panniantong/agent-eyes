@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from .base import Channel
 from .exa_search import ExaSearchChannel
@@ -38,4 +38,33 @@ def get_all_channels() -> List[Channel]:
     return ALL_CHANNELS
 
 
-__all__ = ["Channel", "ALL_CHANNELS", "get_channel", "get_all_channels"]
+def get_channel_contract(name: str) -> Optional[dict]:
+    """Return a machine-readable contract for one channel."""
+
+    channel = get_channel(name)
+    if channel is None:
+        return None
+    return channel.to_contract()
+
+
+def get_all_channel_contracts() -> List[dict]:
+    """Return channel contracts for all registered channels."""
+
+    return [channel.to_contract() for channel in ALL_CHANNELS]
+
+
+def get_all_channel_contracts_by_name() -> Dict[str, dict]:
+    """Return channel contracts keyed by stable channel name."""
+
+    return {channel.name: channel.to_contract() for channel in ALL_CHANNELS}
+
+
+__all__ = [
+    "Channel",
+    "ALL_CHANNELS",
+    "get_channel",
+    "get_all_channels",
+    "get_channel_contract",
+    "get_all_channel_contracts",
+    "get_all_channel_contracts_by_name",
+]

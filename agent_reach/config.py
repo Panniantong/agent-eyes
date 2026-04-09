@@ -15,6 +15,11 @@ class Config:
 
     CONFIG_DIR = Path.home() / ".agent-reach"
     CONFIG_FILE = CONFIG_DIR / "config.yaml"
+    ENV_ALIASES = {
+        "github_token": ("GITHUB_TOKEN", "GH_TOKEN"),
+        "twitter_auth_token": ("TWITTER_AUTH_TOKEN", "AUTH_TOKEN"),
+        "twitter_ct0": ("TWITTER_CT0", "CT0"),
+    }
 
     FEATURE_REQUIREMENTS = {
         "twitter": ["twitter_auth_token", "twitter_ct0"],
@@ -66,9 +71,10 @@ class Config:
         if key in self.data:
             return self.data[key]
 
-        env_val = os.environ.get(key.upper())
-        if env_val:
-            return env_val
+        for env_key in self.ENV_ALIASES.get(key, (key.upper(),)):
+            env_val = os.environ.get(env_key)
+            if env_val:
+                return env_val
         return default
 
     def set(self, key: str, value: Any) -> None:
