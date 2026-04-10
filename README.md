@@ -30,6 +30,13 @@ agent-reach install --env=auto
 
 This install path guarantees the `agent-reach` CLI. It does not make `import agent_reach` available to arbitrary Python environments.
 
+After pulling updates from a source checkout, refresh the installed CLI with:
+
+```powershell
+uv tool install --force .
+agent-reach version
+```
+
 Preview the Windows commands without changing anything:
 
 ```powershell

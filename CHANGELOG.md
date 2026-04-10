@@ -2,6 +2,21 @@
 
 All notable changes to this fork are documented here.
 
+## [1.5.1] - 2026-04-10
+
+### Added
+
+- operation-level `doctor --json` diagnostics through `operation_statuses`
+- detailed Twitter/X probe diagnostics that separate live `user` and `search` readiness
+- Bluesky fallback attempt diagnostics through `meta.attempted_host_results`
+- `inline_payload_notes` in Codex integration exports
+- Windows UTF-8 fallback guidance for raw `twitter-cli` help debugging
+
+### Changed
+
+- kept channel `check()` / `probe()` two-tuple compatibility while adding detailed doctor-only diagnostics
+- preserved structured Twitter/X backend errors such as `not_found` instead of collapsing them into `command_failed`
+
 ## [1.5.0] - 2026-04-10
 
 ### Added

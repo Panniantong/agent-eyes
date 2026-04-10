@@ -11,6 +11,17 @@ agent-reach install --env=auto
 
 This path installs the `agent-reach` CLI. If another Python project wants `AgentReachClient`, install Agent Reach into that project's Python environment separately.
 
+## Update an existing source install
+
+After pulling a new commit, reinstall the tool so `agent-reach.exe` points at the updated package:
+
+```powershell
+uv tool install --force .
+agent-reach version
+```
+
+For the operation-level diagnostics release, `agent-reach version` should report `Agent Reach v1.5.1` or newer.
+
 ## Preview mode
 
 Use preview mode when you want to inspect commands or consume the plan from another tool.
