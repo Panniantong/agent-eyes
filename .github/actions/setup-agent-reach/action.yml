@@ -2,6 +2,10 @@ name: Setup Agent Reach
 description: Install the Agent Reach CLI from this repository without copying files into the caller project.
 
 inputs:
+  install-reddit-cli:
+    description: Install rdt-cli for optional no-auth Reddit collection.
+    required: false
+    default: "false"
   install-twitter-cli:
     description: Install twitter-cli for optional Twitter/X collection.
     required: false
@@ -46,6 +50,9 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+        if [ "${{ inputs.install-reddit-cli }}" = "true" ]; then
+          uv tool install --force rdt-cli
+        fi
         if [ "${{ inputs.install-twitter-cli }}" = "true" ]; then
           uv tool install --force twitter-cli
         fi

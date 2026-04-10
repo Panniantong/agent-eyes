@@ -8,6 +8,24 @@ Public read-only search:
 agent-reach collect --channel bluesky --operation search --input "OpenAI" --limit 10 --json
 ```
 
+## Reddit
+
+Reddit uses `rdt-cli` and does not require Reddit OAuth, client credentials, or a User-Agent config.
+
+Install path:
+
+```powershell
+agent-reach install --channels=reddit
+```
+
+Basic usage:
+
+```powershell
+agent-reach collect --channel reddit --operation search --input "agent frameworks" --limit 10 --json
+agent-reach collect --channel reddit --operation search --input "r/LocalLLaMA agent frameworks" --limit 10 --json
+agent-reach collect --channel reddit --operation read --input "https://www.reddit.com/r/redditdev/comments/..." --limit 20 --json
+```
+
 ## Twitter/X
 
 This channel is optional and cookie-based.

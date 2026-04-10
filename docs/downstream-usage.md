@@ -26,6 +26,8 @@ agent-reach collect --channel exa_search --operation search --input "latest AI a
 agent-reach collect --channel web --operation read --input "https://example.com" --json
 agent-reach collect --channel bluesky --operation search --input "OpenAI" --limit 5 --json
 agent-reach collect --channel qiita --operation search --input "python user:Qiita" --limit 5 --json
+agent-reach collect --channel hacker_news --operation search --input "agent frameworks" --limit 5 --json
+agent-reach collect --channel mcp_registry --operation search --input "docs mcp" --limit 5 --json
 ```
 
 When provenance matters, append each raw collection envelope to a JSONL ledger:
@@ -76,6 +78,7 @@ jobs:
       - uses: iwachacha/Agent-Reach/.github/actions/setup-agent-reach@main
         with:
           install-twitter-cli: "false"
+          install-reddit-cli: "false"
           install-ytdlp: "false"
           install-mcporter: "false"
       - name: Smoke test Agent Reach
@@ -92,6 +95,7 @@ Enable optional backends only when the workflow needs them:
       - uses: iwachacha/Agent-Reach/.github/actions/setup-agent-reach@main
         with:
           install-twitter-cli: "true"
+          install-reddit-cli: "true"
           install-ytdlp: "true"
           install-mcporter: "true"
           configure-exa: "true"
@@ -100,6 +104,8 @@ Enable optional backends only when the workflow needs them:
           TWITTER_CT0: ${{ secrets.TWITTER_CT0 }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+`install-reddit-cli` installs `rdt-cli` for the no-auth `reddit` channel. SearXNG needs an instance URL through `agent-reach configure searxng-base-url` or `SEARXNG_BASE_URL`. Crawl4AI needs the optional Python extra and browser runtime, so treat it as a separate job when a workflow needs browser-backed reads.
 
 For reproducible automation, pin `uses:` to a tag or commit instead of `@main`.
 

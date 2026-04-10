@@ -37,6 +37,9 @@ search_results = client.exa.search("latest gpt-5.4 release notes", limit=3)
 qiita_results = client.qiita.search("python user:Qiita", limit=3)
 bluesky_results = client.bluesky.search("OpenAI", limit=3)
 hatena_reactions = client.hatena_bookmark.read("https://example.com", limit=5)
+hacker_news_results = client.hacker_news.search("agent frameworks", limit=3)
+mcp_servers = client.mcp_registry.search("docs mcp", limit=3)
+reddit_posts = client.reddit.search("agent frameworks", limit=3)
 twitter_posts = client.twitter.user_posts("openai", limit=5)
 ```
 
@@ -82,6 +85,8 @@ def collect_digest():
     results.append(client.qiita.search("python user:Qiita", limit=3))
     results.append(client.bluesky.search("OpenAI", limit=3))
     results.append(client.rss.read("https://hnrss.org/frontpage", limit=3))
+    results.append(client.hacker_news.search("agent frameworks", limit=3))
+    results.append(client.mcp_registry.search("docs mcp", limit=3))
 
     messages = []
     for result in results:

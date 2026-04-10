@@ -12,4 +12,4 @@ Agent Reach currently optimizes for Windows-based Codex setups.
 | Read-only collect CLI | Supported | `agent-reach collect --json` |
 | macOS/Linux installer automation | Not first-class | Use `install --safe` for guidance only |
 | Full workflow orchestration | Deferred | Scheduling, ranking, and publishing stay downstream |
-| Additional channels beyond current nine | Deferred | Planned for later phases |
+| Expanded optional channel surface | Supported | `searxng`, `crawl4ai`, `hacker_news`, `mcp_registry`, `reddit`, and optional `twitter` are exposed through the channel registry; readiness still depends on runtime config or optional backends |

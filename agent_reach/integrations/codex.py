@@ -145,7 +145,11 @@ def _default_plugin_manifest(skill_source: str, mcp_config_path: str) -> dict[st
                 "Show me which research channels are ready on this Windows machine.",
                 "Export the Codex integration settings for Agent Reach.",
                 "List the supported channels and their setup requirements.",
-                "Run a read-only collection for GitHub, web, RSS, Exa, Hatena Bookmark, Bluesky, Qiita, YouTube, or Twitter/X.",
+                (
+                    "Run a read-only collection using the live channel contract, including web, Exa, "
+                    "GitHub, Hatena Bookmark, Bluesky, Qiita, YouTube, RSS, SearXNG, Crawl4AI, "
+                    "Hacker News, MCP Registry, Reddit, or optional Twitter/X."
+                ),
             ],
             "brandColor": "#0F766E",
         },
@@ -230,7 +234,7 @@ def _external_project_usage() -> dict[str, Any]:
                 "Use `--save .agent-reach/evidence.jsonl` when the bot or CI job needs a raw evidence artifact.",
                 "Use `agent-reach plan candidates` when the bot or CI job wants a no-model dedupe pass before deeper reads.",
                 "Use source hints and web hygiene fields only as diagnostics; keep scoring and posting policy in the bot.",
-                "Treat Twitter/X as optional and gate it with `doctor --json --probe` when reliability matters.",
+                "Treat optional channels as capability surfaces; gate them with `channels --json`, `doctor --json`, and `doctor --json --probe` when reliability matters.",
             ],
         },
     }
@@ -247,8 +251,8 @@ def _codex_runtime_policy() -> dict[str, Any]:
         ),
         "decision_order": [
             "If readiness is unknown, run `agent-reach channels --json` and `agent-reach doctor --json` first.",
-            "For broad web discovery, use `exa_search` search, then read selected URLs with `web`.",
-            "For known source types, prefer specialist channels: `github`, `qiita`, `bluesky`, `rss`, `youtube`, or `hatena_bookmark`.",
+            "Inspect the live channel contract and let the calling workflow choose channels for the user's task.",
+            "Use specialist channels such as `github`, `qiita`, `bluesky`, `rss`, `youtube`, `hatena_bookmark`, `hacker_news`, `mcp_registry`, `reddit`, `searxng`, or `crawl4ai` only when the caller's task and readiness checks support them.",
             "Use Twitter/X only when optional credentials and `doctor --json --probe` show the required operation is ready.",
             "Treat `source_hints`, `text_length`, `link_count`, and `extraction_warning` as diagnostic metadata only.",
             "Keep ranking, summarization, scheduling, Discord publishing, and state in the downstream project.",
@@ -274,7 +278,7 @@ def _codex_runtime_policy() -> dict[str, Any]:
         "failure_policy": [
             "Do not fall back to backend-specific CLIs unless debugging a failed Agent Reach operation.",
             "If `doctor --json` marks an optional channel warn, continue with ready channels unless that channel is essential.",
-            "For Twitter/X, inspect `operation_statuses` and report search/user readiness separately.",
+            "For optional or credential/runtime-gated channels, report operation-level readiness and the JSON error envelope separately.",
         ],
     }
 
@@ -326,6 +330,8 @@ def export_codex_integration() -> dict[str, Any]:
             "agent-reach doctor --json --probe",
             'agent-reach collect --channel github --operation read --input "openai/openai-python" --json',
             'agent-reach collect --channel web --operation read --input "https://example.com" --json',
+            'agent-reach collect --channel hacker_news --operation search --input "agent frameworks" --limit 3 --json',
+            'agent-reach collect --channel mcp_registry --operation search --input "docs mcp" --limit 3 --json',
             "agent-reach export-integration --client codex --format json",
         ],
         "python_sdk": {
@@ -446,5 +452,6 @@ def render_codex_integration_powershell(payload: dict[str, Any]) -> str:
             "agent-reach doctor --json",
             "agent-reach doctor --json --probe",
             'agent-reach collect --channel github --operation read --input "openai/openai-python" --json',
+            'agent-reach collect --channel hacker_news --operation search --input "agent frameworks" --limit 3 --json',
         ]
     )

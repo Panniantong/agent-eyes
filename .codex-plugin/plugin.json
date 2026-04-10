@@ -1,6 +1,6 @@
 {
   "name": "agent-reach",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Windows-first research integration substrate for Codex and similar agents.",
   "author": {
     "name": "Neo Reid"
@@ -31,7 +31,7 @@
       "Show me which research channels are ready on this Windows machine.",
       "Export the Codex integration settings for Agent Reach.",
       "List the supported channels and their setup requirements.",
-      "Run a read-only collection for GitHub, web, RSS, Exa, Hatena Bookmark, Bluesky, Qiita, YouTube, or Twitter/X."
+      "Run a read-only collection using the live channel contract, including web, Exa, GitHub, Hatena Bookmark, Bluesky, Qiita, YouTube, RSS, SearXNG, Crawl4AI, Hacker News, MCP Registry, Reddit, or optional Twitter/X."
     ],
     "brandColor": "#0F766E"
   }

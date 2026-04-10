@@ -1,4 +1,4 @@
 interface:
   display_name: "Agent Reach"
-  short_description: "Windows research collection and diagnostics for web, GitHub, Hatena Bookmark, Bluesky, Qiita, YouTube, RSS, and Twitter/X"
-  default_prompt: "Use Agent Reach to discover available channels, check readiness, and run thin read-only collection across Exa, Jina Reader, GitHub CLI, Hatena Bookmark, Bluesky, Qiita, yt-dlp, RSS feeds, and optional Twitter/X tooling. Prefer direct qiita, bluesky, and hatena_bookmark channels when they match the source, and use Exa plus web reading for note, Zenn, docs sites, and general blogs."
+  short_description: "Windows research collection and diagnostics across web, search, developer, social, forum, registry, video, RSS, and optional browser-backed channels"
+  default_prompt: "Use Agent Reach to discover the live channel contract, check readiness, and run thin read-only collection across Exa, Jina Reader, GitHub CLI, Hatena Bookmark, Bluesky, Qiita, yt-dlp, RSS feeds, SearXNG, Crawl4AI, Hacker News, MCP Registry, Reddit through rdt-cli, and optional Twitter/X tooling. Let the calling workflow choose channels from the contract for the user's task; keep ranking, summarization, scheduling, and publishing outside Agent Reach."

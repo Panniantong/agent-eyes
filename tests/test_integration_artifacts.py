@@ -41,6 +41,8 @@ def test_setup_agent_reach_action_installs_from_repo_root():
     assert action["runs"]["using"] == "composite"
     assert 'repo_root="$(cd "$GITHUB_ACTION_PATH/../../.." && pwd)"' in action_text
     assert 'uv tool install --force "$repo_root"' in action_text
+    assert "install-reddit-cli" in action["inputs"]
+    assert 'uv tool install --force rdt-cli' in action_text
     assert "install-twitter-cli" in action["inputs"]
 
 
@@ -90,6 +92,10 @@ def test_export_points_at_existing_checkout_artifacts():
     channel_contracts = {channel["name"]: channel for channel in payload["channels"]}
     assert channel_contracts["qiita"]["operation_contracts"]["search"]["options"][0]["name"] == "body_mode"
     assert channel_contracts["crawl4ai"]["operation_contracts"]["crawl"]["options"][0]["sdk_kwarg"] == "crawl_query"
+    assert channel_contracts["reddit"]["auth_kind"] == "none"
+    assert channel_contracts["reddit"]["required_commands"] == ["rdt"]
+    assert channel_contracts["hacker_news"]["operations"][0] == "search"
+    assert channel_contracts["mcp_registry"]["operations"] == ["search", "read"]
     assert payload["skill"]["targets"]
     assert Path(payload["skill"]["source"]).exists()
     assert payload["python_sdk"]["availability"] == "project_env_only"
@@ -99,6 +105,8 @@ def test_export_points_at_existing_checkout_artifacts():
     assert payload["codex_runtime_policy"]["default_interface"] == "agent-reach collect --json"
     assert "Do not copy" in payload["codex_runtime_policy"]["no_copy_rule"]
     assert payload["codex_runtime_policy"]["large_scale_research"]["pattern"] == "bounded fan-out with normalized JSON handoff"
+    assert any("hacker_news" in command for command in payload["verification_commands"])
+    assert any("mcp_registry" in command for command in payload["verification_commands"])
     assert any(command.startswith("agent-reach collect ") for command in payload["verification_commands"])
 
 

@@ -38,6 +38,7 @@ The installer only automates these Windows-friendly steps:
 - `winget install --id OpenJS.NodeJS.LTS -e` when Node.js is missing
 - `npm install -g mcporter`
 - `mcporter --config "$HOME\\.mcporter\\mcporter.json" config add exa https://mcp.exa.ai/mcp`
+- `uv tool install rdt-cli` for the optional no-auth Reddit channel
 - `uv tool install twitter-cli` for the optional Twitter channel
 
 ## Authentication options
@@ -84,6 +85,29 @@ $env:TWITTER_AUTH_TOKEN = "..."
 $env:TWITTER_CT0 = "..."
 ```
 
+Reddit is optional and uses `rdt-cli` without Reddit OAuth, client credentials, or User-Agent config:
+
+```powershell
+agent-reach install --env=auto --channels=reddit
+agent-reach collect --channel reddit --operation search --input "agent frameworks" --limit 5 --json
+```
+
+SearXNG is optional and requires a JSON-enabled SearXNG instance:
+
+```powershell
+agent-reach configure searxng-base-url "https://searx.example.org"
+agent-reach collect --channel searxng --operation search --input "agent tools" --limit 5 --json
+```
+
+Crawl4AI is optional and should be installed into the environment that needs browser-backed reads:
+
+```powershell
+uv pip install -e .[crawl4ai]
+python -m playwright install chromium
+agent-reach collect --channel crawl4ai --operation read --input "https://example.com" --json
+agent-reach collect --channel crawl4ai --operation crawl --input "https://example.com" --query "pricing and faq" --limit 10 --json
+```
+
 ## Integration discovery
 
 ```powershell
@@ -99,6 +123,8 @@ agent-reach export-integration --client codex --format json
 agent-reach collect --channel web --operation read --input "https://example.com" --json
 agent-reach collect --channel github --operation read --input "openai/openai-python" --json
 agent-reach collect --channel rss --operation read --input "https://hnrss.org/frontpage" --limit 1 --json
+agent-reach collect --channel hacker_news --operation search --input "agent frameworks" --limit 3 --json
+agent-reach collect --channel mcp_registry --operation search --input "docs mcp" --limit 3 --json
 ```
 
 These commands are the supported integration surface for downstream tools. They are non-interactive by default and keep errors in JSON when collection fails.

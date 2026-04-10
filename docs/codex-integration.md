@@ -61,6 +61,11 @@ When `agent-reach` is running from a tool install instead of a source checkout, 
 - `qiita`
 - `youtube`
 - `rss`
+- `searxng` (optional configured instance)
+- `crawl4ai` (optional browser-backed dependency)
+- `hacker_news`
+- `mcp_registry`
+- `reddit` (optional `rdt-cli`, no Reddit OAuth config)
 - `twitter` (optional)
 
 These channels are exposed as metadata, setup guidance, diagnostics, and read-only collection operations so downstream tools can wire their own workflows without scraping repo docs.

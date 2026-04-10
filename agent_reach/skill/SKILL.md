@@ -1,6 +1,6 @@
 ---
 name: agent-reach
-description: Windows-first research integration tooling for Codex. Use when the user needs to inspect available research channels, verify readiness, export Codex integration settings, or run thin read-only collection over web, Exa, GitHub, Hatena Bookmark, Bluesky, Qiita, YouTube, RSS, or optional Twitter/X.
+description: Windows-first research integration tooling for Codex. Use when the user needs to inspect research channel capabilities, verify readiness, export Codex integration settings, or run thin read-only collection over web, Exa, GitHub, Hatena Bookmark, Bluesky, Qiita, YouTube, RSS, SearXNG, Crawl4AI, Hacker News, MCP Registry, Reddit, or optional Twitter/X.
 ---
 
 # Agent Reach
@@ -52,6 +52,11 @@ agent-reach export-integration --client codex --format json
 - `qiita`: public Qiita article search
 - `youtube`: metadata and subtitle extraction through `yt-dlp`
 - `rss`: RSS and Atom feeds through `feedparser`
+- `searxng`: configurable metasearch through a user-provided SearXNG instance
+- `crawl4ai`: optional browser-backed page reads and bounded same-origin crawls
+- `hacker_news`: Hacker News search, story lists, and discussion reads
+- `mcp_registry`: public MCP Registry server discovery and reads
+- `reddit`: public Reddit search and discussion reads through `rdt-cli`
 - `twitter`: optional Twitter/X search through `twitter-cli`
 
 ## Workflow
@@ -63,17 +68,18 @@ agent-reach export-integration --client codex --format json
 5. Use `agent-reach plan candidates` when a saved ledger needs no-model URL or ID dedupe.
 6. Use diagnostic hints only to explain provenance or extraction shape; downstream code owns ranking and selection.
 7. Use `AgentReachClient` only when the host Python environment has Agent Reach installed into it directly.
-8. Use `qiita` for direct Qiita article search. Use `hatena_bookmark` when the input is a URL and you want Hatena reactions or related entries.
-9. Use `bluesky` for public Bluesky post search.
-10. Prefer `exa_search` plus `web` for note, Zenn, blogs, docs sites, and other general web discovery.
-11. Treat Twitter/X as opt-in and expect cookie-based auth.
-12. In arbitrary downstream repositories, use the globally installed `agent-reach` CLI. Do not require copying Agent Reach repo files into the downstream project unless the user explicitly asks for repo-local plugin artifacts.
+8. Choose channels from the live `channels --json` contract for the user's task; Agent Reach does not own ranking, routing, or source policy.
+9. Use `searxng` only after `searxng-base-url` is configured or `SEARXNG_BASE_URL` is set.
+10. Use `crawl4ai` only when the optional extra and browser runtime are available; `crawl` requires an explicit `--query` goal.
+11. Use `reddit` through `rdt-cli`; it does not need Reddit OAuth, client credentials, or a User-Agent config.
+12. Treat Twitter/X as opt-in and expect cookie-based auth.
+13. In arbitrary downstream repositories, use the globally installed `agent-reach` CLI. Do not require copying Agent Reach repo files into the downstream project unless the user explicitly asks for repo-local plugin artifacts.
 
 ## Large-Scale Research Pattern
 
 1. Run `agent-reach doctor --json` and inspect `operation_statuses` when readiness matters.
-2. Start with 2-4 broad `exa_search` queries at `--limit 5` to `--limit 10`.
-3. Add source-specific searches for `github`, `qiita`, `bluesky`, `rss`, or `twitter` only when they match the task.
+2. Start with 2-4 caller-chosen discovery queries at `--limit 5` to `--limit 10`.
+3. Add source-specific searches such as `github`, `qiita`, `bluesky`, `rss`, `hacker_news`, `mcp_registry`, `reddit`, `searxng`, or `twitter` only when they match the task and are ready.
 4. Save raw `CollectionResult` envelopes with `--save .agent-reach/evidence.jsonl` when the run needs an evidence trail.
 5. Run `agent-reach plan candidates --input .agent-reach/evidence.jsonl --by url --limit 20 --json` before deeper reads.
 6. Use `web read` for selected URLs, not every search result.
@@ -86,4 +92,4 @@ agent-reach export-integration --client codex --format json
 - GitHub work: read [references/dev.md](references/dev.md)
 - Web pages and RSS: read [references/web.md](references/web.md)
 - YouTube: read [references/video.md](references/video.md)
-- Twitter/X: read [references/social.md](references/social.md)
+- Social and forums: read [references/social.md](references/social.md)
