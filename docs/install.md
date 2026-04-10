@@ -20,7 +20,7 @@ uv tool install --force .
 agent-reach version
 ```
 
-For the no-copy downstream integration release, `agent-reach version` should report `Agent Reach v1.5.2` or newer.
+For the Codex runtime policy release, `agent-reach version` should report `Agent Reach v1.5.3` or newer.
 
 ## Preview mode
 

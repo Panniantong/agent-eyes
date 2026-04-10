@@ -226,6 +226,45 @@ def _external_project_usage() -> dict[str, Any]:
     }
 
 
+def _codex_runtime_policy() -> dict[str, Any]:
+    """Give Codex a compact, explicit operating policy for arbitrary projects."""
+
+    return {
+        "default_interface": "agent-reach collect --json",
+        "no_copy_rule": (
+            "Use the globally installed CLI and skill. Do not copy `.codex-plugin`, `.mcp.json`, "
+            "or Agent Reach source files into a downstream repository unless the user explicitly asks for repo-local artifacts."
+        ),
+        "decision_order": [
+            "If readiness is unknown, run `agent-reach channels --json` and `agent-reach doctor --json` first.",
+            "For broad web discovery, use `exa_search` search, then read selected URLs with `web`.",
+            "For known source types, prefer specialist channels: `github`, `qiita`, `bluesky`, `rss`, `youtube`, or `hatena_bookmark`.",
+            "Use Twitter/X only when optional credentials and `doctor --json --probe` show the required operation is ready.",
+            "Keep ranking, summarization, scheduling, Discord publishing, and state in the downstream project.",
+        ],
+        "large_scale_research": {
+            "pattern": "bounded fan-out with normalized JSON handoff",
+            "steps": [
+                "Start with 2-4 broad discovery queries at small limits such as 5-10.",
+                "Dedupe URLs or item IDs in the downstream project before deeper reads.",
+                "Fan out `web read` only for selected high-signal URLs.",
+                "Persist raw `CollectionResult` JSON as artifacts when running in CI.",
+                "Treat per-channel failures as partial results unless the user asked for strict completeness.",
+            ],
+            "recommended_limits": {
+                "discovery": 10,
+                "source_specific_search": 20,
+                "deep_reads_per_round": 10,
+            },
+        },
+        "failure_policy": [
+            "Do not fall back to backend-specific CLIs unless debugging a failed Agent Reach operation.",
+            "If `doctor --json` marks an optional channel warn, continue with ready channels unless that channel is essential.",
+            "For Twitter/X, inspect `operation_statuses` and report search/user readiness separately.",
+        ],
+    }
+
+
 def export_codex_integration() -> dict[str, Any]:
     """Return the stable integration payload for Codex on Windows."""
 
@@ -266,6 +305,7 @@ def export_codex_integration() -> dict[str, Any]:
         "inline_payload_notes": _inline_payload_notes(),
         "mcp_snippet": _mcp_snippet(),
         "external_project_usage": _external_project_usage(),
+        "codex_runtime_policy": _codex_runtime_policy(),
         "verification_commands": [
             "agent-reach channels --json",
             "agent-reach doctor --json",
@@ -346,6 +386,8 @@ def render_codex_integration_text(payload: dict[str, Any]) -> str:
         f"{'yes' if payload['external_project_usage']['copy_files_required'] else 'no'}"
     )
     lines.append(f"  preferred interface: {payload['external_project_usage']['preferred_interface']}")
+    lines.append(f"  Codex default interface: {payload['codex_runtime_policy']['default_interface']}")
+    lines.append(f"  no-copy rule: {payload['codex_runtime_policy']['no_copy_rule']}")
 
     lines.extend(["", "Required commands:"])
     for command in payload["required_commands"]:

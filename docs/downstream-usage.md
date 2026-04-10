@@ -30,6 +30,24 @@ agent-reach collect --channel qiita --operation search --input "python user:Qiit
 
 This does not require `.codex-plugin`, `.mcp.json`, or `agent_reach/skill` files inside the downstream project.
 
+## Codex Operating Policy
+
+When Codex is working inside an arbitrary project:
+
+- Use the globally installed `agent-reach` CLI by default.
+- Do not copy Agent Reach repo files into the project unless the user explicitly asks for repo-local plugin artifacts.
+- Use `agent-reach collect --json` as the stable handoff to project code.
+- Keep ranking, summarization, scheduling, Discord publishing, and state in the downstream project.
+- Treat optional channel failures as partial results unless strict completeness is required.
+
+Large-scale research should use bounded fan-out:
+
+1. Start with 2-4 broad discovery queries at `--limit 5` to `--limit 10`.
+2. Dedupe URLs or item IDs in the downstream project.
+3. Use specialist channels when the source is known.
+4. Deep-read only selected URLs with `web`.
+5. Persist raw `CollectionResult` JSON as artifacts in CI when traceability matters.
+
 ## GitHub Actions
 
 Use the composite action from this repository:

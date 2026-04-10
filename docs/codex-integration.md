@@ -31,6 +31,8 @@ agent-reach doctor --json --probe
 
 After that, Codex can call `agent-reach collect --json` from any working directory. The downstream project does not need `.codex-plugin`, `.mcp.json`, or `agent_reach/skill` files unless it explicitly wants repo-local plugin artifacts.
 
+`export-integration --format json` also includes `codex_runtime_policy`, which is the machine-readable version of this rule set. Downstream setup tools should prefer `agent-reach collect --json` and should not vendor Agent Reach files by default.
+
 ## Repo artifacts
 
 - Plugin manifest: `.codex-plugin/plugin.json`

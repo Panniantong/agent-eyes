@@ -102,6 +102,8 @@ These are the supported machine-readable entry points for external projects. The
 
 External projects do not need to vendor this repo. For GitHub Actions, use `iwachacha/Agent-Reach/.github/actions/setup-agent-reach@main`; for local Codex, install the CLI and global skill once with `uv tool install --force git+https://github.com/iwachacha/Agent-Reach.git` and `agent-reach skill --install`.
 
+For larger research runs, use bounded fan-out: start with a few small `exa_search` queries, dedupe URLs or item IDs in the downstream project, then deep-read only selected URLs with `web`. Keep ranking, summarization, scheduling, Discord publishing, and state in the downstream project; Agent Reach should remain the collection layer.
+
 Agent Reach normalizes results into `items`, keeps the backend-native payload in `raw`, and never prompts interactively during collection.
 
 ## Guides

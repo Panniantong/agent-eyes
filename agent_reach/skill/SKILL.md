@@ -19,6 +19,14 @@ This fork is intentionally narrow. Treat it as:
 
 Do not assume this fork owns scheduling, ranking, summarization, or publishing. Those remain responsibilities of the host project.
 
+## Operating Rules For Codex
+
+- Default to the globally installed `agent-reach` CLI in any downstream repository.
+- Do not ask the user to copy `.codex-plugin`, `.mcp.json`, `agent_reach/skill`, or Agent Reach source files into the downstream repository unless they explicitly ask for repo-local plugin artifacts.
+- Use `agent-reach collect --json` as the stable handoff. Preserve the returned `CollectionResult` JSON when another system will rank, summarize, dedupe, or publish it.
+- For large research tasks, fan out bounded searches, dedupe in the downstream project, then deep-read only selected URLs.
+- Treat optional channel failures as partial results unless the user asked for strict completeness.
+
 ## Discovery First
 
 Start with the integration surface before reaching for backend-specific commands.
@@ -55,6 +63,15 @@ agent-reach export-integration --client codex --format json
 8. Prefer `exa_search` plus `web` for note, Zenn, blogs, docs sites, and other general web discovery.
 9. Treat Twitter/X as opt-in and expect cookie-based auth.
 10. In arbitrary downstream repositories, use the globally installed `agent-reach` CLI. Do not require copying Agent Reach repo files into the downstream project unless the user explicitly asks for repo-local plugin artifacts.
+
+## Large-Scale Research Pattern
+
+1. Run `agent-reach doctor --json` and inspect `operation_statuses` when readiness matters.
+2. Start with 2-4 broad `exa_search` queries at `--limit 5` to `--limit 10`.
+3. Add source-specific searches for `github`, `qiita`, `bluesky`, `rss`, or `twitter` only when they match the task.
+4. Dedupe candidate URLs or IDs before deeper reads.
+5. Use `web read` for selected URLs, not every search result.
+6. Return partial results with clear channel failures instead of blocking on one optional backend.
 
 ## Command Routing
 

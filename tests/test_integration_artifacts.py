@@ -60,6 +60,9 @@ def test_export_points_at_existing_checkout_artifacts():
     assert payload["python_sdk"]["import"] == "from agent_reach import AgentReachClient"
     assert payload["external_project_usage"]["copy_files_required"] is False
     assert payload["external_project_usage"]["preferred_interface"] == "agent-reach collect --json"
+    assert payload["codex_runtime_policy"]["default_interface"] == "agent-reach collect --json"
+    assert "Do not copy" in payload["codex_runtime_policy"]["no_copy_rule"]
+    assert payload["codex_runtime_policy"]["large_scale_research"]["pattern"] == "bounded fan-out with normalized JSON handoff"
     assert any(command.startswith("agent-reach collect ") for command in payload["verification_commands"])
 
 
@@ -86,3 +89,4 @@ def test_export_tool_install_omits_dead_paths(tmp_path):
     assert payload["documentation_summary"]
     assert payload["inline_payload_notes"]
     assert payload["external_project_usage"]["github_actions"]["uses"].startswith("iwachacha/Agent-Reach/")
+    assert payload["codex_runtime_policy"]["large_scale_research"]["recommended_limits"]["discovery"] == 10

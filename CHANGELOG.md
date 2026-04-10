@@ -2,6 +2,13 @@
 
 All notable changes to this fork are documented here.
 
+## [1.5.3] - 2026-04-10
+
+### Added
+
+- Codex runtime policy metadata that spells out no-copy usage, channel choice, failure handling, and large-scale research workflow
+- skill-level operating rules for arbitrary downstream repositories and high-volume information gathering
+
 ## [1.5.2] - 2026-04-10
 
 ### Added
