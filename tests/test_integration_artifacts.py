@@ -63,8 +63,9 @@ def test_export_tool_install_omits_dead_paths(tmp_path):
     assert payload["recommended_docs"] == []
     assert payload["plugin_manifest_inline"]["name"] == "agent-reach"
     assert payload["plugin_manifest_inline"]["skills"] == payload["skill"]["source"]
-    assert payload["plugin_manifest_inline"]["mcpServers"] == payload["suggested_destinations"]["mcp_config"]
+    assert payload["plugin_manifest_inline"]["mcpServers"] == "../.mcp.json"
     assert payload["mcp_config_inline"]["mcpServers"]["exa"]["url"] == "https://mcp.exa.ai/mcp"
     assert payload["suggested_destinations"]["plugin_manifest"].endswith(".codex-plugin\\plugin.json")
     assert payload["suggested_destinations"]["mcp_config"].endswith(".mcp.json")
     assert payload["documentation_summary"]
+    assert payload["inline_payload_notes"]

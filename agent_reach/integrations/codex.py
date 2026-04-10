@@ -146,16 +146,26 @@ def _default_plugin_manifest(skill_source: str, mcp_config_path: str) -> dict[st
     }
 
 
+def _tool_install_plugin_mcp_reference() -> str:
+    """Return the MCP reference expected after writing to the suggested Codex paths."""
+
+    return "../.mcp.json"
+
+
 def _plugin_manifest_inline(
     repo_root: Path,
     execution_context: str,
     skill_source: str,
-    suggested_destinations: dict[str, str],
 ) -> dict[str, Any]:
     payload = _read_json(_artifact_paths(repo_root)["plugin_manifest"])
     if payload is not None and execution_context == "checkout":
         return payload
-    return _default_plugin_manifest(skill_source, suggested_destinations["mcp_config"])
+    mcp_reference = (
+        _tool_install_plugin_mcp_reference()
+        if execution_context == "tool_install"
+        else "../.mcp.json"
+    )
+    return _default_plugin_manifest(skill_source, mcp_reference)
 
 
 def _mcp_config_inline(repo_root: Path) -> dict[str, Any]:
@@ -169,6 +179,13 @@ def _documentation_summary() -> list[str]:
         "Use `agent-reach channels --json`, `doctor --json`, and `doctor --json --probe` for discovery and diagnostics.",
         "Tool installs expose the CLI. Import `AgentReachClient` only after installing Agent Reach into the caller Python environment.",
         "If `plugin_manifest` or `mcp_config` is null, write the inline payloads to the suggested destinations instead.",
+    ]
+
+
+def _inline_payload_notes() -> list[str]:
+    return [
+        "Write `plugin_manifest_inline` to `suggested_destinations.plugin_manifest` and `mcp_config_inline` to `suggested_destinations.mcp_config`.",
+        "`plugin_manifest_inline.mcpServers` is a relative reference that resolves after both inline payloads are written to the suggested Codex paths.",
     ]
 
 
@@ -205,11 +222,11 @@ def export_codex_integration() -> dict[str, Any]:
             repo_root,
             execution_context,
             skill_source,
-            suggested_destinations,
         ),
         "mcp_config": _existing_path(artifact_paths["mcp_config"]),
         "mcp_config_inline": _mcp_config_inline(repo_root),
         "suggested_destinations": suggested_destinations,
+        "inline_payload_notes": _inline_payload_notes(),
         "mcp_snippet": _mcp_snippet(),
         "verification_commands": [
             "agent-reach channels --json",
@@ -275,6 +292,10 @@ def render_codex_integration_text(payload: dict[str, Any]) -> str:
         lines.extend(["", "Documentation summary:"])
         for line in payload["documentation_summary"]:
             lines.append(f"  {line}")
+
+    lines.extend(["", "Inline payload notes:"])
+    for line in payload["inline_payload_notes"]:
+        lines.append(f"  {line}")
 
     lines.extend(["", "Python SDK:"])
     lines.append(f"  availability: {payload['python_sdk']['availability']}")

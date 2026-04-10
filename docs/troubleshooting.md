@@ -72,3 +72,15 @@ This usually means the upstream CLI or HTTP reader returned an unexpected payloa
 agent-reach collect --channel github --operation read --input "openai/openai-python" --json
 gh repo view openai/openai-python --json name,nameWithOwner,url
 ```
+
+## Twitter/X search returns `not_found` or HTTP 404
+
+Run:
+
+```powershell
+agent-reach doctor --json --probe
+agent-reach collect --channel twitter --operation user --input "openai" --json
+agent-reach collect --channel twitter --operation search --input "OpenAI" --limit 1 --json
+```
+
+`twitter status` only proves that the session is authenticated. Twitter/X search can still fail even when profile lookups succeed. If `user` works but `search` fails, treat the search backend as not ready and avoid advertising Twitter/X search as available in downstream automation.

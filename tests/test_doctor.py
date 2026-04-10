@@ -83,6 +83,21 @@ def test_check_all_uses_probe_when_requested(tmp_config, monkeypatch):
     assert results["web"]["message"] == "probe:web"
 
 
+def test_check_all_includes_extra_machine_readable_fields(tmp_config, monkeypatch):
+    class _DetailedChannel(_StubChannel):
+        def check(self, config=None):
+            return "warn", "details available", {"operation_statuses": {"search": {"status": "warn"}}}
+
+    monkeypatch.setattr(
+        doctor,
+        "get_all_channels",
+        lambda: [_DetailedChannel("twitter", "Twitter/X search and timeline access", 1, "warn", "unused")],
+    )
+
+    results = doctor.check_all(tmp_config)
+    assert results["twitter"]["operation_statuses"]["search"]["status"] == "warn"
+
+
 def test_format_report_groups_core_and_optional():
     report = doctor.format_report(
         {

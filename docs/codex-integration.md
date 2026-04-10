@@ -31,6 +31,7 @@ When `agent-reach` is running from a tool install instead of a source checkout, 
 - `execution_context: tool_install`
 - `plugin_manifest` / `mcp_config` as `null`
 - inline payloads for the plugin manifest and MCP config
+- `inline_payload_notes` that explain how the relative `plugin_manifest_inline.mcpServers` reference is meant to resolve after writing both files
 - suggested write locations for downstream projects
 - a documentation summary instead of dead doc paths
 

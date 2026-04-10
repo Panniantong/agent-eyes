@@ -49,7 +49,10 @@ Twitter/X is optional and cookie-based:
 ```powershell
 agent-reach install --env=auto --channels=twitter
 agent-reach configure twitter-cookies "auth_token=...; ct0=..."
+agent-reach doctor --json --probe
 ```
+
+Use `doctor --json --probe` before depending on Twitter/X search in downstream automation. `twitter status` confirms authentication, but it does not guarantee that live search is still working.
 
 You can also import Twitter/X cookies from a local browser:
 

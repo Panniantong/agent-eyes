@@ -3,11 +3,25 @@
 
 from __future__ import annotations
 
-from typing import Dict
+from typing import Any, Dict
 
 from agent_reach.channels import get_all_channels
 from agent_reach.config import Config
 from agent_reach.schemas import SCHEMA_VERSION, utc_timestamp
+
+
+def _normalize_health_result(result: object) -> tuple[str, str, dict[str, Any]]:
+    """Accept legacy 2-tuples and newer 3-tuples with extra machine-readable data."""
+
+    if not isinstance(result, tuple):
+        raise TypeError("health checks must return a tuple")
+    if len(result) == 2:
+        status, message = result
+        return status, message, {}
+    if len(result) == 3:
+        status, message, extra = result
+        return status, message, extra if isinstance(extra, dict) else {}
+    raise ValueError("health checks must return a 2-tuple or 3-tuple")
 
 
 def check_all(config: Config, probe: bool = False) -> Dict[str, dict]:
@@ -15,11 +29,12 @@ def check_all(config: Config, probe: bool = False) -> Dict[str, dict]:
 
     results: Dict[str, dict] = {}
     for channel in get_all_channels():
+        extra: dict[str, Any] = {}
         try:
             if probe and channel.supports_probe:
-                status, message = channel.probe(config)
+                status, message, extra = _normalize_health_result(channel.probe(config))
             else:
-                status, message = channel.check(config)
+                status, message, extra = _normalize_health_result(channel.check(config))
         except Exception as exc:
             status, message = "error", f"Health check crashed: {exc}"
 
@@ -42,11 +57,14 @@ def check_all(config: Config, probe: bool = False) -> Dict[str, dict]:
             }
         )
 
-        results[channel.name] = {
+        payload = {
             **contract,
             "status": status,
             "message": message,
         }
+        reserved = set(payload)
+        payload.update({key: value for key, value in extra.items() if key not in reserved})
+        results[channel.name] = payload
     return results
 
 

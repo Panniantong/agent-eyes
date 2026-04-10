@@ -691,6 +691,35 @@ def test_twitter_adapter_not_authenticated(config, monkeypatch):
     assert payload["error"]["code"] == "not_authenticated"
 
 
+def test_twitter_adapter_preserves_structured_backend_errors(config, monkeypatch):
+    adapter = TwitterAdapter(config=config)
+    monkeypatch.setattr(adapter, "command_path", lambda _name: "twitter")
+    monkeypatch.setattr(
+        adapter,
+        "run_command",
+        lambda command, timeout=120, env=None: _cp(
+            stdout=json.dumps(
+                {
+                    "ok": False,
+                    "schema_version": "1",
+                    "error": {
+                        "code": "not_found",
+                        "message": "Twitter API error (HTTP 404): Twitter API error 404: ",
+                    },
+                }
+            ),
+            returncode=1,
+        ),
+    )
+
+    payload = adapter.search("OpenAI", limit=1)
+
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "not_found"
+    assert payload["error"]["message"].startswith("Twitter API error (HTTP 404)")
+    assert payload["raw"]["error"]["code"] == "not_found"
+
+
 def test_base_adapter_runtime_env_is_noninteractive_and_utf8(config, monkeypatch):
     monkeypatch.delenv("PYTHONIOENCODING", raising=False)
     monkeypatch.delenv("PYTHONUTF8", raising=False)

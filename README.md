@@ -42,7 +42,10 @@ Optional Twitter/X support:
 ```powershell
 agent-reach install --env=auto --channels=twitter
 agent-reach configure twitter-cookies "auth_token=...; ct0=..."
+agent-reach doctor --json --probe
 ```
+
+Treat `twitter status` as an authentication check, not proof that live search works. `agent-reach doctor --json --probe` now validates both a live user lookup and a live search before calling Twitter/X ready.
 
 ## Public surfaces
 

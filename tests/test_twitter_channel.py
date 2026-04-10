@@ -18,12 +18,13 @@ def test_check_reports_warn_when_not_installed():
     with patch("agent_reach.channels.twitter.find_command", return_value=None), patch(
         "shutil.which", return_value=None
     ):
-        status, message = TwitterChannel().check()
+        status, message, extra = TwitterChannel().check()
     assert status == "warn"
     assert "uv tool install twitter-cli" in message
+    assert extra["operation_statuses"]["search"]["status"] == "off"
 
 
-def test_check_reports_ok_when_authenticated():
+def test_check_reports_warn_when_live_operations_are_unverified():
     channel = TwitterChannel()
     with patch(
         "agent_reach.channels.twitter.find_command",
@@ -32,9 +33,11 @@ def test_check_reports_ok_when_authenticated():
         "subprocess.run",
         return_value=_cp(stdout="ok: true\nusername: testuser\n", returncode=0),
     ):
-        status, message = channel.check()
-    assert status == "ok"
-    assert "user posts" in message
+        status, message, extra = channel.check()
+    assert status == "warn"
+    assert "not verified" in message
+    assert extra["diagnostic_basis"] == "twitter status"
+    assert extra["operation_statuses"]["search"]["status"] == "unknown"
 
 
 def test_check_reports_warn_when_not_authenticated():
@@ -46,9 +49,10 @@ def test_check_reports_warn_when_not_authenticated():
         "subprocess.run",
         return_value=_cp(stderr="ok: false\nerror:\n  code: not_authenticated\n", returncode=1),
     ):
-        status, message = channel.check()
+        status, message, extra = channel.check()
     assert status == "warn"
     assert "configure twitter-cookies" in message
+    assert extra["operation_statuses"]["user"]["status"] == "off"
 
 
 def test_check_passes_config_credentials_into_status(tmp_path):
@@ -70,9 +74,9 @@ def test_check_passes_config_credentials_into_status(tmp_path):
         "subprocess.run",
         side_effect=lambda *args, **kwargs: captured.update({"env": kwargs.get("env")}) or _cp(stdout="ok: true", returncode=0),
     ):
-        status, _message = channel.check(config)
+        status, _message, _extra = channel.check(config)
 
-    assert status == "ok"
+    assert status == "warn"
     assert captured["env"]["AUTH_TOKEN"] == "auth-token"
     assert captured["env"]["CT0"] == "ct0-token"
     assert captured["env"]["PYTHONIOENCODING"] == "utf-8"
@@ -98,15 +102,29 @@ def test_probe_uses_live_user_lookup():
             "meta": {"count": 1},
             "error": None,
         },
-    ) as mocked_user:
-        status, message = channel.probe()
+    ) as mocked_user, patch(
+        "agent_reach.channels.twitter.TwitterAdapter.search",
+        return_value={
+            "ok": True,
+            "channel": "twitter",
+            "operation": "search",
+            "items": [{"id": "tweet-1"}],
+            "raw": {"ok": True},
+            "meta": {"count": 1},
+            "error": None,
+        },
+    ) as mocked_search:
+        status, message, extra = channel.probe()
 
     assert status == "ok"
-    assert "Live user lookup" in message
+    assert "user lookup and search both succeeded" in message
+    assert extra["operation_statuses"]["user"]["status"] == "ok"
+    assert extra["operation_statuses"]["search"]["status"] == "ok"
     mocked_user.assert_called_once_with("openai")
+    mocked_search.assert_called_once_with("OpenAI", limit=1)
 
 
-def test_probe_reports_not_authenticated_from_live_lookup():
+def test_probe_reports_search_failure_separately_from_live_user_lookup():
     channel = TwitterChannel()
     with patch(
         "agent_reach.channels.twitter.find_command",
@@ -117,20 +135,33 @@ def test_probe_reports_not_authenticated_from_live_lookup():
     ), patch(
         "agent_reach.channels.twitter.TwitterAdapter.user",
         return_value={
-            "ok": False,
+            "ok": True,
             "channel": "twitter",
             "operation": "user",
+            "items": [{"id": "1"}],
+            "raw": {"ok": True},
+            "meta": {"count": 1},
+            "error": None,
+        },
+    ), patch(
+        "agent_reach.channels.twitter.TwitterAdapter.search",
+        return_value={
+            "ok": False,
+            "channel": "twitter",
+            "operation": "search",
             "items": [],
-            "raw": None,
+            "raw": {"ok": False},
             "meta": {"count": 0},
             "error": {
-                "code": "not_authenticated",
-                "message": "Twitter user command did not complete cleanly",
-                "details": {},
+                "code": "not_found",
+                "message": "Twitter API error (HTTP 404)",
+                "details": {"returncode": 1},
             },
         },
     ):
-        status, message = channel.probe()
+        status, message, extra = channel.probe()
 
     assert status == "warn"
-    assert "live user lookup is not authenticated" in message
+    assert "Live user lookup succeeded, but live search failed" in message
+    assert extra["operation_statuses"]["user"]["status"] == "ok"
+    assert extra["operation_statuses"]["search"]["error_code"] == "not_found"

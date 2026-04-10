@@ -121,6 +121,26 @@ def _build_search_args(query: str, limit: int) -> list[str]:
     return args
 
 
+def _parse_error_output(raw_output: str) -> tuple[str | None, str | None, dict | None]:
+    """Extract a structured error from twitter-cli stderr/stdout when available."""
+
+    try:
+        payload = json.loads(raw_output or "{}")
+    except json.JSONDecodeError:
+        return None, None, None
+
+    if not isinstance(payload, dict):
+        return None, None, None
+
+    error = payload.get("error")
+    if not isinstance(error, dict):
+        return None, None, payload
+
+    code = error.get("code")
+    message = error.get("message")
+    return (str(code) if code else None), (str(message) if message else None), payload
+
+
 class TwitterAdapter(BaseAdapter):
     """Read Twitter/X data through twitter-cli."""
 
@@ -288,13 +308,22 @@ class TwitterAdapter(BaseAdapter):
         raw_output = f"{result.stdout}\n{result.stderr}".strip()
         if result.returncode != 0:
             code = "command_failed"
-            if "not_authenticated" in raw_output.lower():
+            message = f"Twitter {operation} command did not complete cleanly"
+            raw: dict | str = raw_output
+            parsed_code, parsed_message, parsed_payload = _parse_error_output(raw_output)
+            if parsed_code:
+                code = parsed_code
+            elif "not_authenticated" in raw_output.lower():
                 code = "not_authenticated"
+            if parsed_message:
+                message = parsed_message
+            if parsed_payload is not None:
+                raw = parsed_payload
             return self.error_result(
                 operation,
                 code=code,
-                message=f"Twitter {operation} command did not complete cleanly",
-                raw=raw_output,
+                message=message,
+                raw=raw,
                 meta=self.make_meta(value=value, limit=limit, started_at=started_at),
                 details={"returncode": result.returncode},
             )

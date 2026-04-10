@@ -24,6 +24,14 @@ Configure cookies:
 agent-reach configure twitter-cookies "auth_token=...; ct0=..."
 ```
 
+Validate live readiness before depending on Twitter/X search:
+
+```powershell
+agent-reach doctor --json --probe
+```
+
+`twitter status` confirms authentication, but it does not guarantee that live search still works.
+
 Or import them from a local browser:
 
 ```powershell
