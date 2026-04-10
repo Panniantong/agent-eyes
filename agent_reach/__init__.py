@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Agent Reach Windows/Codex fork."""
 
-__version__ = "1.5.1"
+__version__ = "1.5.2"
 __author__ = "Neo Reid"
 
 from agent_reach.core import AgentReach, AgentReachClient

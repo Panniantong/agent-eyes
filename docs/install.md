@@ -20,7 +20,7 @@ uv tool install --force .
 agent-reach version
 ```
 
-For the operation-level diagnostics release, `agent-reach version` should report `Agent Reach v1.5.1` or newer.
+For the no-copy downstream integration release, `agent-reach version` should report `Agent Reach v1.5.2` or newer.
 
 ## Preview mode
 

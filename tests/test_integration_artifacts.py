@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+import yaml
+
 from agent_reach.integrations.codex import export_codex_integration
 
 
@@ -30,6 +32,18 @@ def test_mcp_config_contains_exa():
     assert payload["mcpServers"]["exa"]["url"] == "https://mcp.exa.ai/mcp"
 
 
+def test_setup_agent_reach_action_installs_from_repo_root():
+    action_path = _repo_root() / ".github" / "actions" / "setup-agent-reach" / "action.yml"
+    action_text = action_path.read_text(encoding="utf-8")
+    action = yaml.safe_load(action_text)
+
+    assert action["name"] == "Setup Agent Reach"
+    assert action["runs"]["using"] == "composite"
+    assert 'repo_root="$(cd "$GITHUB_ACTION_PATH/../../.." && pwd)"' in action_text
+    assert 'uv tool install --force "$repo_root"' in action_text
+    assert "install-twitter-cli" in action["inputs"]
+
+
 def test_export_points_at_existing_checkout_artifacts():
     payload = export_codex_integration()
 
@@ -44,6 +58,8 @@ def test_export_points_at_existing_checkout_artifacts():
     assert Path(payload["skill"]["source"]).exists()
     assert payload["python_sdk"]["availability"] == "project_env_only"
     assert payload["python_sdk"]["import"] == "from agent_reach import AgentReachClient"
+    assert payload["external_project_usage"]["copy_files_required"] is False
+    assert payload["external_project_usage"]["preferred_interface"] == "agent-reach collect --json"
     assert any(command.startswith("agent-reach collect ") for command in payload["verification_commands"])
 
 
@@ -69,3 +85,4 @@ def test_export_tool_install_omits_dead_paths(tmp_path):
     assert payload["suggested_destinations"]["mcp_config"].endswith(".mcp.json")
     assert payload["documentation_summary"]
     assert payload["inline_payload_notes"]
+    assert payload["external_project_usage"]["github_actions"]["uses"].startswith("iwachacha/Agent-Reach/")

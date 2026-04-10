@@ -2,6 +2,14 @@
 
 All notable changes to this fork are documented here.
 
+## [1.5.2] - 2026-04-10
+
+### Added
+
+- no-copy downstream usage guide for Codex, GitHub Actions, and Discord bot projects
+- composite GitHub Action for installing Agent Reach from this repository in downstream workflows
+- machine-readable `external_project_usage` metadata in Codex integration exports
+
 ## [1.5.1] - 2026-04-10
 
 ### Added

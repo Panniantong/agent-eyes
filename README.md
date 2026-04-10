@@ -100,11 +100,14 @@ These are the supported machine-readable entry points for external projects. The
 - Python apps and Discord bots call `AgentReachClient` after adding Agent Reach to the host Python environment
 - setup tooling calls `agent-reach channels --json`, `doctor --json`, and `export-integration`
 
+External projects do not need to vendor this repo. For GitHub Actions, use `iwachacha/Agent-Reach/.github/actions/setup-agent-reach@main`; for local Codex, install the CLI and global skill once with `uv tool install --force git+https://github.com/iwachacha/Agent-Reach.git` and `agent-reach skill --install`.
+
 Agent Reach normalizes results into `items`, keeps the backend-native payload in `raw`, and never prompts interactively during collection.
 
 ## Guides
 
 - Install guide: [docs/install.md](docs/install.md)
+- Downstream usage: [docs/downstream-usage.md](docs/downstream-usage.md)
 - Python SDK: [docs/python-sdk.md](docs/python-sdk.md)
 - Codex integration: [docs/codex-integration.md](docs/codex-integration.md)
 - Codex compatibility: [docs/codex-compatibility.md](docs/codex-compatibility.md)

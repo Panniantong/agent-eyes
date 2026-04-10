@@ -44,6 +44,7 @@ def test_docs_folder_only_contains_supported_docs():
     assert names == {
         "codex-compatibility.md",
         "codex-integration.md",
+        "downstream-usage.md",
         "install.md",
         "python-sdk.md",
         "troubleshooting.md",

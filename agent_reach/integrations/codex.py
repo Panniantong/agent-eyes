@@ -61,6 +61,7 @@ def _artifact_paths(repo_root: Path) -> dict[str, Path]:
         "mcp_config": repo_root / ".mcp.json",
         "docs_codex_integration": repo_root / "docs" / "codex-integration.md",
         "docs_codex_compatibility": repo_root / "docs" / "codex-compatibility.md",
+        "docs_downstream_usage": repo_root / "docs" / "downstream-usage.md",
         "docs_python_sdk": repo_root / "docs" / "python-sdk.md",
     }
 
@@ -89,6 +90,7 @@ def _recommended_docs(repo_root: Path) -> list[str]:
     docs = [
         _artifact_paths(repo_root)["docs_codex_integration"],
         _artifact_paths(repo_root)["docs_codex_compatibility"],
+        _artifact_paths(repo_root)["docs_downstream_usage"],
         _artifact_paths(repo_root)["docs_python_sdk"],
     ]
     return [str(path) for path in docs if path.exists()]
@@ -189,6 +191,41 @@ def _inline_payload_notes() -> list[str]:
     ]
 
 
+def _external_project_usage() -> dict[str, Any]:
+    """Describe the no-copy downstream integration paths."""
+
+    return {
+        "copy_files_required": False,
+        "preferred_interface": "agent-reach collect --json",
+        "codex_global_install": {
+            "commands": [
+                "uv tool install --force git+https://github.com/iwachacha/Agent-Reach.git",
+                "agent-reach skill --install",
+                "agent-reach doctor --json --probe",
+            ],
+            "notes": [
+                "The skill install writes to the user's Codex skill home, not to the downstream project.",
+                "Downstream projects do not need `.codex-plugin`, `.mcp.json`, or `agent_reach/skill` files when using the CLI.",
+            ],
+        },
+        "github_actions": {
+            "uses": "iwachacha/Agent-Reach/.github/actions/setup-agent-reach@main",
+            "notes": [
+                "Use the composite action to install the CLI in the workflow without vendoring Agent Reach files.",
+                "Pin `uses` to a tag or commit for reproducible automation.",
+                "Keep scheduling, ranking, summarization, state, and Discord publishing in the downstream project.",
+            ],
+        },
+        "discord_bot": {
+            "recommended_pattern": "subprocess collector",
+            "notes": [
+                "Call `agent-reach collect --json` per source and map `items` into the bot's normalized item type.",
+                "Treat Twitter/X as optional and gate it with `doctor --json --probe` when reliability matters.",
+            ],
+        },
+    }
+
+
 def export_codex_integration() -> dict[str, Any]:
     """Return the stable integration payload for Codex on Windows."""
 
@@ -228,6 +265,7 @@ def export_codex_integration() -> dict[str, Any]:
         "suggested_destinations": suggested_destinations,
         "inline_payload_notes": _inline_payload_notes(),
         "mcp_snippet": _mcp_snippet(),
+        "external_project_usage": _external_project_usage(),
         "verification_commands": [
             "agent-reach channels --json",
             "agent-reach doctor --json",
@@ -301,6 +339,13 @@ def render_codex_integration_text(payload: dict[str, Any]) -> str:
     lines.append(f"  availability: {payload['python_sdk']['availability']}")
     for line in payload["python_sdk"]["notes"]:
         lines.append(f"  {line}")
+
+    lines.extend(["", "External project usage:"])
+    lines.append(
+        "  copy files required: "
+        f"{'yes' if payload['external_project_usage']['copy_files_required'] else 'no'}"
+    )
+    lines.append(f"  preferred interface: {payload['external_project_usage']['preferred_interface']}")
 
     lines.extend(["", "Required commands:"])
     for command in payload["required_commands"]:

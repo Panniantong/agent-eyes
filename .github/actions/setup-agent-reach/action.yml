@@ -1,0 +1,64 @@
+name: Setup Agent Reach
+description: Install the Agent Reach CLI from this repository without copying files into the caller project.
+
+inputs:
+  install-twitter-cli:
+    description: Install twitter-cli for optional Twitter/X collection.
+    required: false
+    default: "false"
+  install-ytdlp:
+    description: Install yt-dlp for optional YouTube collection.
+    required: false
+    default: "false"
+  install-mcporter:
+    description: Install mcporter for optional Exa search collection.
+    required: false
+    default: "false"
+  configure-exa:
+    description: Register the public Exa MCP endpoint with mcporter after installing mcporter.
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Install uv
+      shell: bash
+      run: |
+        set -euo pipefail
+        python -m pip install --upgrade uv
+
+    - name: Add user script directory to PATH
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+    - name: Install Agent Reach
+      shell: bash
+      run: |
+        set -euo pipefail
+        repo_root="$(cd "$GITHUB_ACTION_PATH/../../.." && pwd)"
+        uv tool install --force "$repo_root"
+        agent-reach version
+
+    - name: Install optional backend tools
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ "${{ inputs.install-twitter-cli }}" = "true" ]; then
+          uv tool install --force twitter-cli
+        fi
+        if [ "${{ inputs.install-ytdlp }}" = "true" ]; then
+          python -m pip install --upgrade yt-dlp
+        fi
+        if [ "${{ inputs.install-mcporter }}" = "true" ]; then
+          npm install -g mcporter
+        fi
+        if [ "${{ inputs.configure-exa }}" = "true" ]; then
+          if ! command -v mcporter >/dev/null 2>&1; then
+            npm install -g mcporter
+          fi
+          mkdir -p "$HOME/.mcporter"
+          mcporter --config "$HOME/.mcporter/mcporter.json" config add exa https://mcp.exa.ai/mcp
+        fi

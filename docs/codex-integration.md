@@ -19,6 +19,18 @@ agent-reach collect --channel github --operation read --input "openai/openai-pyt
 agent-reach export-integration --client codex --format json
 ```
 
+## No-Copy External Project Mode
+
+For everyday Codex usage in arbitrary repositories, install Agent Reach globally instead of copying files into each project:
+
+```powershell
+uv tool install --force git+https://github.com/iwachacha/Agent-Reach.git
+agent-reach skill --install
+agent-reach doctor --json --probe
+```
+
+After that, Codex can call `agent-reach collect --json` from any working directory. The downstream project does not need `.codex-plugin`, `.mcp.json`, or `agent_reach/skill` files unless it explicitly wants repo-local plugin artifacts.
+
 ## Repo artifacts
 
 - Plugin manifest: `.codex-plugin/plugin.json`

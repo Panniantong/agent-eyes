@@ -54,6 +54,7 @@ agent-reach export-integration --client codex --format json
 7. Use `bluesky` for public Bluesky post search.
 8. Prefer `exa_search` plus `web` for note, Zenn, blogs, docs sites, and other general web discovery.
 9. Treat Twitter/X as opt-in and expect cookie-based auth.
+10. In arbitrary downstream repositories, use the globally installed `agent-reach` CLI. Do not require copying Agent Reach repo files into the downstream project unless the user explicitly asks for repo-local plugin artifacts.
 
 ## Command Routing
 
