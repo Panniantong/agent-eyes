@@ -48,11 +48,12 @@ agent-reach export-integration --client codex --format json
 1. Run `agent-reach channels --json` if the available surfaces are unclear.
 2. Run `agent-reach doctor --json` when readiness matters.
 3. Use `--probe` only when a lightweight live check is useful.
-4. Use `agent-reach collect --json` or `AgentReachClient` when external code needs normalized results.
-5. Use `qiita` for direct Qiita article search. Use `hatena_bookmark` when the input is a URL and you want Hatena reactions or related entries.
-6. Use `bluesky` for public Bluesky post search.
-7. Prefer `exa_search` plus `web` for note, Zenn, blogs, docs sites, and other general web discovery.
-8. Treat Twitter/X as opt-in and expect cookie-based auth.
+4. Use `agent-reach collect --json` by default when external code needs normalized results.
+5. Use `AgentReachClient` only when the host Python environment has Agent Reach installed into it directly.
+6. Use `qiita` for direct Qiita article search. Use `hatena_bookmark` when the input is a URL and you want Hatena reactions or related entries.
+7. Use `bluesky` for public Bluesky post search.
+8. Prefer `exa_search` plus `web` for note, Zenn, blogs, docs sites, and other general web discovery.
+9. Treat Twitter/X as opt-in and expect cookie-based auth.
 
 ## Command Routing
 

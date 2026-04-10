@@ -7,6 +7,8 @@ import os
 import shutil
 import subprocess
 
+from agent_reach.adapters.twitter import TwitterAdapter
+from agent_reach.results import CollectionError
 from agent_reach.utils.commands import find_command
 
 from .base import Channel
@@ -69,7 +71,31 @@ class TwitterChannel(Channel):
         return "warn", "twitter-cli is installed but did not report a healthy session"
 
     def probe(self, config=None):
-        return self.check(config)
+        twitter = find_command("twitter") or shutil.which("twitter")
+        if not twitter:
+            return "warn", "twitter-cli is missing. Install it with uv tool install twitter-cli"
+
+        try:
+            payload = TwitterAdapter(config=config).user("openai")
+        except Exception as exc:
+            return "warn", f"twitter-cli is installed but the live user probe crashed: {exc}"
+
+        if payload["ok"]:
+            return "ok", "Live user lookup succeeded via twitter-cli"
+
+        error: CollectionError = payload.get("error") or {
+            "code": "command_failed",
+            "message": "live user lookup failed",
+            "details": {},
+        }
+        code = error.get("code") or "command_failed"
+        message = error.get("message") or "live user lookup failed"
+        if code == "not_authenticated":
+            return "warn", (
+                "twitter-cli is installed but live user lookup is not authenticated. "
+                "Run agent-reach configure twitter-cookies \"auth_token=...; ct0=...\""
+            )
+        return "warn", f"twitter-cli is installed but live user lookup failed ({code}): {message}"
 
 
 def _twitter_runtime_env(config=None) -> dict[str, str]:

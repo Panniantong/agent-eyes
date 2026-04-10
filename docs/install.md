@@ -9,6 +9,8 @@ uv tool install .
 agent-reach install --env=auto
 ```
 
+This path installs the `agent-reach` CLI. If another Python project wants `AgentReachClient`, install Agent Reach into that project's Python environment separately.
+
 ## Preview mode
 
 Use preview mode when you want to inspect commands or consume the plan from another tool.

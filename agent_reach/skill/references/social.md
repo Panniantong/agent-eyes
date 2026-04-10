@@ -45,3 +45,11 @@ twitter search --from openai --has images --type photos -n 50 --json
 twitter search "gpt-5.4" -n 10
 twitter tweet "https://x.com/openai/status/123"
 ```
+
+For account analysis, prefer these in order:
+
+- `user` for profile metadata
+- `user_posts` for recent posts by a single account
+- `search` with `from:handle`, `has:media`, and `type:photos` when you want media-heavy subsets
+
+Plain free-text `search "OpenAI"` may return related discussion rather than only `@OpenAI` posts.

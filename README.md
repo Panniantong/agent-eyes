@@ -1,6 +1,6 @@
 # Agent Reach
 
-Windows-first research integration tooling with a stable Python SDK and JSON CLI for downstream projects.
+Windows-first research integration tooling with a stable JSON CLI and an optional Python SDK for downstream projects.
 
 Agent Reach is intentionally narrow. It is designed to help other tools collect information safely and predictably, not to own scheduling, ranking, summarization, or posting. In practice this fork does four jobs:
 
@@ -28,6 +28,8 @@ uv tool install .
 agent-reach install --env=auto
 ```
 
+This install path guarantees the `agent-reach` CLI. It does not make `import agent_reach` available to arbitrary Python environments.
+
 Preview the Windows commands without changing anything:
 
 ```powershell
@@ -44,17 +46,6 @@ agent-reach configure twitter-cookies "auth_token=...; ct0=..."
 
 ## Public surfaces
 
-Python SDK:
-
-```python
-from agent_reach import AgentReachClient
-
-client = AgentReachClient()
-result = client.github.read("openai/openai-python")
-print(result["items"][0]["title"])
-print(client.qiita.search("python user:Qiita", limit=3)["items"][0]["url"])
-```
-
 CLI JSON:
 
 ```powershell
@@ -64,6 +55,21 @@ agent-reach collect --channel bluesky --operation search --input "OpenAI" --limi
 agent-reach collect --channel hatena_bookmark --operation read --input "https://example.com" --limit 5 --json
 agent-reach collect --channel qiita --operation search --input "python user:Qiita" --limit 3 --json
 agent-reach collect --channel twitter --operation user_posts --input "openai" --limit 10 --json
+```
+
+Python SDK, when Agent Reach is installed into the caller Python environment:
+
+```powershell
+uv pip install -e .
+```
+
+```python
+from agent_reach import AgentReachClient
+
+client = AgentReachClient()
+result = client.github.read("openai/openai-python")
+print(result["items"][0]["title"])
+print(client.qiita.search("python user:Qiita", limit=3)["items"][0]["url"])
 ```
 
 Discovery and diagnostics:
@@ -80,8 +86,8 @@ These are the supported machine-readable entry points for external projects. The
 
 ## Typical downstream use
 
-- Python apps and Discord bots call `AgentReachClient`
-- GitHub Actions and other non-Python jobs call `agent-reach collect --json`
+- GitHub Actions and other arbitrary projects call `agent-reach collect --json`
+- Python apps and Discord bots call `AgentReachClient` after adding Agent Reach to the host Python environment
 - setup tooling calls `agent-reach channels --json`, `doctor --json`, and `export-integration`
 
 Agent Reach normalizes results into `items`, keeps the backend-native payload in `raw`, and never prompts interactively during collection.
@@ -112,4 +118,4 @@ This repo ships integration-oriented artifacts directly:
 - `.mcp.json`
 - `agent_reach/skill/`
 
-These artifacts exist to make downstream composition easier. Scheduling, message formatting, and publishing remain responsibilities of the host project.
+These artifacts exist to make downstream composition easier. In source checkouts they are available as repo files. In tool installs, `export-integration` falls back to inline payloads and suggested destinations instead of returning dead paths. Scheduling, message formatting, and publishing remain responsibilities of the host project.

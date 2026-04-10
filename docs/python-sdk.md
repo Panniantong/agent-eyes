@@ -1,17 +1,27 @@
 # Agent Reach Python SDK
 
-`AgentReachClient` is the first-class external API for Python projects.
+`AgentReachClient` is the Python API for projects that install Agent Reach into their own Python environment.
 
 ## Install
+
+CLI-only installs:
 
 ```powershell
 uv tool install .
 ```
 
-Or from a checkout used directly by another Python project:
+This gives you the `agent-reach` CLI, but it does not expose `import agent_reach` to arbitrary project Pythons.
+
+SDK installs for a caller-managed Python environment:
 
 ```powershell
 uv pip install -e .
+```
+
+Or install a built wheel into the host project:
+
+```powershell
+uv pip install C:\path\to\dist\agent_reach-<version>-py3-none-any.whl
 ```
 
 ## Basic usage
@@ -29,6 +39,8 @@ bluesky_results = client.bluesky.search("OpenAI", limit=3)
 hatena_reactions = client.hatena_bookmark.read("https://example.com", limit=5)
 twitter_posts = client.twitter.user_posts("openai", limit=5)
 ```
+
+If your host project only needs a machine-readable subprocess interface, prefer `agent-reach collect --json` instead.
 
 ## Result shape
 
@@ -92,3 +104,9 @@ Useful environment variables:
 - `GITHUB_TOKEN`
 - `TWITTER_AUTH_TOKEN`
 - `TWITTER_CT0`
+
+## Choosing CLI vs SDK
+
+- Use `agent-reach collect --json` when the host project can shell out and wants the most portable integration surface.
+- Use `AgentReachClient` when the host project already manages a Python environment and can install Agent Reach into it.
+- Do not assume `uv tool install .` makes `from agent_reach import AgentReachClient` available in unrelated projects.

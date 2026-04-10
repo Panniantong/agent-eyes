@@ -232,7 +232,9 @@ def _build_install_plan_payload(
     dry_run: bool = False,
     safe: bool = False,
 ) -> dict:
-    repo_root = Path(__file__).resolve().parent.parent
+    from agent_reach.integrations.codex import export_codex_integration
+
+    integration = export_codex_integration()
     mode = "dry-run" if dry_run else "safe"
     return {
         "schema_version": SCHEMA_VERSION,
@@ -245,8 +247,12 @@ def _build_install_plan_payload(
         "optional_channels_requested": list(requested_channels),
         "commands": _manual_install_commands(requested_channels),
         "skill_targets": [str(root / "agent-reach") for root in _candidate_skill_roots()],
-        "plugin_manifest": str(repo_root / ".codex-plugin" / "plugin.json"),
-        "mcp_config": str(repo_root / ".mcp.json"),
+        "execution_context": integration["execution_context"],
+        "plugin_manifest": integration["plugin_manifest"],
+        "plugin_manifest_inline": integration["plugin_manifest_inline"],
+        "mcp_config": integration["mcp_config"],
+        "mcp_config_inline": integration["mcp_config_inline"],
+        "suggested_destinations": integration["suggested_destinations"],
         "safe": safe,
         "dry_run": dry_run,
     }

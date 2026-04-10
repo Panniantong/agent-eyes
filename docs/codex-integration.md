@@ -8,7 +8,7 @@ Agent Reach is a Windows-first integration layer for research tooling. It now ex
 - readiness diagnostics through `agent-reach doctor --json`
 - a thin read-only collector through `agent-reach collect --json`
 - a non-mutating Codex export through `agent-reach export-integration --client codex`
-- repo-local Codex artifacts through `.codex-plugin/plugin.json` and `.mcp.json`
+- repo-local Codex artifacts through `.codex-plugin/plugin.json` and `.mcp.json` when running from a source checkout
 
 ## Recommended flow
 
@@ -25,6 +25,14 @@ agent-reach export-integration --client codex --format json
 - MCP config snippet: `.mcp.json`
 - Bundled skill source: `agent_reach/skill`
 - Python SDK docs: `docs/python-sdk.md`
+
+When `agent-reach` is running from a tool install instead of a source checkout, `export-integration` will not point at nonexistent repo-root files. In that mode it returns:
+
+- `execution_context: tool_install`
+- `plugin_manifest` / `mcp_config` as `null`
+- inline payloads for the plugin manifest and MCP config
+- suggested write locations for downstream projects
+- a documentation summary instead of dead doc paths
 
 ## Supported channels
 

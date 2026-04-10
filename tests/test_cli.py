@@ -51,6 +51,9 @@ class TestCLI:
         assert payload["mode"] == "dry-run"
         assert payload["optional_channels_requested"] == ["twitter"]
         assert "FIX-YTDLP" in payload["commands"]
+        assert payload["execution_context"] == "checkout"
+        assert payload["plugin_manifest"] is not None
+        assert payload["mcp_config"] is not None
 
     def test_install_parses_all_as_twitter(self, monkeypatch):
         calls = []
@@ -227,7 +230,9 @@ class TestCLI:
         assert main(["export-integration", "--client", "codex", "--format", "json"]) == 0
         payload = json.loads(capsys.readouterr().out)
         assert payload["client"] == "codex"
+        assert payload["execution_context"] == "checkout"
         assert payload["mcp_snippet"]["mcpServers"]["exa"]["url"] == "https://mcp.exa.ai/mcp"
+        assert payload["python_sdk"]["availability"] == "project_env_only"
 
     def test_check_update_json(self, capsys, monkeypatch):
         monkeypatch.setattr(

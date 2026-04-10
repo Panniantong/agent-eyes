@@ -77,3 +77,60 @@ def test_check_passes_config_credentials_into_status(tmp_path):
     assert captured["env"]["CT0"] == "ct0-token"
     assert captured["env"]["PYTHONIOENCODING"] == "utf-8"
     assert captured["env"]["PYTHONUTF8"] == "1"
+
+
+def test_probe_uses_live_user_lookup():
+    channel = TwitterChannel()
+    with patch(
+        "agent_reach.channels.twitter.find_command",
+        return_value="/usr/local/bin/twitter",
+    ), patch(
+        "shutil.which",
+        return_value="/usr/local/bin/twitter",
+    ), patch(
+        "agent_reach.channels.twitter.TwitterAdapter.user",
+        return_value={
+            "ok": True,
+            "channel": "twitter",
+            "operation": "user",
+            "items": [{"id": "1"}],
+            "raw": {"ok": True},
+            "meta": {"count": 1},
+            "error": None,
+        },
+    ) as mocked_user:
+        status, message = channel.probe()
+
+    assert status == "ok"
+    assert "Live user lookup" in message
+    mocked_user.assert_called_once_with("openai")
+
+
+def test_probe_reports_not_authenticated_from_live_lookup():
+    channel = TwitterChannel()
+    with patch(
+        "agent_reach.channels.twitter.find_command",
+        return_value="/usr/local/bin/twitter",
+    ), patch(
+        "shutil.which",
+        return_value="/usr/local/bin/twitter",
+    ), patch(
+        "agent_reach.channels.twitter.TwitterAdapter.user",
+        return_value={
+            "ok": False,
+            "channel": "twitter",
+            "operation": "user",
+            "items": [],
+            "raw": None,
+            "meta": {"count": 0},
+            "error": {
+                "code": "not_authenticated",
+                "message": "Twitter user command did not complete cleanly",
+                "details": {},
+            },
+        },
+    ):
+        status, message = channel.probe()
+
+    assert status == "warn"
+    assert "live user lookup is not authenticated" in message

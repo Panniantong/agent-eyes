@@ -245,6 +245,17 @@ def test_bluesky_adapter_success(config, monkeypatch):
                         "bookmarkCount": 4,
                         "indexedAt": "2026-04-10T00:00:01Z",
                         "labels": [],
+                        "embed": {
+                            "$type": "app.bsky.embed.images#view",
+                            "images": [
+                                {
+                                    "fullsize": "https://cdn.bsky.app/img/feed_fullsize/plain/image-1.jpg",
+                                    "thumb": "https://cdn.bsky.app/img/feed_thumbnail/plain/image-1.jpg",
+                                    "alt": "Example image",
+                                    "aspectRatio": {"width": 4, "height": 3},
+                                }
+                            ],
+                        },
                     }
                 ]
             }
@@ -265,6 +276,56 @@ def test_bluesky_adapter_success(config, monkeypatch):
     assert payload["ok"] is True
     assert payload["items"][0]["author"] == "openai.com"
     assert payload["meta"]["api_base_url"] == "https://api.bsky.app"
+    assert payload["meta"]["fallback_used"] is True
+    assert payload["items"][0]["extras"]["media"][0]["type"] == "image"
+    assert payload["items"][0]["extras"]["media"][0]["aspect_ratio"] == {"width": 4, "height": 3}
+
+
+def test_bluesky_adapter_normalizes_nested_video_embed(config, monkeypatch):
+    class ApiResponse:
+        status_code = 200
+        text = '{"posts":[]}'
+
+        @staticmethod
+        def json():
+            return {
+                "posts": [
+                    {
+                        "uri": "at://did:plc:abc/app.bsky.feed.post/3abc",
+                        "cid": "cid-1",
+                        "author": {"handle": "openai.com", "displayName": "OpenAI"},
+                        "record": {
+                            "text": "Video post",
+                            "createdAt": "2026-04-10T00:00:00Z",
+                        },
+                        "embed": {
+                            "$type": "app.bsky.embed.recordWithMedia#view",
+                            "media": {
+                                "$type": "app.bsky.embed.video#view",
+                                "playlist": "https://video.bsky.app/playlist.m3u8",
+                                "thumbnail": "https://video.bsky.app/thumb.jpg",
+                                "alt": "Video alt",
+                                "aspectRatio": {"width": 9, "height": 16},
+                            },
+                        },
+                    }
+                ]
+            }
+
+    class FakeRequests:
+        RequestException = RuntimeError
+
+        @staticmethod
+        def get(url, headers=None, timeout=None):
+            return ApiResponse()
+
+    monkeypatch.setattr("agent_reach.adapters.bluesky._import_requests", lambda: FakeRequests)
+
+    payload = BlueskyAdapter(config=config).search("OpenAI", limit=1)
+
+    assert payload["ok"] is True
+    assert payload["items"][0]["extras"]["media"][0]["type"] == "video"
+    assert payload["items"][0]["extras"]["media"][0]["playlist_url"] == "https://video.bsky.app/playlist.m3u8"
 
 
 def test_qiita_adapter_success(config, monkeypatch):
