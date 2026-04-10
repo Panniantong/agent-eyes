@@ -41,8 +41,9 @@ class Crawl4AIChannel(Channel):
     ]
     supports_probe = False
     install_hints = [
-        "Install the optional extra with pip install -e .[crawl4ai].",
+        "Install agent-reach[crawl4ai] into the project environment that needs browser-backed reads.",
         "Install a browser runtime with python -m playwright install chromium.",
+        "For checkout development, use uv pip install -e .[crawl4ai].",
     ]
 
     def can_handle(self, url: str) -> bool:
@@ -55,6 +56,6 @@ class Crawl4AIChannel(Channel):
         except ImportError:
             return (
                 "off",
-                "crawl4ai is not installed. Install the optional extra with pip install -e .[crawl4ai]",
+                "crawl4ai is not installed. Install agent-reach[crawl4ai] into the environment that needs browser-backed reads, then run python -m playwright install chromium.",
             )
         return "ok", "crawl4ai Python package is available; browser runtime is validated at collection time"

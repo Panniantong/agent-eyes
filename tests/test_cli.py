@@ -110,11 +110,43 @@ class TestCLI:
                 }
             },
         )
-        monkeypatch.setattr("agent_reach.doctor.doctor_exit_code", lambda _results: 0)
         assert main(["doctor", "--json"]) == 0
         payload = json.loads(capsys.readouterr().out)
         assert payload["summary"]["ready"] == 1
+        assert payload["summary"]["exit_policy"] == "core"
+        assert payload["summary"]["exit_code"] == 0
         assert payload["channels"][0]["name"] == "web"
+
+    def test_doctor_exit_policy_all_preserves_strict_optional_readiness(self, capsys, monkeypatch):
+        monkeypatch.setattr(
+            "agent_reach.doctor.check_all",
+            lambda _config, probe=False: {
+                "web": {
+                    "name": "web",
+                    "description": "Any web page",
+                    "status": "ok",
+                    "message": "ready",
+                    "tier": 0,
+                },
+                "crawl4ai": {
+                    "name": "crawl4ai",
+                    "description": "Crawl4AI",
+                    "status": "off",
+                    "message": "missing extra",
+                    "tier": 2,
+                },
+            },
+        )
+
+        assert main(["doctor", "--json"]) == 0
+        default_payload = json.loads(capsys.readouterr().out)
+        assert default_payload["summary"]["exit_policy"] == "core"
+        assert default_payload["summary"]["advisory_not_ready"] == ["crawl4ai"]
+
+        assert main(["doctor", "--json", "--exit-policy", "all"]) == 1
+        strict_payload = json.loads(capsys.readouterr().out)
+        assert strict_payload["summary"]["exit_policy"] == "all"
+        assert strict_payload["summary"]["blocking_not_ready"] == ["crawl4ai"]
 
     def test_collect_json_success(self, capsys, monkeypatch):
         class _FakeClient:
@@ -672,7 +704,7 @@ class TestCLI:
             "input": "https://example.com/post/",
             "result": result,
         }
-        ledger_path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+        ledger_path.write_text(json.dumps(record) + "\n", encoding="utf-8-sig")
 
         assert (
             main(
@@ -1276,6 +1308,117 @@ class TestCLI:
         assert payload["files_merged"] == 2
         assert payload["records_written"] == 2
         assert len(output_path.read_text(encoding="utf-8").splitlines()) == 2
+
+    def test_ledger_validate_command_reports_valid_ledger(self, capsys, tmp_path):
+        ledger_path = tmp_path / "evidence.jsonl"
+        result = {
+            "ok": True,
+            "channel": "web",
+            "operation": "read",
+            "items": [{"id": "1", "url": "https://example.com", "text": "hello"}],
+            "raw": None,
+            "meta": {"input": "https://example.com", "count": 1},
+            "error": None,
+        }
+        record = {
+            "record_type": "collection_result",
+            "run_id": "run-1",
+            "channel": "web",
+            "operation": "read",
+            "result": result,
+        }
+        ledger_path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+        assert main(["ledger", "validate", "--input", str(ledger_path), "--json"]) == 0
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["command"] == "ledger validate"
+        assert payload["valid"] is True
+        assert payload["collection_results"] == 1
+        assert payload["items_seen"] == 1
+
+    def test_ledger_validate_command_returns_exit_1_for_invalid_records(self, capsys, tmp_path):
+        ledger_path = tmp_path / "evidence.jsonl"
+        ledger_path.write_text('{"record_type":"collection_result"}\nnot-json\n', encoding="utf-8")
+
+        assert main(["ledger", "validate", "--input", str(ledger_path), "--json"]) == 1
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["valid"] is False
+        assert payload["invalid_lines"] == 1
+        assert payload["invalid_records"] == 1
+
+    def test_ledger_validate_missing_input_returns_exit_2(self, capsys, tmp_path):
+        missing_path = tmp_path / "missing.jsonl"
+
+        assert main(["ledger", "validate", "--input", str(missing_path), "--json"]) == 2
+        captured = capsys.readouterr()
+        assert captured.out == ""
+        assert "Could not validate ledger" in captured.err
+
+    def test_ledger_append_command_writes_collection_result(self, capsys, tmp_path):
+        result_path = tmp_path / "result.json"
+        ledger_path = tmp_path / "evidence.jsonl"
+        result = {
+            "ok": True,
+            "channel": "twitter",
+            "operation": "search",
+            "items": [{"id": "tweet-1", "url": "https://x.com/openai/status/1"}],
+            "raw": None,
+            "meta": {"input": "OpenAI", "count": 1},
+            "error": None,
+        }
+        result_path.write_text(json.dumps(result), encoding="utf-8-sig")
+
+        assert (
+            main(
+                [
+                    "ledger",
+                    "append",
+                    "--input",
+                    str(result_path),
+                    "--output",
+                    str(ledger_path),
+                    "--run-id",
+                    "run-from-append",
+                    "--intent",
+                    "external_mixed",
+                    "--query-id",
+                    "twitter-openai",
+                    "--source-role",
+                    "social_discovery",
+                    "--json",
+                ]
+            )
+            == 0
+        )
+        payload = json.loads(capsys.readouterr().out)
+        record = json.loads(ledger_path.read_text(encoding="utf-8"))
+        assert payload["command"] == "ledger append"
+        assert payload["run_id"] == "run-from-append"
+        assert record["query_id"] == "twitter-openai"
+        assert record["result"] == result
+
+    def test_ledger_append_invalid_json_returns_exit_1(self, capsys, tmp_path):
+        result_path = tmp_path / "result.json"
+        ledger_path = tmp_path / "evidence.jsonl"
+        result_path.write_text('{"ok": true}', encoding="utf-8")
+
+        assert (
+            main(
+                [
+                    "ledger",
+                    "append",
+                    "--input",
+                    str(result_path),
+                    "--output",
+                    str(ledger_path),
+                    "--json",
+                ]
+            )
+            == 1
+        )
+        captured = capsys.readouterr()
+        assert captured.out == ""
+        assert "CollectionResult" in captured.err
 
     def test_channels_json(self, capsys):
         assert main(["channels", "github", "--json"]) == 0

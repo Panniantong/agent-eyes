@@ -171,7 +171,7 @@ def _read_collection_records(path: Path) -> tuple[list[dict[str, Any]], int]:
     records: list[dict[str, Any]] = []
     skipped_records = 0
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()
+        lines = path.read_text(encoding="utf-8-sig").splitlines()
     except OSError as exc:
         raise CandidatePlanError(f"Could not read evidence input: {exc}") from exc
 

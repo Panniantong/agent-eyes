@@ -33,6 +33,24 @@ _LIST_ENDPOINTS = {
     "job": "jobstories",
 }
 _HN_ITEM_RE = re.compile(r"(?:news\.ycombinator\.com/item\?id=|^item[:/])(?P<id>\d+)", re.I)
+_MOJIBAKE_MARKERS = (
+    "ã",
+    "Â",
+    "�",
+    "遯",
+    "荳",
+    "縺",
+    "譁",
+    "繧",
+    "螟",
+    "蜿",
+    "æ",
+    "ð",
+    "œ",
+    "ž",
+    "€",
+    "™",
+)
 
 
 def _import_requests():
@@ -55,6 +73,37 @@ def _strip_html(value: object) -> str | None:
     text = re.sub(r"<[^>]+>", "", text)
     text = html.unescape(text).strip()
     return text or None
+
+
+def _mojibake_score(value: str) -> int:
+    return sum(value.count(marker) for marker in _MOJIBAKE_MARKERS)
+
+
+def _repair_mojibake(value: object) -> tuple[str | None, bool]:
+    if value is None:
+        return None, False
+    text = str(value)
+    if not text:
+        return None, False
+    original_score = _mojibake_score(text)
+    if original_score == 0:
+        return text, False
+
+    best = text
+    best_score = original_score
+    for encoding in ("cp932", "shift_jis", "cp1252", "latin1"):
+        try:
+            candidate = text.encode(encoding).decode("utf-8")
+        except UnicodeError:
+            continue
+        score = _mojibake_score(candidate)
+        if score < best_score:
+            best = candidate
+            best_score = score
+
+    if best != text and best_score + 1 < original_score:
+        return best, True
+    return text, False
 
 
 def _normalize_item_id(value: str) -> str:
@@ -84,50 +133,75 @@ def _item_url(item_id: object) -> str | None:
 def _firebase_item(raw: dict, idx: int, *, source: str) -> NormalizedItem:
     item_id = str(raw.get("id") or f"hacker-news-{idx}")
     published_at = parse_timestamp(raw.get("time"))
+    title, title_repaired = _repair_mojibake(raw.get("title") or f"Hacker News item {item_id}")
+    text, text_repaired = _repair_mojibake(_strip_html(raw.get("text")))
+    extras = {
+        "hn_url": _item_url(item_id),
+        "type": raw.get("type"),
+        "score": raw.get("score"),
+        "descendants": raw.get("descendants"),
+        "parent": raw.get("parent"),
+        "kids": raw.get("kids") or [],
+        "deleted": raw.get("deleted"),
+        "dead": raw.get("dead"),
+        "source_hints": forum_post_source_hints(published_at),
+    }
+    if title_repaired or text_repaired:
+        extras["text_normalization"] = {
+            "mojibake_repaired": True,
+            "fields": [
+                field
+                for field, repaired in (("title", title_repaired), ("text", text_repaired))
+                if repaired
+            ],
+        }
     return build_item(
         item_id=item_id,
         kind=f"hacker_news_{raw.get('type') or 'item'}",
-        title=raw.get("title") or f"Hacker News item {item_id}",
+        title=title,
         url=raw.get("url") or _item_url(item_id),
-        text=_strip_html(raw.get("text")),
+        text=text,
         author=raw.get("by"),
         published_at=published_at,
         source=source,
-        extras={
-            "hn_url": _item_url(item_id),
-            "type": raw.get("type"),
-            "score": raw.get("score"),
-            "descendants": raw.get("descendants"),
-            "parent": raw.get("parent"),
-            "kids": raw.get("kids") or [],
-            "deleted": raw.get("deleted"),
-            "dead": raw.get("dead"),
-            "source_hints": forum_post_source_hints(published_at),
-        },
+        extras=extras,
     )
 
 
 def _algolia_item(hit: dict, idx: int, *, source: str) -> NormalizedItem:
     item_id = str(hit.get("objectID") or hit.get("story_id") or f"hn-search-{idx}")
     published_at = parse_timestamp(hit.get("created_at") or hit.get("created_at_i"))
-    title = hit.get("title") or hit.get("story_title") or f"Hacker News item {item_id}"
+    title, title_repaired = _repair_mojibake(
+        hit.get("title") or hit.get("story_title") or f"Hacker News item {item_id}"
+    )
+    text, text_repaired = _repair_mojibake(_strip_html(hit.get("story_text") or hit.get("comment_text")))
+    extras = {
+        "hn_url": _item_url(item_id),
+        "points": hit.get("points"),
+        "num_comments": hit.get("num_comments"),
+        "story_id": hit.get("story_id"),
+        "tags": hit.get("_tags") or [],
+        "source_hints": search_result_source_hints(published_at),
+    }
+    if title_repaired or text_repaired:
+        extras["text_normalization"] = {
+            "mojibake_repaired": True,
+            "fields": [
+                field
+                for field, repaired in (("title", title_repaired), ("text", text_repaired))
+                if repaired
+            ],
+        }
     return build_item(
         item_id=item_id,
         kind="hacker_news_search_result",
         title=title,
         url=hit.get("url") or hit.get("story_url") or _item_url(item_id),
-        text=_strip_html(hit.get("story_text") or hit.get("comment_text")),
+        text=text,
         author=hit.get("author"),
         published_at=published_at,
         source=source,
-        extras={
-            "hn_url": _item_url(item_id),
-            "points": hit.get("points"),
-            "num_comments": hit.get("num_comments"),
-            "story_id": hit.get("story_id"),
-            "tags": hit.get("_tags") or [],
-            "source_hints": search_result_source_hints(published_at),
-        },
+        extras=extras,
     )
 
 

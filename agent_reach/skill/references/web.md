@@ -17,6 +17,8 @@ Prefer `web` over bespoke scraping for documentation, release notes, blog posts,
 Use Crawl4AI only when the caller needs browser-backed extraction and the optional dependency plus browser runtime are installed:
 
 ```powershell
+uv pip install "agent-reach[crawl4ai] @ git+https://github.com/iwachacha/Agent-Reach.git"
+python -m playwright install chromium
 agent-reach collect --channel crawl4ai --operation read --input "https://example.com" --json
 agent-reach collect --channel crawl4ai --operation crawl --input "https://example.com" --query "pricing and faq" --limit 10 --json
 ```

@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any, Iterable, TypedDict
+from typing import Any, Iterable, TypedDict, cast
 
 from agent_reach.results import CollectionResult
 from agent_reach.schemas import SCHEMA_VERSION, utc_timestamp
@@ -35,6 +35,8 @@ class EvidenceLedgerRecord(TypedDict):
 
 _LEDGER_GLOB = "*.jsonl"
 _SHARD_CHOICES = {"channel", "operation", "channel-operation"}
+_LARGE_TEXT_CHARS = 10_000
+_DIAGNOSTIC_LIMIT = 50
 
 
 def default_run_id() -> str:
@@ -150,7 +152,7 @@ def iter_ledger_records(path: str | Path, *, allow_missing: bool = False) -> Ite
     """Yield parsed JSON records from one ledger file or a ledger directory."""
 
     for ledger_path in ledger_input_paths(path, allow_missing=allow_missing):
-        for line in ledger_path.read_text(encoding="utf-8").splitlines():
+        for line in ledger_path.read_text(encoding="utf-8-sig").splitlines():
             if not line.strip():
                 continue
             try:
@@ -232,7 +234,7 @@ def merge_ledger_inputs(
     records_written = 0
     with destination.open("w", encoding="utf-8", newline="\n") as handle:
         for ledger_path in inputs:
-            for line in ledger_path.read_text(encoding="utf-8").splitlines():
+            for line in ledger_path.read_text(encoding="utf-8-sig").splitlines():
                 if not line.strip():
                     continue
                 handle.write(line.rstrip("\n"))
@@ -249,6 +251,169 @@ def merge_ledger_inputs(
         "records_written": records_written,
         "inputs": [str(path) for path in inputs],
     }
+
+
+def validate_ledger_input(input_path: str | Path) -> dict[str, Any]:
+    """Validate one evidence ledger file or a directory of ledger shards."""
+
+    source = Path(input_path)
+    inputs = ledger_input_paths(source)
+    records = 0
+    collection_results = 0
+    items_seen = 0
+    empty_lines = 0
+    invalid_line_count = 0
+    invalid_record_count = 0
+    invalid_lines: list[dict[str, Any]] = []
+    invalid_records: list[dict[str, Any]] = []
+    large_text_fields: list[dict[str, Any]] = []
+
+    for ledger_path in inputs:
+        for line_number, line in enumerate(ledger_path.read_text(encoding="utf-8-sig").splitlines(), start=1):
+            if not line.strip():
+                empty_lines += 1
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError as exc:
+                invalid_line_count += 1
+                if len(invalid_lines) < _DIAGNOSTIC_LIMIT:
+                    invalid_lines.append(
+                        {
+                            "file": str(ledger_path),
+                            "line": line_number,
+                            "error": exc.msg,
+                        }
+                    )
+                continue
+            records += 1
+            if not isinstance(record, dict):
+                invalid_record_count += 1
+                if len(invalid_records) < _DIAGNOSTIC_LIMIT:
+                    invalid_records.append(
+                        {
+                            "file": str(ledger_path),
+                            "line": line_number,
+                            "error": "record must be a JSON object",
+                        }
+                    )
+                continue
+            result_payload = record.get("result")
+            if record.get("record_type") != "collection_result" or not _is_collection_result(result_payload):
+                invalid_record_count += 1
+                if len(invalid_records) < _DIAGNOSTIC_LIMIT:
+                    invalid_records.append(
+                        {
+                            "file": str(ledger_path),
+                            "line": line_number,
+                            "error": "record must be a collection_result with a valid result envelope",
+                        }
+                    )
+                continue
+            result = cast(dict[str, Any], result_payload)
+            collection_results += 1
+            items = result.get("items") or []
+            items_seen += len(items)
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                text = item.get("text")
+                if isinstance(text, str) and len(text) > _LARGE_TEXT_CHARS:
+                    large_text_fields.append(
+                        {
+                            "file": str(ledger_path),
+                            "line": line_number,
+                            "item_id": item.get("id"),
+                            "text_length": len(text),
+                        }
+                    )
+
+    valid = invalid_line_count == 0 and invalid_record_count == 0
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": utc_timestamp(),
+        "command": "ledger validate",
+        "input": str(source),
+        "valid": valid,
+        "files_checked": len(inputs),
+        "records": records,
+        "collection_results": collection_results,
+        "items_seen": items_seen,
+        "empty_lines": empty_lines,
+        "invalid_lines": invalid_line_count,
+        "invalid_line_samples": invalid_lines,
+        "invalid_records": invalid_record_count,
+        "invalid_record_samples": invalid_records,
+        "large_text_threshold": _LARGE_TEXT_CHARS,
+        "large_text_fields": large_text_fields,
+    }
+
+
+def append_result_json(
+    input_path: str | Path,
+    output_path: str | Path,
+    *,
+    run_id: str,
+    intent: str | None = None,
+    query_id: str | None = None,
+    source_role: str | None = None,
+) -> dict[str, Any]:
+    """Append an already-saved CollectionResult JSON file to an evidence ledger."""
+
+    source = Path(input_path)
+    if not source.exists() or not source.is_file():
+        raise FileNotFoundError(f"CollectionResult input does not exist: {source}")
+    try:
+        payload = json.loads(source.read_text(encoding="utf-8-sig"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"CollectionResult input is not valid JSON: {exc.msg}") from exc
+    if not _is_collection_result(payload):
+        raise ValueError("Input JSON must be a CollectionResult envelope")
+
+    record = save_collection_result(
+        output_path,
+        payload,
+        run_id=run_id,
+        intent=intent,
+        query_id=query_id,
+        source_role=source_role,
+    )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": utc_timestamp(),
+        "command": "ledger append",
+        "input": str(source),
+        "output": str(output_path),
+        "record_type": record["record_type"],
+        "run_id": record["run_id"],
+        "channel": record["channel"],
+        "operation": record["operation"],
+        "ok": record["ok"],
+        "count": record["count"],
+        "item_ids": record["item_ids"],
+        "urls": record["urls"],
+        "intent": record["intent"],
+        "query_id": record["query_id"],
+        "source_role": record["source_role"],
+    }
+
+
+def _is_collection_result(value: object) -> bool:
+    if not isinstance(value, dict):
+        return False
+    if not isinstance(value.get("channel"), str):
+        return False
+    if not isinstance(value.get("operation"), str):
+        return False
+    if not isinstance(value.get("ok"), bool):
+        return False
+    if not isinstance(value.get("items"), list):
+        return False
+    if not isinstance(value.get("meta"), dict):
+        return False
+    if "error" not in value:
+        return False
+    return True
 
 
 def _ensure_parent_dir(path: Path) -> None:

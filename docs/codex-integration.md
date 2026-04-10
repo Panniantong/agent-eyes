@@ -7,6 +7,7 @@ Agent Reach is a Windows-first integration layer for research tooling. It now ex
 - a stable channel registry through `agent-reach channels --json`
 - readiness diagnostics through `agent-reach doctor --json`, including `operation_statuses` for downstream routing
 - a thin read-only collector through `agent-reach collect --json`
+- ledger validation and append helpers through `agent-reach ledger validate --json` and `agent-reach ledger append --json`
 - a non-mutating Codex export through `agent-reach export-integration --client codex`
 - repo-local Codex artifacts through `.codex-plugin/plugin.json` and `.mcp.json` when running from a source checkout
 
@@ -14,10 +15,13 @@ Agent Reach is a Windows-first integration layer for research tooling. It now ex
 
 ```powershell
 agent-reach channels --json
+agent-reach doctor --json
 agent-reach doctor --json --probe
 agent-reach collect --channel github --operation read --input "openai/openai-python" --json
 agent-reach export-integration --client codex --format json
 ```
+
+`doctor --json` defaults to `--exit-policy core`: tier 0 channel failures affect the exit code, while optional gaps are reported under `summary.advisory_not_ready`. Use `--exit-policy all` for strict all-channel readiness.
 
 ## No-Copy External Project Mode
 
@@ -68,4 +72,4 @@ When `agent-reach` is running from a tool install instead of a source checkout, 
 - `reddit` (optional `rdt-cli`, no Reddit OAuth config)
 - `twitter` (optional)
 
-These channels are exposed as metadata, setup guidance, diagnostics, and read-only collection operations so downstream tools can wire their own workflows without scraping repo docs.
+These channels are exposed as metadata, setup guidance, diagnostics, and read-only collection operations so downstream tools can wire their own workflows without scraping repo docs. YouTube returns video metadata, subtitle/caption availability, and thumbnail references; Agent Reach does not perform media binary analysis.

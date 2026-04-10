@@ -55,6 +55,10 @@ def _remote_urls(server: dict) -> list[str]:
     return urls
 
 
+def _entry_name(entry: dict) -> str:
+    return str(_server(entry).get("name") or "")
+
+
 def _published_at(entry: dict) -> str | None:
     official = _official_meta(entry)
     return parse_timestamp(
@@ -70,7 +74,27 @@ def _registry_url(name: str, version: str | None = None) -> str:
     return f"{_BASE_URL}/v0.1/servers/{quote(name, safe='')}/versions/{quote(version_text, safe='')}"
 
 
-def _entry_item(entry: dict, idx: int, *, source: str) -> NormalizedItem:
+def _version_summary(entry: dict) -> dict:
+    server = _server(entry)
+    official = _official_meta(entry)
+    name = str(server.get("name") or "")
+    version = str(server.get("version") or "latest")
+    return {
+        "version": server.get("version"),
+        "registry_url": _registry_url(name, version) if name else None,
+        "published_at": _published_at(entry),
+        "registry_updated_at": parse_timestamp(official.get("updatedAt") or official.get("updated_at")),
+        "is_latest": official.get("isLatest"),
+    }
+
+
+def _entry_item(
+    entry: dict,
+    idx: int,
+    *,
+    source: str,
+    alternate_versions: list[dict] | None = None,
+) -> NormalizedItem:
     server = _server(entry)
     official = _official_meta(entry)
     name = str(server.get("name") or f"mcp-server-{idx}")
@@ -78,6 +102,23 @@ def _entry_item(entry: dict, idx: int, *, source: str) -> NormalizedItem:
     raw_repository = server.get("repository")
     repository = raw_repository if isinstance(raw_repository, dict) else {}
     remotes = _remote_urls(server)
+    extras = {
+        "version": server.get("version"),
+        "registry_url": _registry_url(name, str(server.get("version") or "latest")),
+        "repository_url": repository.get("url"),
+        "repository_source": repository.get("source"),
+        "website_url": server.get("websiteUrl") or server.get("website_url"),
+        "remotes": server.get("remotes") or [],
+        "registry_status": official.get("status"),
+        "registry_updated_at": parse_timestamp(official.get("updatedAt") or official.get("updated_at")),
+        "registry_status_changed_at": parse_timestamp(
+            official.get("statusChangedAt") or official.get("status_changed_at")
+        ),
+        "is_latest": official.get("isLatest"),
+        "source_hints": registry_entry_source_hints(published_at),
+    }
+    if alternate_versions:
+        extras["alternate_versions"] = alternate_versions
     return build_item(
         item_id=name,
         kind="mcp_server",
@@ -87,21 +128,7 @@ def _entry_item(entry: dict, idx: int, *, source: str) -> NormalizedItem:
         author=None,
         published_at=published_at,
         source=source,
-        extras={
-            "version": server.get("version"),
-            "registry_url": _registry_url(name, str(server.get("version") or "latest")),
-            "repository_url": repository.get("url"),
-            "repository_source": repository.get("source"),
-            "website_url": server.get("websiteUrl") or server.get("website_url"),
-            "remotes": server.get("remotes") or [],
-            "registry_status": official.get("status"),
-            "registry_updated_at": parse_timestamp(official.get("updatedAt") or official.get("updated_at")),
-            "registry_status_changed_at": parse_timestamp(
-                official.get("statusChangedAt") or official.get("status_changed_at")
-            ),
-            "is_latest": official.get("isLatest"),
-            "source_hints": registry_entry_source_hints(published_at),
-        },
+        extras=extras,
     )
 
 
@@ -125,6 +152,49 @@ def _matches_query(entry: dict, query: str) -> bool:
         return True
     haystack = _search_text(entry)
     return all(token in haystack for token in tokens)
+
+
+def _entry_recency(entry: dict) -> str:
+    official = _official_meta(entry)
+    return (
+        parse_timestamp(official.get("updatedAt") or official.get("updated_at"))
+        or _published_at(entry)
+        or ""
+    )
+
+
+def _prefer_entry(current: dict, candidate: dict) -> dict:
+    current_latest = _official_meta(current).get("isLatest") is True
+    candidate_latest = _official_meta(candidate).get("isLatest") is True
+    if candidate_latest and not current_latest:
+        return candidate
+    if current_latest and not candidate_latest:
+        return current
+    if _entry_recency(candidate) > _entry_recency(current):
+        return candidate
+    return current
+
+
+def _dedupe_entries_by_server_name(entries: list[dict]) -> tuple[list[tuple[dict, list[dict]]], int]:
+    selected: dict[str, dict] = {}
+    grouped: dict[str, list[dict]] = {}
+    order: list[str] = []
+    for idx, entry in enumerate(entries):
+        name = _entry_name(entry) or f"mcp-server-{idx}"
+        if name not in selected:
+            selected[name] = entry
+            grouped[name] = [entry]
+            order.append(name)
+            continue
+        grouped[name].append(entry)
+        selected[name] = _prefer_entry(selected[name], entry)
+
+    deduped: list[tuple[dict, list[dict]]] = []
+    for name in order:
+        chosen = selected[name]
+        alternates = [_version_summary(entry) for entry in grouped[name] if entry is not chosen]
+        deduped.append((chosen, alternates))
+    return deduped, len(entries) - len(deduped)
 
 
 def _parse_read_input(value: str) -> tuple[str, str]:
@@ -159,11 +229,12 @@ class MCPRegistryAdapter(BaseAdapter):
         started_at = time.perf_counter()
         requests = _import_requests()
         entries: list[dict] = []
+        unique_names: set[str] = set()
         raw_pages: list[dict] = []
         cursor = None
         pages_fetched = 0
 
-        while pages_fetched < _MAX_PAGES and len(entries) < limit:
+        while pages_fetched < _MAX_PAGES and len(unique_names) < limit:
             params = {"limit": _PAGE_SIZE}
             if cursor:
                 params["cursor"] = cursor
@@ -214,7 +285,9 @@ class MCPRegistryAdapter(BaseAdapter):
             for entry in page["servers"]:
                 if isinstance(entry, dict) and _matches_query(entry, query):
                     entries.append(entry)
-                    if len(entries) >= limit:
+                    name = _entry_name(entry) or f"mcp-server-{len(entries) - 1}"
+                    unique_names.add(name)
+                    if len(unique_names) >= limit:
                         break
             raw_metadata = page.get("metadata")
             metadata = raw_metadata if isinstance(raw_metadata, dict) else {}
@@ -222,7 +295,11 @@ class MCPRegistryAdapter(BaseAdapter):
             if not cursor:
                 break
 
-        items = [_entry_item(entry, idx, source=self.channel) for idx, entry in enumerate(entries[:limit])]
+        deduped_entries, duplicates_removed = _dedupe_entries_by_server_name(entries)
+        items = [
+            _entry_item(entry, idx, source=self.channel, alternate_versions=alternates)
+            for idx, (entry, alternates) in enumerate(deduped_entries[:limit])
+        ]
         return self.ok_result(
             "search",
             items=items,
@@ -234,6 +311,8 @@ class MCPRegistryAdapter(BaseAdapter):
                 base_url=_BASE_URL,
                 pages_scanned=pages_fetched,
                 scan_limit_pages=_MAX_PAGES,
+                dedupe_key="server_name",
+                duplicates_removed=duplicates_removed,
                 **build_pagination_meta(
                     limit=limit,
                     page_size=_PAGE_SIZE,

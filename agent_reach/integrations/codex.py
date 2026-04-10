@@ -187,8 +187,12 @@ def _documentation_summary() -> list[str]:
     return [
         "Use `agent-reach collect --json` as the primary external interface in arbitrary projects.",
         "Add `--save .agent-reach/evidence.jsonl` when a research run needs an auditable raw CollectionResult ledger.",
+        "Use `agent-reach ledger validate --input .agent-reach/evidence.jsonl --json` before treating saved evidence as a CI artifact.",
+        "Use `agent-reach ledger append --input RESULT.json --output .agent-reach/evidence.jsonl --json` to add a successful conditional collection captured without `--save`.",
         "Use `agent-reach plan candidates --input .agent-reach/evidence.jsonl --json` for no-model URL or ID dedupe before follow-up reads.",
+        "`doctor --json` defaults to core exit policy: tier 0 channels affect the exit code, while optional setup gaps are listed under `summary.advisory_not_ready`.",
         "Treat `extras.source_hints` and web extraction hygiene metadata as diagnostics only, not ranking or trust scores.",
+        "YouTube collection exposes video metadata, subtitle/caption availability, and thumbnail references, not video binary analysis.",
         "Use `agent-reach channels --json`, `doctor --json`, and `doctor --json --probe` for discovery and diagnostics.",
         "Tool installs expose the CLI. Import `AgentReachClient` only after installing Agent Reach into the caller Python environment.",
         "If `plugin_manifest` or `mcp_config` is null, write the inline payloads to the suggested destinations instead.",
@@ -224,6 +228,7 @@ def _external_project_usage() -> dict[str, Any]:
             "notes": [
                 "Use the composite action to install the CLI in the workflow without vendoring Agent Reach files.",
                 "Pin `uses` to a tag or commit for reproducible automation.",
+                "Install `agent-reach[crawl4ai]` plus `python -m playwright install chromium` in jobs that need browser-backed reads.",
                 "Keep scheduling, ranking, summarization, state, and Discord publishing in the downstream project.",
             ],
         },
@@ -235,6 +240,7 @@ def _external_project_usage() -> dict[str, Any]:
                 "Use `agent-reach plan candidates` when the bot or CI job wants a no-model dedupe pass before deeper reads.",
                 "Use source hints and web hygiene fields only as diagnostics; keep scoring and posting policy in the bot.",
                 "Treat optional channels as capability surfaces; gate them with `channels --json`, `doctor --json`, and `doctor --json --probe` when reliability matters.",
+                "Validate saved evidence with `agent-reach ledger validate --json` before downstream ingestion.",
             ],
         },
     }
@@ -251,6 +257,7 @@ def _codex_runtime_policy() -> dict[str, Any]:
         ),
         "decision_order": [
             "If readiness is unknown, run `agent-reach channels --json` and `agent-reach doctor --json` first.",
+            "Read `doctor.summary.blocking_not_ready` and `doctor.summary.advisory_not_ready`; use `--exit-policy all` only when every optional channel must be ready.",
             "Inspect the live channel contract and let the calling workflow choose channels for the user's task.",
             "Use specialist channels such as `github`, `qiita`, `bluesky`, `rss`, `youtube`, `hatena_bookmark`, `hacker_news`, `mcp_registry`, `reddit`, `searxng`, or `crawl4ai` only when the caller's task and readiness checks support them.",
             "Use Twitter/X only when optional credentials and `doctor --json --probe` show the required operation is ready.",
@@ -279,6 +286,7 @@ def _codex_runtime_policy() -> dict[str, Any]:
             "Do not fall back to backend-specific CLIs unless debugging a failed Agent Reach operation.",
             "If `doctor --json` marks an optional channel warn, continue with ready channels unless that channel is essential.",
             "For optional or credential/runtime-gated channels, report operation-level readiness and the JSON error envelope separately.",
+            "For Twitter/X, authenticated-but-unprobed `warn` means collection may work but operation readiness is unverified until `doctor --json --probe`.",
         ],
     }
 

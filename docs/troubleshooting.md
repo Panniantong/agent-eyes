@@ -46,6 +46,29 @@ mcporter --config "$HOME\.mcporter\mcporter.json" config add exa https://mcp.exa
 
 Install Node.js LTS with `winget`, then run the fix command printed by `doctor`.
 
+YouTube collection returns video metadata, subtitle/caption availability, and thumbnail references. It does not download video binaries, extract frames, run OCR, or transcribe audio.
+
+## `doctor --json` returns success even when optional channels are off
+
+This is expected with the default `--exit-policy core`. Tier 0 channel failures affect the exit code; optional setup gaps are reported in `summary.advisory_not_ready`.
+
+Use strict mode when automation requires every optional channel to be ready:
+
+```powershell
+agent-reach doctor --json --exit-policy all
+```
+
+## `doctor` says Crawl4AI is not installed
+
+Install Crawl4AI into the Python environment that needs browser-backed reads:
+
+```powershell
+uv pip install "agent-reach[crawl4ai] @ git+https://github.com/iwachacha/Agent-Reach.git"
+python -m playwright install chromium
+```
+
+For checkout development, use `uv pip install -e .[crawl4ai]` instead.
+
 ## `collect --json` returns `command_failed`
 
 Run:

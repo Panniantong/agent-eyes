@@ -50,6 +50,22 @@ class TwitterChannel(Channel):
     def _all_operation_statuses(self, status: str, message: str) -> dict[str, dict[str, str]]:
         return {operation: {"status": status, "message": message} for operation in self.operations}
 
+    def _authenticated_unprobed_statuses(self) -> dict[str, dict[str, str]]:
+        message = (
+            "Authenticated by twitter status, but this operation has not been live-probed. "
+            "It may work; run agent-reach doctor --json --probe for operation-level readiness."
+        )
+        return {
+            operation: {
+                "status": "unknown",
+                "message": message,
+                "diagnostic_basis": "twitter_status_authenticated",
+                "usability_hint": "authenticated_but_unprobed",
+                "recommended_probe_command": "agent-reach doctor --json --probe",
+            }
+            for operation in self.operations
+        }
+
     def _operation_status_from_result(
         self,
         payload: CollectionResult,
@@ -126,13 +142,12 @@ class TwitterChannel(Channel):
         if result.returncode == 0 and "ok: true" in output:
             return (
                 "warn",
-                "twitter-cli session is authenticated, but live Twitter operations are not verified until agent-reach doctor --json --probe",
+                "twitter-cli session is authenticated; collect may work, but live Twitter operations are unverified until agent-reach doctor --json --probe",
                 {
-                    "diagnostic_basis": "twitter status",
-                    "operation_statuses": self._all_operation_statuses(
-                        "unknown",
-                        "Not verified by twitter status alone. Run agent-reach doctor --json --probe.",
-                    ),
+                    "diagnostic_basis": "twitter_status_authenticated",
+                    "usability_hint": "authenticated_but_unprobed",
+                    "recommended_probe_command": "agent-reach doctor --json --probe",
+                    "operation_statuses": self._authenticated_unprobed_statuses(),
                 },
             )
         if "not_authenticated" in output:

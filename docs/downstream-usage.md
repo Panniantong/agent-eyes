@@ -34,12 +34,19 @@ When provenance matters, append each raw collection envelope to a JSONL ledger:
 
 ```powershell
 agent-reach collect --channel exa_search --operation search --input "latest AI agent frameworks" --limit 5 --json --save .agent-reach/evidence.jsonl --run-id agent-frameworks
+agent-reach ledger validate --input .agent-reach/evidence.jsonl --json
 agent-reach plan candidates --input .agent-reach/evidence.jsonl --by url --limit 20 --json
 ```
 
 This does not require `.codex-plugin`, `.mcp.json`, or `agent_reach/skill` files inside the downstream project.
 
 Treat `extras.source_hints` and web `meta` hygiene fields as diagnostics only. They can help downstream code explain provenance or flag suspicious extraction shape, but they are not ranking, trust scoring, summarization, or publishing instructions. `collect --max-text-chars N` is only for human text-mode snippets and does not truncate `--json` output or saved ledgers.
+
+If a conditional command was captured without `--save`, append it later with:
+
+```powershell
+agent-reach ledger append --input live-results/result.json --output .agent-reach/evidence.jsonl --run-id agent-frameworks --json
+```
 
 ## Codex Operating Policy
 
@@ -49,6 +56,7 @@ When Codex is working inside an arbitrary project:
 - Do not copy Agent Reach repo files into the project unless the user explicitly asks for repo-local plugin artifacts.
 - Use `agent-reach collect --json` as the stable handoff to project code.
 - Add `--save .agent-reach/evidence.jsonl` when the run needs an auditable evidence trail.
+- Validate ledgers with `agent-reach ledger validate --json` before treating them as CI artifacts.
 - Use `agent-reach plan candidates` for lightweight URL or ID dedupe before follow-up reads.
 - Keep ranking, summarization, scheduling, Discord publishing, and state in the downstream project.
 - Treat optional channel failures as partial results unless strict completeness is required.
@@ -105,7 +113,7 @@ Enable optional backends only when the workflow needs them:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-`install-reddit-cli` installs `rdt-cli` for the no-auth `reddit` channel. SearXNG needs an instance URL through `agent-reach configure searxng-base-url` or `SEARXNG_BASE_URL`. Crawl4AI needs the optional Python extra and browser runtime, so treat it as a separate job when a workflow needs browser-backed reads.
+`install-reddit-cli` installs `rdt-cli` for the no-auth `reddit` channel. SearXNG needs an instance URL through `agent-reach configure searxng-base-url` or `SEARXNG_BASE_URL`. Crawl4AI needs `agent-reach[crawl4ai]` in the Python environment that performs browser-backed reads plus `python -m playwright install chromium`, so treat it as a separate job when a workflow needs it.
 
 For reproducible automation, pin `uses:` to a tag or commit instead of `@main`.
 
@@ -175,6 +183,6 @@ Map `payload["items"]` to the bot's normalized item type:
 - `published_at` -> item timestamp
 - `extras.metrics` / channel-specific extras -> engagement, media, labels, source hints, or diagnostics
 
-Use `agent-reach doctor --json --probe` in CI or scheduled workflows when readiness matters. Treat Twitter/X as optional: `doctor --json` reports authentication state, while `doctor --json --probe` separates live `user` and `search` readiness under `operation_statuses`.
+Use `agent-reach doctor --json --probe` in CI or scheduled workflows when readiness matters. By default, `doctor --json` uses the `core` exit policy: optional gaps appear in `summary.advisory_not_ready` rather than failing the command. Use `--exit-policy all` for strict all-channel readiness. Treat Twitter/X as optional: authenticated-but-unprobed status is a `warn` with `usability_hint=authenticated_but_unprobed`, while `doctor --json --probe` separates live `user` and `search` readiness under `operation_statuses`.
 
 The repository examples `examples/research-ledger.ps1` and `examples/discord_news_collect.ps1` show collect-only ledger and candidate planning flows. They intentionally stop at raw artifacts so the downstream project keeps ownership of ranking, summarization, posting, and state.

@@ -23,7 +23,13 @@ from agent_reach.candidates import (
 )
 from agent_reach.client import AgentReachClient
 from agent_reach.config import normalize_searxng_base_url
-from agent_reach.ledger import default_run_id, merge_ledger_inputs, save_collection_result
+from agent_reach.ledger import (
+    append_result_json,
+    default_run_id,
+    merge_ledger_inputs,
+    save_collection_result,
+    validate_ledger_input,
+)
 from agent_reach.results import CollectionResult
 from agent_reach.schemas import SCHEMA_VERSION, utc_timestamp
 from agent_reach.scout import (
@@ -152,6 +158,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "--probe",
         action="store_true",
         help="Run lightweight live probes after readiness checks",
+    )
+    p_doctor.add_argument(
+        "--exit-policy",
+        choices=["core", "all"],
+        default="core",
+        help="Exit-code policy: core ignores optional setup gaps, all preserves strict all-channel readiness",
     )
 
     p_collect = sub.add_parser("collect", help="Run a read-only collection operation")
@@ -289,6 +301,17 @@ def _build_parser() -> argparse.ArgumentParser:
     p_ledger_merge.add_argument("--input", required=True, help="Ledger input file or directory")
     p_ledger_merge.add_argument("--output", required=True, help="Merged ledger JSONL output path")
     p_ledger_merge.add_argument("--json", action="store_true", help="Print machine-readable merge output")
+    p_ledger_validate = ledger_sub.add_parser("validate", help="Validate a ledger file or shard directory")
+    p_ledger_validate.add_argument("--input", required=True, help="Ledger input file or directory")
+    p_ledger_validate.add_argument("--json", action="store_true", help="Print machine-readable validation output")
+    p_ledger_append = ledger_sub.add_parser("append", help="Append a CollectionResult JSON file to a ledger")
+    p_ledger_append.add_argument("--input", required=True, help="CollectionResult JSON input file")
+    p_ledger_append.add_argument("--output", required=True, help="Evidence ledger JSONL output path")
+    p_ledger_append.add_argument("--run-id", help="Evidence ledger run ID. Defaults to AGENT_REACH_RUN_ID or a UTC timestamp")
+    p_ledger_append.add_argument("--intent", help="Optional evidence ledger intent label")
+    p_ledger_append.add_argument("--query-id", help="Optional evidence ledger query ID")
+    p_ledger_append.add_argument("--source-role", help="Optional evidence ledger source role label")
+    p_ledger_append.add_argument("--json", action="store_true", help="Print machine-readable append output")
 
     p_uninstall = sub.add_parser("uninstall", help="Remove local Agent Reach state and skill files")
     p_uninstall.add_argument("--dry-run", action="store_true", help="Preview what would be removed")
@@ -1009,10 +1032,10 @@ def _cmd_doctor(args) -> int:
     config = Config()
     results = check_all(config, probe=args.probe)
     if args.json:
-        _print_json(make_doctor_payload(results, probe=args.probe))
+        _print_json(make_doctor_payload(results, probe=args.probe, exit_policy=args.exit_policy))
     else:
-        print(format_report(results, probe=args.probe))
-    return doctor_exit_code(results)
+        print(format_report(results, probe=args.probe, exit_policy=args.exit_policy))
+    return doctor_exit_code(results, exit_policy=args.exit_policy)
 
 
 def _compact_text_snippet(text: str | None, max_chars: int | None) -> str | None:
@@ -1195,6 +1218,10 @@ def _cmd_batch(args) -> int:
 def _cmd_ledger(args) -> int:
     if args.ledger_command == "merge":
         return _cmd_ledger_merge(args)
+    if args.ledger_command == "validate":
+        return _cmd_ledger_validate(args)
+    if args.ledger_command == "append":
+        return _cmd_ledger_append(args)
     print("ledger requires a subcommand", file=sys.stderr)
     return 2
 
@@ -1217,6 +1244,71 @@ def _cmd_ledger_merge(args) -> int:
                     f"Output: {payload['output']}",
                     f"Files merged: {payload['files_merged']}",
                     f"Records written: {payload['records_written']}",
+                ]
+            )
+        )
+    return 0
+
+
+def _cmd_ledger_validate(args) -> int:
+    try:
+        payload = validate_ledger_input(args.input)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        print(f"Could not validate ledger: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        _print_json(payload)
+    else:
+        print(
+            "\n".join(
+                [
+                    "Agent Reach Ledger Validate",
+                    "========================================",
+                    f"Input: {payload['input']}",
+                    f"Valid: {'yes' if payload['valid'] else 'no'}",
+                    f"Files checked: {payload['files_checked']}",
+                    f"Records: {payload['records']}",
+                    f"Collection results: {payload['collection_results']}",
+                    f"Items seen: {payload['items_seen']}",
+                    f"Invalid lines: {payload['invalid_lines']}",
+                    f"Invalid records: {payload['invalid_records']}",
+                    f"Large text fields: {len(payload['large_text_fields'])}",
+                ]
+            )
+        )
+    return 0 if payload["valid"] else 1
+
+
+def _cmd_ledger_append(args) -> int:
+    try:
+        payload = append_result_json(
+            args.input,
+            args.output,
+            run_id=args.run_id or default_run_id(),
+            intent=args.intent,
+            query_id=args.query_id,
+            source_role=args.source_role,
+        )
+    except FileNotFoundError as exc:
+        print(f"Could not append ledger: {exc}", file=sys.stderr)
+        return 2
+    except (OSError, TypeError, ValueError) as exc:
+        print(f"Could not append ledger: {exc}", file=sys.stderr)
+        return 1
+    if args.json:
+        _print_json(payload)
+    else:
+        print(
+            "\n".join(
+                [
+                    "Agent Reach Ledger Append",
+                    "========================================",
+                    f"Input: {payload['input']}",
+                    f"Output: {payload['output']}",
+                    f"Channel: {payload['channel']}",
+                    f"Operation: {payload['operation']}",
+                    f"OK: {'yes' if payload['ok'] else 'no'}",
+                    f"Items: {payload['count']}",
                 ]
             )
         )

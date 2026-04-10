@@ -44,9 +44,12 @@ def test_check_reports_warn_when_live_operations_are_unverified():
     ):
         status, message, extra = channel.check_detailed()
     assert status == "warn"
-    assert "not verified" in message
-    assert extra["diagnostic_basis"] == "twitter status"
+    assert "collect may work" in message
+    assert extra["diagnostic_basis"] == "twitter_status_authenticated"
+    assert extra["usability_hint"] == "authenticated_but_unprobed"
+    assert extra["recommended_probe_command"] == "agent-reach doctor --json --probe"
     assert extra["operation_statuses"]["search"]["status"] == "unknown"
+    assert extra["operation_statuses"]["search"]["usability_hint"] == "authenticated_but_unprobed"
 
 
 def test_check_reports_warn_when_not_authenticated():

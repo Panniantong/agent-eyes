@@ -17,6 +17,7 @@ Hard rules:
 - Keep external API usage bounded: use `--limit 1` to `--limit 3` for live collection.
 - Save raw collection envelopes to `.agent-reach/evidence.jsonl` for at least four successful live collection commands.
 - If an optional channel is not configured or a backend command is missing, capture the JSON error envelope and classify it as an expected readiness issue instead of silently skipping it.
+- Treat `doctor --json` as core-blocking by default. Do not fail solely because optional setup gaps appear under `summary.advisory_not_ready`.
 - Redact any tokens, cookies, or local secrets if they appear in command output.
 
 Setup:
@@ -43,6 +44,7 @@ Registry and readiness checks:
    - `crawl4ai`: `operations`, `supports_probe`, and the `crawl` option named `query`.
    - `qiita`: the `body_mode` option for search.
 4. Run `agent-reach doctor --json > doctor.json`.
+   Record the exit code and verify `doctor.json.summary.exit_policy`, `doctor.json.summary.exit_code`, `doctor.json.summary.blocking_not_ready`, and `doctor.json.summary.advisory_not_ready`.
 5. Run `agent-reach export-integration --client codex --format json > export-integration.json`.
 6. Parse `export-integration.json` and verify:
    - `external_project_usage.copy_files_required` is `false`.
@@ -83,15 +85,18 @@ Optional readiness/error targets:
 3. Twitter/X:
    - Do not configure new cookies.
    - If `doctor.json` says Twitter/X is ready, run one small search.
+   - If Twitter/X is `warn` with `usability_hint=authenticated_but_unprobed`, run one small search and report that operation readiness was unverified.
    - Otherwise report the readiness status and skip live Twitter collection.
 
 Ledger and candidate checks:
 1. Confirm `.agent-reach/evidence.jsonl` exists and count its lines.
 2. Run:
-   `agent-reach plan candidates --input .agent-reach/evidence.jsonl --summary-only --json > candidates-summary.json`
+   `agent-reach ledger validate --input .agent-reach/evidence.jsonl --json > ledger-validate.json`
 3. Run:
+   `agent-reach plan candidates --input .agent-reach/evidence.jsonl --summary-only --json > candidates-summary.json`
+4. Run:
    `agent-reach plan candidates --input .agent-reach/evidence.jsonl --fields id,title,url,source,intent,query_id,source_role --json > candidates-fields.json`
-4. Report candidate counts and include two sample candidates if present.
+5. Report ledger validation, candidate counts, and include two sample candidates if present.
 
 Evidence output format:
 Return a structured report with these sections:
@@ -105,6 +110,7 @@ Return a structured report with these sections:
    - exact contract details for `reddit`, `hacker_news`, `mcp_registry`, `searxng`, `crawl4ai`, and `qiita`
 3. Readiness proof:
    - doctor summary
+   - `summary.exit_policy`, `summary.exit_code`, `summary.blocking_not_ready`, and `summary.advisory_not_ready`
    - any non-ready optional channels with exact status and message
 4. Live collection proof:
    For each command, include:
@@ -120,6 +126,7 @@ Return a structured report with these sections:
 5. Ledger proof:
    - evidence JSONL path
    - line count
+   - ledger validation result
    - candidates summary
    - two candidate samples if present
 6. Problems found:
@@ -141,6 +148,7 @@ Pass/fail criteria:
 - Fail if `reddit` still advertises Reddit OAuth, client ID/secret, or User-Agent configuration.
 - Fail if fewer than four live collection commands return `ok: true` with non-empty `items`.
 - Fail if `.agent-reach/evidence.jsonl` is not created or candidate planning cannot read it.
+- Fail if `ledger validate` cannot parse the saved evidence ledger.
 - Warn, but do not fail, if `searxng`, `crawl4ai`, or Twitter/X are not configured.
 - Warn, but do not fail, if a public live source returns zero items while the JSON envelope is otherwise valid.
 ```

@@ -162,7 +162,8 @@ def test_format_report_groups_core_and_optional():
     assert "Core channels" in plain
     assert "Optional channels" in plain
     assert "Summary: 1/3 channels ready" in plain
-    assert "Not ready: Cross-web search via Exa, Twitter/X search and timeline access" in plain
+    assert "Not ready: Cross-web search via Exa" in plain
+    assert "Advisory only: Twitter/X search and timeline access" in plain
 
 
 def test_doctor_payload_and_exit_code():
@@ -181,8 +182,67 @@ def test_doctor_payload_and_exit_code():
     assert payload["schema_version"]
     assert payload["probe"] is True
     assert payload["summary"]["ready"] == 1
+    assert payload["summary"]["exit_policy"] == "core"
+    assert payload["summary"]["exit_code"] == 1
+    assert payload["summary"]["blocking_not_ready"] == ["github"]
+    assert payload["summary"]["advisory_not_ready"] == []
     assert payload["channels"][0]["name"] == "web"
     assert doctor.doctor_exit_code(results) == 1
+
+
+def test_doctor_exit_policy_core_ignores_optional_setup_gaps():
+    results = {
+        "web": {"name": "web", "description": "Any web page", "status": "ok", "message": "ok", "tier": 0},
+        "twitter": {
+            "name": "twitter",
+            "description": "Twitter/X",
+            "status": "warn",
+            "message": "unprobed",
+            "tier": 1,
+        },
+        "crawl4ai": {
+            "name": "crawl4ai",
+            "description": "Crawl4AI",
+            "status": "off",
+            "message": "missing extra",
+            "tier": 2,
+        },
+    }
+
+    payload = doctor.make_doctor_payload(results)
+
+    assert doctor.doctor_exit_code(results) == 0
+    assert doctor.doctor_exit_code(results, exit_policy="all") == 1
+    assert payload["summary"]["exit_code"] == 0
+    assert payload["summary"]["blocking_not_ready"] == []
+    assert payload["summary"]["advisory_not_ready"] == ["twitter", "crawl4ai"]
+
+
+def test_doctor_exit_policy_core_error_is_blocking_even_for_optional():
+    results = {
+        "web": {"name": "web", "description": "Any web page", "status": "ok", "message": "ok", "tier": 0},
+        "reddit": {
+            "name": "reddit",
+            "description": "Reddit",
+            "status": "error",
+            "message": "health crashed",
+            "tier": 2,
+        },
+    }
+
+    payload = doctor.make_doctor_payload(results)
+
+    assert doctor.doctor_exit_code(results) == 1
+    assert payload["summary"]["blocking_not_ready"] == ["reddit"]
+    assert payload["summary"]["advisory_not_ready"] == []
+
+
+def test_doctor_exit_policy_core_off_returns_exit_2():
+    results = {
+        "web": {"name": "web", "description": "Any web page", "status": "off", "message": "missing", "tier": 0},
+    }
+
+    assert doctor.doctor_exit_code(results) == 2
 
 
 def test_check_all_handles_channel_crash(tmp_config, monkeypatch):

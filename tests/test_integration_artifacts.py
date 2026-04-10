@@ -133,6 +133,12 @@ def test_export_tool_install_omits_dead_paths(tmp_path):
     assert plugin_destination.parts[-2:] == (".codex-plugin", "plugin.json")
     assert mcp_destination.name == ".mcp.json"
     assert payload["documentation_summary"]
+    assert any("ledger validate" in item for item in payload["documentation_summary"])
+    assert any("core exit policy" in item for item in payload["documentation_summary"])
+    assert any("YouTube collection exposes" in item for item in payload["documentation_summary"])
     assert payload["inline_payload_notes"]
     assert payload["external_project_usage"]["github_actions"]["uses"].startswith("iwachacha/Agent-Reach/")
+    assert any("agent-reach[crawl4ai]" in note for note in payload["external_project_usage"]["github_actions"]["notes"])
     assert payload["codex_runtime_policy"]["large_scale_research"]["recommended_limits"]["discovery"] == 10
+    assert any("blocking_not_ready" in item for item in payload["codex_runtime_policy"]["decision_order"])
+    assert any("authenticated-but-unprobed" in item for item in payload["codex_runtime_policy"]["failure_policy"])

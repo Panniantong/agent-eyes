@@ -71,6 +71,8 @@ Each entry in `items` uses the same normalized shape:
 
 Use `items` for downstream automation and `raw` when you need backend-native details.
 
+Diagnostics such as `extras.source_hints`, YouTube `extras.thumbnail_url`, subtitle/caption availability fields, and social `extras.media` are evidence metadata only. Agent Reach does not rank sources or analyze image/video binaries.
+
 ## Discord bot style usage
 
 ```python

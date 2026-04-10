@@ -86,12 +86,42 @@ def check_all(config: Config, probe: bool = False) -> Dict[str, dict]:
     return results
 
 
-def summarize_results(results: Dict[str, dict]) -> dict:
+def _not_ready_names(items: list[dict]) -> list[str]:
+    return [item["name"] for item in items if item["status"] != "ok"]
+
+
+def _blocking_and_advisory_not_ready(
+    results: Dict[str, dict],
+    *,
+    exit_policy: str = "core",
+) -> tuple[list[str], list[str]]:
+    values = list(results.values())
+    if exit_policy == "all":
+        return _not_ready_names(values), []
+    if exit_policy != "core":
+        raise ValueError("exit_policy must be one of: core, all")
+
+    blocking = [
+        item["name"]
+        for item in values
+        if (item["tier"] == 0 and item["status"] != "ok") or item["status"] == "error"
+    ]
+    advisory = [
+        item["name"]
+        for item in values
+        if item["tier"] != 0 and item["status"] != "ok" and item["status"] != "error"
+    ]
+    return blocking, advisory
+
+
+def summarize_results(results: Dict[str, dict], *, exit_policy: str = "core") -> dict:
     """Build a stable summary block for machine-readable output."""
 
     values = list(results.values())
     core = [item for item in values if item["tier"] == 0]
     optional = [item for item in values if item["tier"] != 0]
+    exit_code = doctor_exit_code(results, exit_policy=exit_policy)
+    blocking, advisory = _blocking_and_advisory_not_ready(results, exit_policy=exit_policy)
     return {
         "total": len(values),
         "ready": sum(1 for item in values if item["status"] == "ok"),
@@ -99,6 +129,10 @@ def summarize_results(results: Dict[str, dict]) -> dict:
         "off": sum(1 for item in values if item["status"] == "off"),
         "errors": sum(1 for item in values if item["status"] == "error"),
         "not_ready": [item["name"] for item in values if item["status"] != "ok"],
+        "exit_policy": exit_policy,
+        "exit_code": exit_code,
+        "blocking_not_ready": blocking,
+        "advisory_not_ready": advisory,
         "core": {
             "total": len(core),
             "ready": sum(1 for item in core if item["status"] == "ok"),
@@ -110,30 +144,42 @@ def summarize_results(results: Dict[str, dict]) -> dict:
     }
 
 
-def doctor_exit_code(results: Dict[str, dict]) -> int:
+def doctor_exit_code(results: Dict[str, dict], *, exit_policy: str = "core") -> int:
     """Return the standardized exit code for doctor results."""
+
+    if exit_policy not in {"core", "all"}:
+        raise ValueError("exit_policy must be one of: core, all")
 
     core = [item for item in results.values() if item["tier"] == 0]
     if any(item["status"] in {"off", "error"} for item in core):
         return 2
-    if any(item["status"] != "ok" for item in results.values()):
+    if exit_policy == "all" and any(item["status"] != "ok" for item in results.values()):
+        return 1
+    if any(item["status"] == "warn" for item in core):
+        return 1
+    if any(item["status"] == "error" for item in results.values()):
         return 1
     return 0
 
 
-def make_doctor_payload(results: Dict[str, dict], probe: bool = False) -> dict:
+def make_doctor_payload(
+    results: Dict[str, dict],
+    probe: bool = False,
+    *,
+    exit_policy: str = "core",
+) -> dict:
     """Build a machine-readable doctor payload."""
 
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": utc_timestamp(),
         "probe": probe,
-        "summary": summarize_results(results),
+        "summary": summarize_results(results, exit_policy=exit_policy),
         "channels": list(results.values()),
     }
 
 
-def format_report(results: Dict[str, dict], probe: bool = False) -> str:
+def format_report(results: Dict[str, dict], probe: bool = False, *, exit_policy: str = "core") -> str:
     """Render a compact terminal-friendly health report."""
 
     escape_markup: Callable[[str], str]
@@ -158,7 +204,7 @@ def format_report(results: Dict[str, dict], probe: bool = False) -> str:
             return f"  [red][OFF][/red] {label}"
         return f"  [red][ERR][/red] {label}"
 
-    summary = summarize_results(results)
+    summary = summarize_results(results, exit_policy=exit_policy)
     lines = [
         "[bold cyan]Agent Reach Health[/bold cyan]",
         "[cyan]========================================[/cyan]",
@@ -178,12 +224,19 @@ def format_report(results: Dict[str, dict], probe: bool = False) -> str:
             lines.append(render_line(result))
 
     lines.extend(["", f"Summary: [bold]{summary['ready']}/{summary['total']}[/bold] channels ready"])
-    if summary["not_ready"]:
+    if summary["blocking_not_ready"]:
         labels = [
             item.get("description") or item.get("name", "unknown")
             for item in results.values()
-            if item["status"] != "ok"
+            if item["name"] in summary["blocking_not_ready"]
         ]
         lines.append(f"Not ready: {', '.join(labels)}")
+    if summary["advisory_not_ready"]:
+        labels = [
+            item.get("description") or item.get("name", "unknown")
+            for item in results.values()
+            if item["name"] in summary["advisory_not_ready"]
+        ]
+        lines.append(f"Advisory only: {', '.join(labels)}")
 
     return "\n".join(lines)

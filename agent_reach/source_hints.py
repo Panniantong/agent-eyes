@@ -86,6 +86,24 @@ def page_source_hints(published_at: str | None) -> SourceHints:
     )
 
 
+def article_source_hints(published_at: str | None) -> SourceHints:
+    return build_source_hints(
+        source_kind="article",
+        authority_hint="community",
+        published_at=published_at,
+        volatility_hint="medium",
+    )
+
+
+def video_source_hints(published_at: str | None) -> SourceHints:
+    return build_source_hints(
+        source_kind="video",
+        authority_hint="platform",
+        published_at=published_at,
+        volatility_hint="medium",
+    )
+
+
 def registry_entry_source_hints(published_at: str | None) -> SourceHints:
     return build_source_hints(
         source_kind="registry_entry",

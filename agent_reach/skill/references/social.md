@@ -48,7 +48,7 @@ Validate live readiness before depending on Twitter/X search:
 agent-reach doctor --json --probe
 ```
 
-`twitter status` confirms authentication, but it does not guarantee that live search still works.
+`twitter status` confirms authentication, but it does not guarantee that live search still works. In `doctor --json`, authenticated-but-unprobed Twitter/X is a `warn` with `usability_hint=authenticated_but_unprobed`; a small `collect` may still work, and `doctor --json --probe` verifies operation readiness.
 
 If raw `twitter --help` fails with `UnicodeEncodeError` on Windows, enable UTF-8 for that shell:
 

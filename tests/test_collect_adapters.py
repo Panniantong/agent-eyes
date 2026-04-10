@@ -421,6 +421,7 @@ def test_qiita_adapter_success(config, monkeypatch):
     assert payload["items"][0]["author"] == "Qiita"
     assert payload["items"][0]["text"] == "markdown body"
     assert payload["raw"][0]["body"] == "markdown body"
+    assert payload["items"][0]["extras"]["source_hints"]["source_kind"] == "article"
     assert payload["meta"]["total_count"] == "42"
     assert payload["meta"]["body_mode"] == "full"
     assert payload["meta"]["requested_limit"] == 1
@@ -548,7 +549,11 @@ def test_youtube_adapter_success(config, monkeypatch):
                     "channel": "Example Channel",
                     "upload_date": "20260410",
                     "duration": 19,
+                    "thumbnail": "https://i.ytimg.com/vi/abc123/hqdefault.jpg",
+                    "thumbnails": [{"url": "thumb-1"}, {"url": "thumb-2"}],
                     "subtitles": {"en": [{}]},
+                    "automatic_captions": {"ja": [{}]},
+                    "requested_subtitles": {"en": {}},
                 }
             )
         ),
@@ -558,7 +563,14 @@ def test_youtube_adapter_success(config, monkeypatch):
 
     assert payload["ok"] is True
     assert payload["items"][0]["kind"] == "video"
+    assert payload["items"][0]["extras"]["thumbnail_url"] == "https://i.ytimg.com/vi/abc123/hqdefault.jpg"
+    assert payload["items"][0]["extras"]["thumbnail_count"] == 2
     assert payload["items"][0]["extras"]["subtitle_languages"] == ["en"]
+    assert payload["items"][0]["extras"]["automatic_caption_languages"] == ["ja"]
+    assert payload["items"][0]["extras"]["has_subtitles"] is True
+    assert payload["items"][0]["extras"]["has_automatic_captions"] is True
+    assert payload["items"][0]["extras"]["requested_subtitle_languages"] == ["en"]
+    assert payload["items"][0]["extras"]["source_hints"]["source_kind"] == "video"
 
 
 def test_youtube_adapter_invalid_json(config, monkeypatch):
@@ -923,6 +935,8 @@ def test_crawl4ai_adapter_missing_dependency(config, monkeypatch):
 
     assert payload["ok"] is False
     assert payload["error"]["code"] == "missing_dependency"
+    assert "agent-reach[crawl4ai]" in payload["error"]["message"]
+    assert "playwright install chromium" in payload["error"]["message"]
 
 
 def test_crawl4ai_adapter_read_success(config, monkeypatch):
@@ -1095,6 +1109,88 @@ def test_hacker_news_search_success(config, monkeypatch):
     assert payload["meta"]["total_available"] == 10
 
 
+def test_hacker_news_repairs_obvious_mojibake(config, monkeypatch):
+    repaired_title = "\u65e5\u672c\u8a9e"
+    mojibake_title = repaired_title.encode("utf-8").decode("cp1252")
+
+    class FakeResponse:
+        status_code = 200
+        text = "{}"
+
+        @staticmethod
+        def json():
+            return {
+                "hits": [
+                    {
+                        "objectID": "123",
+                        "title": mojibake_title,
+                        "url": "https://example.com/mojibake",
+                        "author": "alice",
+                        "created_at": "2026-04-10T00:00:00Z",
+                    }
+                ],
+                "hitsPerPage": 1,
+                "nbHits": 1,
+                "nbPages": 1,
+            }
+
+    class FakeRequests:
+        RequestException = RuntimeError
+
+        @staticmethod
+        def get(_url, params=None, headers=None, timeout=None):
+            return FakeResponse()
+
+    monkeypatch.setattr("agent_reach.adapters.hacker_news._import_requests", lambda: FakeRequests)
+
+    payload = HackerNewsAdapter(config=config).search("mojibake", limit=1)
+
+    assert payload["ok"] is True
+    assert payload["items"][0]["title"] == repaired_title
+    assert payload["items"][0]["extras"]["text_normalization"]["mojibake_repaired"] is True
+    assert payload["raw"]["hits"][0]["title"] == mojibake_title
+
+
+def test_hacker_news_leaves_normal_japanese_text_alone(config, monkeypatch):
+    title = "\u65e5\u672c\u8a9e\u306e\u8a18\u4e8b"
+
+    class FakeResponse:
+        status_code = 200
+        text = "{}"
+
+        @staticmethod
+        def json():
+            return {
+                "hits": [
+                    {
+                        "objectID": "123",
+                        "title": title,
+                        "url": "https://example.com/japanese",
+                        "author": "alice",
+                        "created_at": "2026-04-10T00:00:00Z",
+                    }
+                ],
+                "hitsPerPage": 1,
+                "nbHits": 1,
+                "nbPages": 1,
+            }
+
+    class FakeRequests:
+        RequestException = RuntimeError
+
+        @staticmethod
+        def get(_url, params=None, headers=None, timeout=None):
+            return FakeResponse()
+
+    monkeypatch.setattr("agent_reach.adapters.hacker_news._import_requests", lambda: FakeRequests)
+
+    payload = HackerNewsAdapter(config=config).search("japanese", limit=1)
+
+    assert payload["ok"] is True
+    assert payload["items"][0]["title"] == title
+    assert "text_normalization" not in payload["items"][0]["extras"]
+
+
 def test_hacker_news_top_reads_story_items(config, monkeypatch):
     class FakeResponse:
         def __init__(self, payload):
@@ -1184,6 +1280,86 @@ def test_mcp_registry_search_success(config, monkeypatch):
     assert payload["items"][0]["extras"]["repository_url"] == "https://github.com/frumu-ai/tandem"
     assert payload["items"][0]["extras"]["source_hints"]["source_kind"] == "registry_entry"
     assert payload["meta"]["pages_fetched"] == 1
+
+
+def test_mcp_registry_search_dedupes_versions_and_keeps_latest(config, monkeypatch):
+    class FakeResponse:
+        status_code = 200
+        text = "{}"
+
+        @staticmethod
+        def json():
+            return {
+                "servers": [
+                    {
+                        "server": {
+                            "name": "ac.tandem/docs-mcp",
+                            "description": "Remote MCP server for docs",
+                            "repository": {"url": "https://github.com/frumu-ai/tandem", "source": "github"},
+                            "version": "0.3.0",
+                        },
+                        "_meta": {
+                            "io.modelcontextprotocol.registry/official": {
+                                "publishedAt": "2026-04-02T11:22:40Z",
+                                "updatedAt": "2026-04-02T11:22:40Z",
+                                "isLatest": False,
+                            }
+                        },
+                    },
+                    {
+                        "server": {
+                            "name": "ac.tandem/docs-mcp",
+                            "description": "Remote MCP server for docs",
+                            "repository": {"url": "https://github.com/frumu-ai/tandem", "source": "github"},
+                            "version": "0.3.1",
+                        },
+                        "_meta": {
+                            "io.modelcontextprotocol.registry/official": {
+                                "publishedAt": "2026-04-02T11:40:41Z",
+                                "updatedAt": "2026-04-02T11:40:41Z",
+                                "isLatest": True,
+                            }
+                        },
+                    },
+                    {
+                        "server": {
+                            "name": "agency.lona/trading",
+                            "description": "Trading MCP server",
+                            "repository": {"url": "https://github.com/mindsightventures/lona", "source": "github"},
+                            "version": "2.0.0",
+                        },
+                        "_meta": {
+                            "io.modelcontextprotocol.registry/official": {
+                                "publishedAt": "2026-02-24T00:07:27Z",
+                                "updatedAt": "2026-02-24T00:07:27Z",
+                                "isLatest": True,
+                            }
+                        },
+                    },
+                ],
+                "metadata": {"count": 3, "nextCursor": None},
+            }
+
+    class FakeRequests:
+        RequestException = RuntimeError
+
+        @staticmethod
+        def get(_url, params=None, headers=None, timeout=None):
+            return FakeResponse()
+
+    monkeypatch.setattr("agent_reach.adapters.mcp_registry._import_requests", lambda: FakeRequests)
+
+    payload = MCPRegistryAdapter(config=config).search("mcp", limit=2)
+
+    assert payload["ok"] is True
+    assert [item["id"] for item in payload["items"]] == [
+        "ac.tandem/docs-mcp",
+        "agency.lona/trading",
+    ]
+    assert payload["items"][0]["extras"]["version"] == "0.3.1"
+    assert payload["items"][0]["extras"]["alternate_versions"][0]["version"] == "0.3.0"
+    assert payload["meta"]["dedupe_key"] == "server_name"
+    assert payload["meta"]["duplicates_removed"] == 1
 
 
 def test_mcp_registry_read_latest_and_not_found(config, monkeypatch):

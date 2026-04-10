@@ -22,7 +22,8 @@ from agent_reach.source_hints import page_source_hints
 from .base import BaseAdapter
 
 _BROWSER_INSTALL_HINT = "python -m playwright install chromium"
-_EXTRA_INSTALL_HINT = "pip install -e .[crawl4ai]"
+_EXTRA_INSTALL_HINT = "install agent-reach[crawl4ai] in the Python environment that needs browser-backed reads"
+_CHECKOUT_INSTALL_HINT = "uv pip install -e .[crawl4ai]"
 
 
 def _import_crawl4ai() -> SimpleNamespace:
@@ -224,8 +225,9 @@ def _classify_runtime_failure(exc: Exception) -> tuple[str, str]:
         return (
             "missing_dependency",
             (
-                "crawl4ai is not fully installed. Install the optional extra with "
-                f"{_EXTRA_INSTALL_HINT} and set up a browser with {_BROWSER_INSTALL_HINT}."
+                "crawl4ai is not fully installed. For external project environments, "
+                f"{_EXTRA_INSTALL_HINT}; then run {_BROWSER_INSTALL_HINT}. "
+                f"For checkout development, use {_CHECKOUT_INSTALL_HINT}."
             ),
         )
     return "http_error", f"crawl4ai run failed: {message}"
@@ -296,8 +298,9 @@ class Crawl4AIAdapter(BaseAdapter):
                 "read",
                 code="missing_dependency",
                 message=(
-                    "crawl4ai is not installed. Install the optional extra with "
-                    f"{_EXTRA_INSTALL_HINT} and set up a browser with {_BROWSER_INSTALL_HINT}."
+                    "crawl4ai is not installed. For external project environments, "
+                    f"{_EXTRA_INSTALL_HINT}; then run {_BROWSER_INSTALL_HINT}. "
+                    f"For checkout development, use {_CHECKOUT_INSTALL_HINT}."
                 ),
                 meta=self.make_meta(value=normalized, limit=limit, started_at=started_at),
             )
@@ -346,8 +349,9 @@ class Crawl4AIAdapter(BaseAdapter):
                 "crawl",
                 code="missing_dependency",
                 message=(
-                    "crawl4ai is not installed. Install the optional extra with "
-                    f"{_EXTRA_INSTALL_HINT} and set up a browser with {_BROWSER_INSTALL_HINT}."
+                    "crawl4ai is not installed. For external project environments, "
+                    f"{_EXTRA_INSTALL_HINT}; then run {_BROWSER_INSTALL_HINT}. "
+                    f"For checkout development, use {_CHECKOUT_INSTALL_HINT}."
                 ),
                 meta=self.make_meta(
                     value=normalized,

@@ -13,6 +13,7 @@ from agent_reach.results import (
     build_pagination_meta,
     parse_timestamp,
 )
+from agent_reach.source_hints import article_source_hints
 
 from .base import BaseAdapter
 
@@ -127,29 +128,32 @@ class QiitaAdapter(BaseAdapter):
                 ),
             )
 
-        items: list[NormalizedItem] = [
-            build_item(
-                item_id=entry.get("id") or f"qiita-{idx}",
-                kind="article",
-                title=entry.get("title"),
-                url=entry.get("url"),
-                text=_body_for_mode(entry.get("body"), body_mode),
-                author=(entry.get("user") or {}).get("id"),
-                published_at=parse_timestamp(entry.get("created_at") or entry.get("updated_at")),
-                source=self.channel,
-                extras={
-                    "likes_count": entry.get("likes_count"),
-                    "stocks_count": entry.get("stocks_count"),
-                    "comments_count": entry.get("comments_count"),
-                    "reactions_count": entry.get("reactions_count"),
-                    "page_views_count": entry.get("page_views_count"),
-                    "private": entry.get("private"),
-                    "tags": [tag.get("name") for tag in entry.get("tags") or [] if tag.get("name")],
-                    "updated_at": parse_timestamp(entry.get("updated_at")),
-                },
+        items: list[NormalizedItem] = []
+        for idx, entry in enumerate(raw):
+            published_at = parse_timestamp(entry.get("created_at") or entry.get("updated_at"))
+            items.append(
+                build_item(
+                    item_id=entry.get("id") or f"qiita-{idx}",
+                    kind="article",
+                    title=entry.get("title"),
+                    url=entry.get("url"),
+                    text=_body_for_mode(entry.get("body"), body_mode),
+                    author=(entry.get("user") or {}).get("id"),
+                    published_at=published_at,
+                    source=self.channel,
+                    extras={
+                        "likes_count": entry.get("likes_count"),
+                        "stocks_count": entry.get("stocks_count"),
+                        "comments_count": entry.get("comments_count"),
+                        "reactions_count": entry.get("reactions_count"),
+                        "page_views_count": entry.get("page_views_count"),
+                        "private": entry.get("private"),
+                        "tags": [tag.get("name") for tag in entry.get("tags") or [] if tag.get("name")],
+                        "updated_at": parse_timestamp(entry.get("updated_at")),
+                        "source_hints": article_source_hints(published_at),
+                    },
+                )
             )
-            for idx, entry in enumerate(raw)
-        ]
         raw_output = [_entry_for_body_mode(entry, body_mode) for entry in raw]
         total_count = response.headers.get("Total-Count")
 

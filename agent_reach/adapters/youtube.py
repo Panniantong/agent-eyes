@@ -7,6 +7,7 @@ import json
 import time
 
 from agent_reach.results import CollectionResult, build_item, parse_timestamp
+from agent_reach.source_hints import video_source_hints
 
 from .base import BaseAdapter
 
@@ -69,6 +70,10 @@ class YouTubeAdapter(BaseAdapter):
                 meta=self.make_meta(value=url, limit=limit, started_at=started_at),
             )
         subtitle_langs = sorted((raw.get("subtitles") or {}).keys())
+        automatic_caption_langs = sorted((raw.get("automatic_captions") or {}).keys())
+        requested_subtitle_langs = sorted((raw.get("requested_subtitles") or {}).keys())
+        thumbnails = raw.get("thumbnails") if isinstance(raw.get("thumbnails"), list) else []
+        published_at = parse_timestamp(raw.get("upload_date") or raw.get("timestamp"))
         item = build_item(
             item_id=raw.get("id") or url,
             kind="video",
@@ -76,7 +81,7 @@ class YouTubeAdapter(BaseAdapter):
             url=raw.get("webpage_url") or raw.get("original_url") or url,
             text=raw.get("description"),
             author=raw.get("channel") or raw.get("uploader"),
-            published_at=parse_timestamp(raw.get("upload_date") or raw.get("timestamp")),
+            published_at=published_at,
             source=self.channel,
             extras={
                 "duration_seconds": raw.get("duration"),
@@ -86,7 +91,14 @@ class YouTubeAdapter(BaseAdapter):
                 "comment_count": raw.get("comment_count"),
                 "channel_url": raw.get("channel_url"),
                 "uploader_url": raw.get("uploader_url"),
+                "thumbnail_url": raw.get("thumbnail"),
+                "thumbnail_count": len(thumbnails),
                 "subtitle_languages": subtitle_langs,
+                "automatic_caption_languages": automatic_caption_langs,
+                "has_subtitles": bool(subtitle_langs),
+                "has_automatic_captions": bool(automatic_caption_langs),
+                "requested_subtitle_languages": requested_subtitle_langs,
+                "source_hints": video_source_hints(published_at),
             },
         )
         return self.ok_result(
