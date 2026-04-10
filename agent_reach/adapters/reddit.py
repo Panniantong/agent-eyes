@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Reddit collection adapter."""
+"""Reddit collection adapter backed by rdt-cli."""
 
 from __future__ import annotations
 
+import json
 import re
 import time
-import warnings
 from typing import Any, cast
 from urllib.parse import urlparse
 
@@ -21,21 +21,8 @@ from agent_reach.source_hints import forum_post_source_hints
 
 from .base import BaseAdapter
 
-_OAUTH_BASE = "https://oauth.reddit.com"
-_TOKEN_URL = "https://www.reddit.com/api/v1/access_token"
 _SUBREDDIT_QUERY_RE = re.compile(r"^(?:r/|subreddit:)(?P<subreddit>[A-Za-z0-9_]+)\s+(?P<query>.+)$")
 _COMMENTS_ID_RE = re.compile(r"(?:/comments/|^t3_|^post[:/])(?P<id>[A-Za-z0-9_]+)", re.I)
-
-
-def _import_requests():
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore",
-            message=r"urllib3 .* doesn't match a supported version!",
-        )
-        import requests
-
-    return requests
 
 
 def _permalink_url(permalink: object) -> str | None:
@@ -63,16 +50,15 @@ def _normalize_post_id(value: str) -> str:
     return text.removeprefix("t3_")
 
 
-def _search_endpoint(query: str) -> tuple[str, str, str | None]:
-    text = query.strip()
+def _search_query(value: str) -> tuple[str, str | None]:
+    text = value.strip()
     match = _SUBREDDIT_QUERY_RE.match(text)
     if not match:
-        return "/search", text, None
-    subreddit = match.group("subreddit")
-    return f"/r/{subreddit}/search", match.group("query").strip(), subreddit
+        return text, None
+    return match.group("query").strip(), match.group("subreddit")
 
 
-def _post_item(data: dict, idx: int, *, source: str) -> NormalizedItem:
+def _post_item(data: dict[str, Any], idx: int, *, source: str) -> NormalizedItem:
     item_id = str(data.get("name") or data.get("id") or f"reddit-post-{idx}")
     published_at = parse_timestamp(data.get("created_utc") or data.get("created"))
     permalink = _permalink_url(data.get("permalink"))
@@ -103,7 +89,13 @@ def _post_item(data: dict, idx: int, *, source: str) -> NormalizedItem:
     )
 
 
-def _comment_item(data: dict, idx: int, *, source: str, post_title: str | None = None) -> NormalizedItem:
+def _comment_item(
+    data: dict[str, Any],
+    idx: int,
+    *,
+    source: str,
+    post_title: str | None = None,
+) -> NormalizedItem:
     item_id = str(data.get("name") or data.get("id") or f"reddit-comment-{idx}")
     published_at = parse_timestamp(data.get("created_utc") or data.get("created"))
     text = data.get("body") or data.get("body_html")
@@ -130,17 +122,22 @@ def _comment_item(data: dict, idx: int, *, source: str, post_title: str | None =
     )
 
 
-def _listing_children(raw: dict) -> list[dict]:
+def _listing_children(raw: object) -> list[dict[str, Any]]:
     data = raw.get("data") if isinstance(raw, dict) else {}
     raw_children = data.get("children") if isinstance(data, dict) else []
     children = raw_children if isinstance(raw_children, list) else []
     return [child for child in children if isinstance(child, dict)]
 
 
-def _flatten_comment_children(children: list[dict], *, limit: int) -> list[dict]:
-    flattened: list[dict] = []
+def _listing_metadata(raw: object) -> dict[str, Any]:
+    data = raw.get("data") if isinstance(raw, dict) else None
+    return data if isinstance(data, dict) else {}
 
-    def visit(node: dict) -> None:
+
+def _flatten_comment_children(children: list[dict[str, Any]], *, limit: int) -> list[dict[str, Any]]:
+    flattened: list[dict[str, Any]] = []
+
+    def visit(node: dict[str, Any]) -> None:
         if len(flattened) >= limit:
             return
         if node.get("kind") == "more":
@@ -161,15 +158,81 @@ def _flatten_comment_children(children: list[dict], *, limit: int) -> list[dict]
     return flattened
 
 
+def _decode_first_json(raw_output: str) -> object | None:
+    text = raw_output.strip()
+    if not text:
+        return None
+    decoder = json.JSONDecoder()
+    try:
+        payload, _end = decoder.raw_decode(text)
+        return payload
+    except json.JSONDecodeError:
+        pass
+
+    for idx, char in enumerate(text):
+        if char not in "{[":
+            continue
+        try:
+            payload, _end = decoder.raw_decode(text[idx:])
+            return payload
+        except json.JSONDecodeError:
+            continue
+    return None
+
+
+def _unwrap_rdt_payload(payload: object) -> tuple[object, object]:
+    if isinstance(payload, dict) and "ok" in payload:
+        return payload.get("data"), payload
+    return payload, payload
+
+
+def _comment_data_from_raw(raw: object, *, limit: int) -> list[dict[str, Any]]:
+    if isinstance(raw, dict):
+        comments = raw.get("comments")
+        if isinstance(comments, list):
+            normalized = []
+            for comment in comments[:limit]:
+                if isinstance(comment, dict):
+                    data = comment.get("data")
+                    normalized.append(data if isinstance(data, dict) else comment)
+            return normalized
+
+    if isinstance(raw, list):
+        return _flatten_comment_children(
+            _listing_children(raw[1]) if len(raw) > 1 else [],
+            limit=limit,
+        )
+
+    return []
+
+
+def _post_data_from_raw(raw: object) -> dict[str, Any] | None:
+    if isinstance(raw, dict):
+        post = raw.get("post") or raw.get("submission")
+        if isinstance(post, dict):
+            data = post.get("data")
+            return data if isinstance(data, dict) else post
+        children = _listing_children(raw)
+        if children and isinstance(children[0].get("data"), dict):
+            return children[0]["data"]
+
+    if isinstance(raw, list) and raw:
+        children = _listing_children(raw[0])
+        if children and isinstance(children[0].get("data"), dict):
+            return children[0]["data"]
+
+    return None
+
+
 class RedditAdapter(BaseAdapter):
-    """Read Reddit search results and public threads through Reddit OAuth."""
+    """Read Reddit search results and public threads through rdt-cli."""
 
     channel = "reddit"
     operations = ("search", "read")
 
     def search(self, query: str, limit: int = 10) -> CollectionResult:
         started_at = time.perf_counter()
-        endpoint, search_query, subreddit = _search_endpoint(query)
+        search_query, subreddit = _search_query(query)
         if not search_query:
             return self.error_result(
                 "search",
@@ -177,52 +240,46 @@ class RedditAdapter(BaseAdapter):
                 message="Reddit search input must include a query",
                 meta=self.make_meta(value=query, limit=limit, started_at=started_at),
             )
-        response = self._get(
-            endpoint,
+
+        command = ["search", search_query, "-n", str(limit), "--json"]
+        if subreddit:
+            command.extend(["-r", subreddit])
+        raw = self._run_rdt(
+            command,
             operation="search",
             value=query,
-            started_at=started_at,
             limit=limit,
-            params={
-                "q": search_query,
-                "limit": limit,
-                "raw_json": 1,
-                **({"restrict_sr": 1} if subreddit else {}),
-            },
+            started_at=started_at,
         )
-        if _is_error_result(response):
-            return cast(CollectionResult, response)
-
-        raw = self._json_response(response, operation="search", value=query, limit=limit, started_at=started_at)
         if _is_error_result(raw):
             return cast(CollectionResult, raw)
-        if not isinstance(raw, dict):
+        listing, raw_payload = _unwrap_rdt_payload(raw)
+        if not isinstance(listing, dict):
             return self.error_result(
                 "search",
                 code="invalid_response",
-                message="Reddit search payload was not a listing object",
-                raw=raw,
+                message="rdt search returned an unexpected payload",
+                raw=raw_payload,
                 meta=self.make_meta(value=query, limit=limit, started_at=started_at),
             )
-        raw_listing = cast(dict, raw)
-        children = _listing_children(raw_listing)
+
+        children = _listing_children(listing)
         items = [
             _post_item(child.get("data") or {}, idx, source=self.channel)
             for idx, child in enumerate(children[:limit])
             if isinstance(child.get("data"), dict)
         ]
-        raw_metadata = raw_listing.get("data")
-        metadata = raw_metadata if isinstance(raw_metadata, dict) else {}
+        metadata = _listing_metadata(listing)
         return self.ok_result(
             "search",
             items=items,
-            raw=raw_listing,
+            raw=raw_payload,
             meta=self.make_meta(
                 value=query,
                 limit=limit,
                 started_at=started_at,
                 subreddit=subreddit,
-                backend="reddit_oauth",
+                backend="rdt_cli",
                 **build_pagination_meta(
                     limit=limit,
                     page_size=len(children),
@@ -243,239 +300,103 @@ class RedditAdapter(BaseAdapter):
                 message="Reddit read input must be a post id or comments URL",
                 meta=self.make_meta(value=post_id_or_url, limit=limit, started_at=started_at),
             )
-        response = self._get(
-            f"/comments/{post_id}",
+
+        raw = self._run_rdt(
+            ["read", post_id, "-n", str(limit), "--json"],
             operation="read",
             value=post_id,
             limit=limit,
             started_at=started_at,
-            params={"limit": limit, "raw_json": 1},
         )
-        if _is_error_result(response):
-            return cast(CollectionResult, response)
-
-        raw = self._json_response(response, operation="read", value=post_id, limit=limit, started_at=started_at)
         if _is_error_result(raw):
             return cast(CollectionResult, raw)
-        if not isinstance(raw, list) or not raw:
-            return self.error_result(
-                "read",
-                code="invalid_response",
-                message="Reddit read payload was not a thread listing",
-                raw=raw,
-                meta=self.make_meta(value=post_id, limit=limit, started_at=started_at),
-            )
-        post_children = _listing_children(raw[0]) if isinstance(raw[0], dict) else []
-        if not post_children or not isinstance(post_children[0].get("data"), dict):
+        thread, raw_payload = _unwrap_rdt_payload(raw)
+
+        post_data = _post_data_from_raw(thread)
+        if post_data is None:
             return self.error_result(
                 "read",
                 code="not_found",
                 message=f"Reddit post not found: {post_id}",
-                raw=raw,
+                raw=raw_payload,
                 meta=self.make_meta(value=post_id, limit=limit, started_at=started_at),
             )
-        post_data = cast(dict, post_children[0]["data"])
+
         post_item = _post_item(post_data, 0, source=self.channel)
-        comment_children = _listing_children(raw[1]) if len(raw) > 1 and isinstance(raw[1], dict) else []
-        comments = _flatten_comment_children(comment_children, limit=max(limit - 1, 0))
+        comments = _comment_data_from_raw(thread, limit=max(limit - 1, 0))
         comment_items = [
             _comment_item(comment, idx, source=self.channel, post_title=post_item["title"])
             for idx, comment in enumerate(comments, start=1)
         ]
         items = [post_item, *comment_items][:limit]
+        raw_comment_children = _listing_children(thread[1]) if isinstance(thread, list) and len(thread) > 1 else comments
         return self.ok_result(
             "read",
             items=items,
-            raw=raw,
+            raw=raw_payload,
             meta=self.make_meta(
                 value=post_id,
                 limit=limit,
                 started_at=started_at,
-                backend="reddit_oauth",
+                backend="rdt_cli",
                 comment_count=len(comment_items),
                 **build_pagination_meta(
                     limit=limit,
                     page_size=len(items),
                     pages_fetched=1,
-                    has_more=len(comment_children) > len(comment_items),
+                    has_more=len(raw_comment_children) > len(comment_items),
                 ),
             ),
         )
 
-    def _get(
+    def _run_rdt(
         self,
-        endpoint: str,
-        *,
-        operation: str,
-        value: str,
-        started_at: float,
-        limit: int | None,
-        params: dict[str, object],
-    ) -> Any | CollectionResult:
-        token_or_error = self._access_token(operation=operation, value=value, limit=limit, started_at=started_at)
-        if isinstance(token_or_error, dict):
-            return token_or_error
-        requests = _import_requests()
-        user_agent = self.config.get("reddit_user_agent")
-        try:
-            response = requests.get(
-                f"{_OAUTH_BASE}{endpoint}",
-                params=params,
-                headers={
-                    "Authorization": f"Bearer {token_or_error}",
-                    "User-Agent": str(user_agent),
-                    "Accept": "application/json",
-                },
-                timeout=30,
-            )
-        except requests.RequestException as exc:
-            return self.error_result(
-                operation,
-                code="http_error",
-                message=f"Reddit {operation} failed: {exc}",
-                meta=self.make_meta(value=value, limit=limit, started_at=started_at),
-            )
-        if response.status_code in {401, 403}:
-            return self.error_result(
-                operation,
-                code="unauthorized",
-                message="Reddit rejected the configured OAuth token or credentials",
-                raw=response.text,
-                meta=self.make_meta(value=value, limit=limit, started_at=started_at),
-            )
-        if response.status_code == 404:
-            return self.error_result(
-                operation,
-                code="not_found",
-                message=f"Reddit resource not found: {value}",
-                raw=response.text,
-                meta=self.make_meta(value=value, limit=limit, started_at=started_at),
-            )
-        if response.status_code >= 400:
-            return self.error_result(
-                operation,
-                code="http_error",
-                message=f"Reddit {operation} returned HTTP {response.status_code}",
-                raw=response.text,
-                meta=self.make_meta(value=value, limit=limit, started_at=started_at),
-            )
-        return response
-
-    def _access_token(
-        self,
+        args: list[str],
         *,
         operation: str,
         value: str,
         limit: int | None,
         started_at: float,
-    ) -> str | CollectionResult:
-        user_agent = self.config.get("reddit_user_agent")
-        if not user_agent:
+    ) -> object | CollectionResult:
+        rdt = self.command_path("rdt")
+        if not rdt:
             return self.error_result(
                 operation,
-                code="missing_configuration",
-                message="Reddit requires a unique User-Agent. Run agent-reach configure reddit-user-agent <VALUE>",
-                meta=self.make_meta(value=value, limit=limit, started_at=started_at),
+                code="missing_dependency",
+                message="rdt-cli is missing. Install it with `uv tool install rdt-cli`.",
+                meta=self.make_meta(value=value, limit=limit, started_at=started_at, backend="rdt_cli"),
             )
 
-        configured_token = self.config.get("reddit_access_token")
-        if configured_token:
-            return str(configured_token)
-
-        client_id = self.config.get("reddit_client_id")
-        client_secret = self.config.get("reddit_client_secret")
-        if not client_id or not client_secret:
+        result = self.run_command([rdt, *args], timeout=120)
+        if result.returncode != 0:
             return self.error_result(
                 operation,
-                code="missing_configuration",
-                message=(
-                    "Reddit OAuth is not configured. Set reddit-access-token, or configure "
-                    "reddit-client-id, reddit-client-secret, and reddit-user-agent."
-                ),
-                meta=self.make_meta(value=value, limit=limit, started_at=started_at),
+                code="command_failed",
+                message=f"rdt {operation} failed with exit code {result.returncode}",
+                raw={"stdout": result.stdout, "stderr": result.stderr, "returncode": result.returncode},
+                meta=self.make_meta(value=value, limit=limit, started_at=started_at, backend="rdt_cli"),
             )
 
-        requests = _import_requests()
-        try:
-            response = requests.post(
-                _TOKEN_URL,
-                data={"grant_type": "client_credentials"},
-                auth=(str(client_id), str(client_secret)),
-                headers={"User-Agent": str(user_agent), "Accept": "application/json"},
-                timeout=30,
-            )
-        except requests.RequestException as exc:
-            return self.error_result(
-                operation,
-                code="http_error",
-                message=f"Reddit OAuth token request failed: {exc}",
-                meta=self.make_meta(value=value, limit=limit, started_at=started_at),
-            )
-
-        if response.status_code in {401, 403}:
-            return self.error_result(
-                operation,
-                code="unauthorized",
-                message="Reddit rejected the configured OAuth client credentials",
-                raw=response.text,
-                meta=self.make_meta(value=value, limit=limit, started_at=started_at),
-            )
-        if response.status_code >= 400:
-            return self.error_result(
-                operation,
-                code="http_error",
-                message=f"Reddit OAuth token request returned HTTP {response.status_code}",
-                raw=response.text,
-                meta=self.make_meta(value=value, limit=limit, started_at=started_at),
-            )
-        try:
-            raw = response.json()
-        except ValueError:
+        payload = _decode_first_json(result.stdout or "")
+        if payload is None:
             return self.error_result(
                 operation,
                 code="invalid_response",
-                message="Reddit OAuth token response was not JSON",
-                raw=response.text,
-                meta=self.make_meta(value=value, limit=limit, started_at=started_at),
+                message=f"rdt {operation} did not return JSON. Use `rdt {operation} --json` to verify the backend.",
+                raw={"stdout": result.stdout, "stderr": result.stderr},
+                meta=self.make_meta(value=value, limit=limit, started_at=started_at, backend="rdt_cli"),
             )
-        if not isinstance(raw, dict) or not raw.get("access_token"):
+        if isinstance(payload, dict) and payload.get("ok") is False:
+            error = payload.get("error")
+            message = error.get("message") if isinstance(error, dict) else None
             return self.error_result(
                 operation,
-                code="invalid_response",
-                message="Reddit OAuth token response did not include access_token",
-                raw=raw,
-                meta=self.make_meta(value=value, limit=limit, started_at=started_at),
+                code="command_failed",
+                message=str(message or f"rdt {operation} returned an error"),
+                raw=payload,
+                meta=self.make_meta(value=value, limit=limit, started_at=started_at, backend="rdt_cli"),
             )
-        return str(raw["access_token"])
-
-    def _json_response(
-        self,
-        response,
-        *,
-        operation: str,
-        value: str,
-        limit: int | None,
-        started_at: float,
-    ) -> dict | list | CollectionResult:
-        try:
-            raw = response.json()
-        except ValueError:
-            return self.error_result(
-                operation,
-                code="invalid_response",
-                message=f"Reddit {operation} returned a non-JSON payload",
-                raw=response.text,
-                meta=self.make_meta(value=value, limit=limit, started_at=started_at),
-            )
-        if not isinstance(raw, (dict, list)):
-            return self.error_result(
-                operation,
-                code="invalid_response",
-                message=f"Reddit {operation} returned an unexpected payload",
-                raw=raw,
-                meta=self.make_meta(value=value, limit=limit, started_at=started_at),
-            )
-        return raw
+        return payload
 
 
 def _is_error_result(value: object) -> bool:

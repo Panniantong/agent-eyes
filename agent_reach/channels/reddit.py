@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from agent_reach.adapters.reddit import RedditAdapter
+from agent_reach.utils.commands import find_command
 
 from .base import Channel
 
@@ -11,28 +12,25 @@ from .base import Channel
 class RedditChannel(Channel):
     name = "reddit"
     description = "Reddit search results and public discussion threads"
-    backends = ["Reddit Data API"]
+    backends = ["rdt-cli"]
     tier = 2
-    auth_kind = "token"
-    entrypoint_kind = "python"
+    auth_kind = "none"
+    entrypoint_kind = "cli"
     operations = ["search", "read"]
     operation_inputs = {
         "search": "query",
         "read": "post",
     }
+    required_commands = ["rdt"]
     host_patterns = ["https://www.reddit.com/*", "https://old.reddit.com/*", "https://redd.it/*"]
     example_invocations = [
-        'agent-reach configure reddit-user-agent "windows:agent-reach:v1.6.0 (by /u/<username>)"',
-        "agent-reach configure reddit-client-id <CLIENT_ID>",
-        "agent-reach configure reddit-client-secret <CLIENT_SECRET>",
         'agent-reach collect --channel reddit --operation search --input "r/LocalLLaMA agent frameworks" --limit 10 --json',
         'agent-reach collect --channel reddit --operation read --input "https://www.reddit.com/r/redditdev/comments/..." --limit 20 --json',
     ]
     supports_probe = True
     install_hints = [
-        "Create a Reddit app/client for free API access, then configure reddit-client-id and reddit-client-secret.",
-        'Configure a truthful User-Agent with agent-reach configure reddit-user-agent "platform:app-id:version (by /u/username)".',
-        "Alternatively provide an existing bearer token with agent-reach configure reddit-access-token <TOKEN>.",
+        "Install rdt-cli with `uv tool install rdt-cli`.",
+        "No Reddit OAuth token, client ID, client secret, or User-Agent configuration is required.",
     ]
 
     def can_handle(self, url: str) -> bool:
@@ -42,22 +40,9 @@ class RedditChannel(Channel):
         return "reddit.com" in host or "redd.it" in host
 
     def check(self, config=None):
-        if not config:
-            return "warn", "Reddit OAuth configuration was not provided"
-        user_agent = config.get("reddit_user_agent")
-        access_token = config.get("reddit_access_token")
-        client_id = config.get("reddit_client_id")
-        client_secret = config.get("reddit_client_secret")
-        if not user_agent:
-            return "off", "Reddit requires a unique User-Agent. Run agent-reach configure reddit-user-agent <VALUE>"
-        if access_token:
-            return "ok", "Reddit bearer token and User-Agent are configured"
-        if client_id and client_secret:
-            return "ok", "Reddit OAuth client credentials and User-Agent are configured"
-        return (
-            "off",
-            "Reddit OAuth is not configured. Set reddit-access-token or reddit-client-id and reddit-client-secret",
-        )
+        if find_command("rdt"):
+            return "ok", "rdt-cli is available for no-auth Reddit search/read"
+        return "warn", "rdt-cli is missing. Install it with `uv tool install rdt-cli`."
 
     def probe(self, config=None):
         status, message = self.check(config)
@@ -66,7 +51,7 @@ class RedditChannel(Channel):
 
         payload = RedditAdapter(config=config).search("reddit", limit=1)
         if payload["ok"] and payload.get("items"):
-            return "ok", "Reddit live OAuth search probe succeeded"
+            return "ok", "Reddit live rdt-cli search probe succeeded"
         if payload["ok"]:
             return "warn", "Reddit live probe completed but returned zero items"
         error = payload.get("error")

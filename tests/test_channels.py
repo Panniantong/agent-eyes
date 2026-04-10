@@ -166,21 +166,18 @@ def test_mcp_registry_can_handle_registry_urls():
     assert not channel.can_handle("https://example.com")
 
 
-def test_reddit_requires_oauth_config(tmp_path):
-    from agent_reach.config import Config
-
-    config = Config(config_path=tmp_path / "config.yaml")
+def test_reddit_uses_rdt_cli(monkeypatch):
     channel = RedditChannel()
-    status, message = channel.check(config)
-    assert status == "off"
-    assert "User-Agent" in message
+    monkeypatch.setattr("agent_reach.channels.reddit.find_command", lambda _cmd: None)
 
-    config.set("reddit_user_agent", "windows:agent-reach:v1.6.0 (by /u/example)")
-    config.set("reddit_client_id", "client-id")
-    config.set("reddit_client_secret", "client-secret")
-    status, message = channel.check(config)
+    status, message = channel.check()
+    assert status == "warn"
+    assert "rdt-cli" in message
+
+    monkeypatch.setattr("agent_reach.channels.reddit.find_command", lambda _cmd: "C:/rdt.exe")
+    status, message = channel.check()
     assert status == "ok"
-    assert "OAuth" in message
+    assert "no-auth" in message
 
 
 def test_channel_contract_exposes_operation_option_schema():

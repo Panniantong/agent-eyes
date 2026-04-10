@@ -51,7 +51,7 @@ CORE_CHANNELS = (
     "youtube",
     "rss",
 )
-OPTIONAL_CHANNELS = ("twitter",)
+OPTIONAL_CHANNELS = ("reddit", "twitter")
 ALL_OPTIONAL_CHANNELS = set(OPTIONAL_CHANNELS)
 
 EXA_SERVER_URL = "https://mcp.exa.ai/mcp"
@@ -119,7 +119,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p_install.add_argument(
         "--channels",
         default="",
-        help="Comma-separated optional channels to install (twitter,all)",
+        help="Comma-separated optional channels to install (reddit,twitter,all)",
     )
     p_install.add_argument(
         "--json",
@@ -134,10 +134,6 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=[
             "github-token",
             "searxng-base-url",
-            "reddit-access-token",
-            "reddit-client-id",
-            "reddit-client-secret",
-            "reddit-user-agent",
             "twitter-cookies",
         ],
         help="Configuration key to set",
@@ -457,6 +453,9 @@ def _cmd_install(args) -> int:
     if not _ensure_ytdlp_js_runtime():
         failures.append("yt-dlp-js-runtime")
 
+    if "reddit" in requested_channels and not _install_reddit_deps():
+        failures.append("rdt-cli")
+
     if "twitter" in requested_channels and not _install_twitter_deps():
         failures.append("twitter-cli")
 
@@ -521,6 +520,8 @@ def _manual_install_commands(requested_channels: Sequence[str]) -> List[str]:
         commands.append(render_mcporter_command(f"config add exa {EXA_SERVER_URL}"))
     if not _ytdlp_js_runtime_ready():
         commands.append(render_ytdlp_fix_command())
+    if "reddit" in requested_channels and not find_command("rdt"):
+        commands.append("uv tool install rdt-cli")
     if "twitter" in requested_channels and not find_command("twitter"):
         commands.append("uv tool install twitter-cli")
     commands.append("agent-reach skill --install")
@@ -747,6 +748,27 @@ def _install_twitter_deps() -> bool:
     return False
 
 
+def _install_reddit_deps() -> bool:
+    if find_command("rdt"):
+        print("  [OK] rdt-cli already installed")
+        return True
+    uv = shutil.which("uv")
+    if not uv:
+        print("  [WARN] uv is missing, so rdt-cli cannot be installed automatically")
+        return False
+    print("  Installing rdt-cli with uv tool...")
+    try:
+        _run([uv, "tool", "install", "rdt-cli"], timeout=600)
+    except Exception as exc:
+        print(f"  [WARN] rdt-cli install failed: {exc}")
+        return False
+    if find_command("rdt"):
+        print("  [OK] rdt-cli is ready")
+        return True
+    print("  [WARN] rdt-cli is still missing after uv tool install")
+    return False
+
+
 def _mcporter_command(create_dir: bool = False) -> List[str]:
     mcporter = find_command("mcporter")
     if not mcporter:
@@ -887,23 +909,6 @@ def _cmd_configure(args) -> int:
         normalized = normalize_searxng_base_url(value)
         config.set("searxng_base_url", normalized)
         print(f"Saved searxng_base_url to config: {normalized}")
-        return 0
-
-    reddit_keys = {
-        "reddit-access-token": "reddit_access_token",
-        "reddit-client-id": "reddit_client_id",
-        "reddit-client-secret": "reddit_client_secret",
-        "reddit-user-agent": "reddit_user_agent",
-    }
-    if args.key in reddit_keys:
-        if not value:
-            raise SystemExit(f"{args.key} requires a value")
-        config.set(reddit_keys[args.key], value)
-        label = reddit_keys[args.key]
-        if "secret" in label or "token" in label:
-            print(f"Saved {label} to config.")
-        else:
-            print(f"Saved {label} to config: {value}")
         return 0
 
     if args.key == "twitter-cookies":
@@ -1356,6 +1361,7 @@ def _cmd_uninstall(args) -> int:
     print("  winget uninstall --id GitHub.cli -e")
     print("  winget uninstall --id yt-dlp.yt-dlp -e")
     print("  npm uninstall -g mcporter")
+    print("  uv tool uninstall rdt-cli")
     print("  uv tool uninstall twitter-cli")
     return 0
 

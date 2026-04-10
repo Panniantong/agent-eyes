@@ -57,7 +57,7 @@ class TestCLI:
         assert payload["plugin_manifest"] is not None
         assert payload["mcp_config"] is not None
 
-    def test_install_parses_all_as_twitter(self, monkeypatch):
+    def test_install_parses_all_optional_channels(self, monkeypatch):
         calls = []
 
         monkeypatch.setattr(cli, "_ensure_gh_cli", lambda: True)
@@ -69,6 +69,11 @@ class TestCLI:
         monkeypatch.setattr(cli, "_install_skill", lambda: [])
         monkeypatch.setattr(cli, "_detect_environment", lambda: "local")
         monkeypatch.setattr("sys.platform", "win32")
+        monkeypatch.setattr(
+            cli,
+            "_install_reddit_deps",
+            lambda: calls.append("reddit") or True,
+        )
         monkeypatch.setattr(
             cli,
             "_install_twitter_deps",
@@ -90,7 +95,7 @@ class TestCLI:
         monkeypatch.setattr("agent_reach.doctor.format_report", lambda _results: "report")
 
         assert main(["install", "--channels=all"]) == 0
-        assert calls == ["twitter"]
+        assert calls == ["reddit", "twitter"]
 
     def test_doctor_json(self, capsys, monkeypatch):
         monkeypatch.setattr(
@@ -987,24 +992,13 @@ class TestCLI:
         assert saved["searxng_base_url"] == "https://search.example.com"
         assert "https://search.example.com" in output
 
-    def test_configure_reddit_keys(self, capsys, monkeypatch):
-        saved = {}
-
-        class _FakeConfig:
-            def set(self, key, value):
-                saved[key] = value
-
-        monkeypatch.setattr("agent_reach.config.Config", lambda: _FakeConfig())
-
-        assert main(["configure", "reddit-user-agent", "windows:agent-reach:v1.6.0", "(by", "/u/example)"]) == 0
-        assert main(["configure", "reddit-client-id", "client-id"]) == 0
-        assert main(["configure", "reddit-client-secret", "client-secret"]) == 0
-        output = capsys.readouterr().out
-
-        assert saved["reddit_user_agent"] == "windows:agent-reach:v1.6.0 (by /u/example)"
-        assert saved["reddit_client_id"] == "client-id"
-        assert saved["reddit_client_secret"] == "client-secret"
-        assert "client-secret" not in output
+    def test_configure_reddit_oauth_keys_are_not_supported(self):
+        try:
+            main(["configure", "reddit-user-agent", "windows:agent-reach:v1.6.0"])
+        except SystemExit as exc:
+            assert exc.code == 2
+        else:
+            raise AssertionError("reddit-user-agent should be rejected")
 
     def test_batch_resume_skips_existing_query(self, capsys, monkeypatch, tmp_path):
         plan_path = tmp_path / "plan.json"

@@ -1229,149 +1229,127 @@ def test_mcp_registry_read_latest_and_not_found(config, monkeypatch):
     assert missing["error"]["code"] == "not_found"
 
 
-def test_reddit_search_success_with_bearer_token(config, monkeypatch):
-    class FakeResponse:
-        status_code = 200
-        text = "{}"
+def test_reddit_search_success_with_rdt_cli(config, monkeypatch):
+    listing = {
+        "kind": "Listing",
+        "data": {
+            "after": "t3_next",
+            "children": [
+                {
+                    "kind": "t3",
+                    "data": {
+                        "name": "t3_abc",
+                        "id": "abc",
+                        "title": "Agent discussion",
+                        "permalink": "/r/LocalLLaMA/comments/abc/agent_discussion/",
+                        "selftext": "Thread body",
+                        "author": "alice",
+                        "created_utc": 1775788800,
+                        "subreddit": "LocalLLaMA",
+                        "score": 10,
+                        "num_comments": 2,
+                        "url": "https://www.reddit.com/r/LocalLLaMA/comments/abc/agent_discussion/",
+                    },
+                }
+            ],
+        },
+    }
+    captured = {}
+    adapter = RedditAdapter(config=config)
+    monkeypatch.setattr(adapter, "command_path", lambda _name: "rdt")
 
-        @staticmethod
-        def json():
-            return {
-                "kind": "Listing",
-                "data": {
-                    "after": "t3_next",
-                    "children": [
-                        {
-                            "kind": "t3",
-                            "data": {
-                                "name": "t3_abc",
-                                "id": "abc",
-                                "title": "Agent discussion",
-                                "permalink": "/r/LocalLLaMA/comments/abc/agent_discussion/",
-                                "selftext": "Thread body",
-                                "author": "alice",
-                                "created_utc": 1775788800,
-                                "subreddit": "LocalLLaMA",
-                                "score": 10,
-                                "num_comments": 2,
-                                "url": "https://www.reddit.com/r/LocalLLaMA/comments/abc/agent_discussion/",
-                            },
-                        }
-                    ],
-                },
-            }
+    def fake_run(command, timeout=120, env=None):
+        captured["command"] = command
+        return _cp(stdout=json.dumps({"ok": True, "data": listing}) + '\n  More: rdt search "agent" --after t3_next')
 
-    class FakeRequests:
-        RequestException = RuntimeError
+    monkeypatch.setattr(adapter, "run_command", fake_run)
 
-        @staticmethod
-        def get(url, params=None, headers=None, timeout=None):
-            assert url.endswith("/r/LocalLLaMA/search")
-            assert params["restrict_sr"] == 1
-            assert headers["Authorization"] == "Bearer token"
-            return FakeResponse()
-
-    config.set("reddit_user_agent", "windows:agent-reach:v1.6.0 (by /u/example)")
-    config.set("reddit_access_token", "token")
-    monkeypatch.setattr("agent_reach.adapters.reddit._import_requests", lambda: FakeRequests)
-
-    payload = RedditAdapter(config=config).search("r/LocalLLaMA agent frameworks", limit=1)
+    payload = adapter.search("r/LocalLLaMA agent frameworks", limit=1)
 
     assert payload["ok"] is True
+    assert captured["command"] == [
+        "rdt",
+        "search",
+        "agent frameworks",
+        "-n",
+        "1",
+        "--json",
+        "-r",
+        "LocalLLaMA",
+    ]
     assert payload["items"][0]["kind"] == "reddit_post"
     assert payload["items"][0]["extras"]["subreddit"] == "LocalLLaMA"
     assert payload["items"][0]["extras"]["source_hints"]["source_kind"] == "forum_post"
+    assert payload["meta"]["backend"] == "rdt_cli"
     assert payload["meta"]["next_cursor"] == "t3_next"
 
 
-def test_reddit_read_success_with_client_credentials(config, monkeypatch):
-    class FakeResponse:
-        def __init__(self, payload, status_code=200):
-            self.status_code = status_code
-            self.text = json.dumps(payload)
-            self._payload = payload
-
-        def json(self):
-            return self._payload
-
-    calls = []
-
-    class FakeRequests:
-        RequestException = RuntimeError
-
-        @staticmethod
-        def post(url, data=None, auth=None, headers=None, timeout=None):
-            calls.append(("post", url, data, auth))
-            return FakeResponse({"access_token": "oauth-token"})
-
-        @staticmethod
-        def get(url, params=None, headers=None, timeout=None):
-            calls.append(("get", url, params, headers["Authorization"]))
-            return FakeResponse(
-                [
+def test_reddit_read_success_with_rdt_cli(config, monkeypatch):
+    raw_thread = [
+        {
+            "kind": "Listing",
+            "data": {
+                "children": [
                     {
-                        "kind": "Listing",
+                        "kind": "t3",
                         "data": {
-                            "children": [
-                                {
-                                    "kind": "t3",
-                                    "data": {
-                                        "name": "t3_abc",
-                                        "id": "abc",
-                                        "title": "Thread title",
-                                        "permalink": "/r/redditdev/comments/abc/thread/",
-                                        "selftext": "Thread body",
-                                        "author": "alice",
-                                    },
-                                }
-                            ]
+                            "name": "t3_abc",
+                            "id": "abc",
+                            "title": "Thread title",
+                            "permalink": "/r/redditdev/comments/abc/thread/",
+                            "selftext": "Thread body",
+                            "author": "alice",
                         },
-                    },
-                    {
-                        "kind": "Listing",
-                        "data": {
-                            "children": [
-                                {
-                                    "kind": "t1",
-                                    "data": {
-                                        "name": "t1_def",
-                                        "id": "def",
-                                        "body": "Comment body",
-                                        "author": "bob",
-                                        "permalink": "/r/redditdev/comments/abc/thread/def/",
-                                    },
-                                }
-                            ]
-                        },
-                    },
+                    }
                 ]
-            )
+            },
+        },
+        {
+            "kind": "Listing",
+            "data": {
+                "children": [
+                    {
+                        "kind": "t1",
+                        "data": {
+                            "name": "t1_def",
+                            "id": "def",
+                            "body": "Comment body",
+                            "author": "bob",
+                            "permalink": "/r/redditdev/comments/abc/thread/def/",
+                        },
+                    }
+                ]
+            },
+        },
+    ]
+    captured = {}
+    adapter = RedditAdapter(config=config)
+    monkeypatch.setattr(adapter, "command_path", lambda _name: "rdt")
 
-    config.set("reddit_user_agent", "windows:agent-reach:v1.6.0 (by /u/example)")
-    config.set("reddit_client_id", "client-id")
-    config.set("reddit_client_secret", "client-secret")
-    monkeypatch.setattr("agent_reach.adapters.reddit._import_requests", lambda: FakeRequests)
+    def fake_run(command, timeout=120, env=None):
+        captured["command"] = command
+        return _cp(stdout=json.dumps({"ok": True, "data": raw_thread}))
 
-    payload = RedditAdapter(config=config).read("https://www.reddit.com/r/redditdev/comments/abc/thread/", limit=2)
+    monkeypatch.setattr(adapter, "run_command", fake_run)
+
+    payload = adapter.read("https://www.reddit.com/r/redditdev/comments/abc/thread/", limit=2)
 
     assert payload["ok"] is True
-    assert calls[0][3] == ("client-id", "client-secret")
-    assert calls[1][3] == "Bearer oauth-token"
+    assert captured["command"] == ["rdt", "read", "abc", "-n", "2", "--json"]
     assert [item["kind"] for item in payload["items"]] == ["reddit_post", "reddit_comment"]
+    assert payload["meta"]["backend"] == "rdt_cli"
     assert payload["meta"]["comment_count"] == 1
 
 
-def test_reddit_requires_oauth_configuration(config):
-    missing_agent = RedditAdapter(config=config).search("agent frameworks", limit=1)
-    config.set("reddit_user_agent", "windows:agent-reach:v1.6.0 (by /u/example)")
-    missing_oauth = RedditAdapter(config=config).search("agent frameworks", limit=1)
+def test_reddit_reports_missing_rdt_cli(config):
+    adapter = RedditAdapter(config=config)
+    adapter.command_path = lambda _name: None
 
-    assert missing_agent["ok"] is False
-    assert missing_agent["error"]["code"] == "missing_configuration"
-    assert "User-Agent" in missing_agent["error"]["message"]
-    assert missing_oauth["ok"] is False
-    assert missing_oauth["error"]["code"] == "missing_configuration"
-    assert "OAuth" in missing_oauth["error"]["message"]
+    payload = adapter.search("agent frameworks", limit=1)
+
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "missing_dependency"
+    assert "rdt-cli" in payload["error"]["message"]
 
 
 def test_base_adapter_runtime_env_is_noninteractive_and_utf8(config, monkeypatch):
@@ -1379,8 +1357,6 @@ def test_base_adapter_runtime_env_is_noninteractive_and_utf8(config, monkeypatch
     monkeypatch.delenv("PYTHONUTF8", raising=False)
     config.set("qiita_token", "qiita-token")
     config.set("searxng_base_url", "https://search.example.com")
-    config.set("reddit_access_token", "reddit-token")
-    config.set("reddit_user_agent", "windows:agent-reach:v1.6.0 (by /u/example)")
 
     env = BaseAdapter(config=config).runtime_env()
 
@@ -1388,5 +1364,3 @@ def test_base_adapter_runtime_env_is_noninteractive_and_utf8(config, monkeypatch
     assert env["PYTHONUTF8"] == "1"
     assert env["QIITA_TOKEN"] == "qiita-token"
     assert env["SEARXNG_BASE_URL"] == "https://search.example.com"
-    assert env["REDDIT_ACCESS_TOKEN"] == "reddit-token"
-    assert env["REDDIT_USER_AGENT"] == "windows:agent-reach:v1.6.0 (by /u/example)"

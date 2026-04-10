@@ -42,10 +42,6 @@ class Config:
         "github_token": ("GITHUB_TOKEN", "GH_TOKEN"),
         "qiita_token": ("QIITA_TOKEN",),
         "searxng_base_url": ("SEARXNG_BASE_URL",),
-        "reddit_access_token": ("REDDIT_ACCESS_TOKEN", "REDDIT_BEARER_TOKEN"),
-        "reddit_client_id": ("REDDIT_CLIENT_ID",),
-        "reddit_client_secret": ("REDDIT_CLIENT_SECRET",),
-        "reddit_user_agent": ("REDDIT_USER_AGENT",),
         "twitter_auth_token": ("TWITTER_AUTH_TOKEN", "AUTH_TOKEN"),
         "twitter_ct0": ("TWITTER_CT0", "CT0"),
     }
@@ -54,7 +50,6 @@ class Config:
         "searxng": ["searxng_base_url"],
         "twitter": ["twitter_auth_token", "twitter_ct0"],
         "github_token": ["github_token"],
-        "reddit": ["reddit_user_agent"],
     }
 
     def __init__(self, config_path: Path | None = None):
@@ -130,14 +125,6 @@ class Config:
     def is_configured(self, feature: str) -> bool:
         """Check if a feature has all required config."""
 
-        if feature == "reddit":
-            return bool(
-                self.get("reddit_user_agent")
-                and (
-                    self.get("reddit_access_token")
-                    or (self.get("reddit_client_id") and self.get("reddit_client_secret"))
-                )
-            )
         required = self.FEATURE_REQUIREMENTS.get(feature, [])
         return all(self.get(key) for key in required)
 
