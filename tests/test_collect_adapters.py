@@ -220,6 +220,12 @@ def test_hatena_bookmark_adapter_success(config, monkeypatch):
 
     assert payload["ok"] is True
     assert payload["items"][0]["extras"]["bookmark_count"] == 12
+    assert payload["items"][0]["extras"]["media_references"][0] == {
+        "type": "image",
+        "url": "https://example.com/image.png",
+        "relation": "screenshot",
+        "source_field": "screenshot",
+    }
     assert payload["items"][1]["kind"] == "related_page"
 
 
@@ -323,6 +329,7 @@ def test_bluesky_adapter_success(config, monkeypatch):
     assert payload["meta"]["page_size"] == 1
     assert payload["meta"]["pages_fetched"] == 1
     assert payload["items"][0]["extras"]["media"][0]["type"] == "image"
+    assert payload["items"][0]["extras"]["media_references"][0]["relation"] == "embed_media"
     assert payload["items"][0]["extras"]["media"][0]["aspect_ratio"] == {"width": 4, "height": 3}
     assert payload["items"][0]["extras"]["source_hints"] == {
         "source_kind": "social_post",
@@ -377,6 +384,8 @@ def test_bluesky_adapter_normalizes_nested_video_embed(config, monkeypatch):
     assert payload["ok"] is True
     assert payload["items"][0]["extras"]["media"][0]["type"] == "video"
     assert payload["items"][0]["extras"]["media"][0]["playlist_url"] == "https://video.bsky.app/playlist.m3u8"
+    assert payload["items"][0]["extras"]["media_references"][0]["type"] == "video"
+    assert payload["items"][0]["extras"]["media_references"][0]["url"] == "https://video.bsky.app/playlist.m3u8"
 
 
 def test_qiita_adapter_success(config, monkeypatch):
@@ -392,7 +401,7 @@ def test_qiita_adapter_success(config, monkeypatch):
                     "id": "abc123",
                     "title": "Qiita article",
                     "url": "https://qiita.com/Qiita/items/abc123",
-                    "body": "markdown body",
+                    "body": "markdown body ![diagram](https://cdn.qiita.com/diagram.png)",
                     "created_at": "2026-04-10T00:00:00+09:00",
                     "updated_at": "2026-04-10T01:00:00+09:00",
                     "likes_count": 10,
@@ -402,7 +411,7 @@ def test_qiita_adapter_success(config, monkeypatch):
                     "page_views_count": 50,
                     "private": False,
                     "tags": [{"name": "Python"}],
-                    "user": {"id": "Qiita"},
+                    "user": {"id": "Qiita", "profile_image_url": "https://qiita-user.example/avatar.png"},
                 }
             ]
 
@@ -419,8 +428,22 @@ def test_qiita_adapter_success(config, monkeypatch):
 
     assert payload["ok"] is True
     assert payload["items"][0]["author"] == "Qiita"
-    assert payload["items"][0]["text"] == "markdown body"
-    assert payload["raw"][0]["body"] == "markdown body"
+    assert payload["items"][0]["text"] == "markdown body ![diagram](https://cdn.qiita.com/diagram.png)"
+    assert payload["raw"][0]["body"] == "markdown body ![diagram](https://cdn.qiita.com/diagram.png)"
+    assert payload["items"][0]["extras"]["media_references"] == [
+        {
+            "type": "image",
+            "url": "https://qiita-user.example/avatar.png",
+            "relation": "avatar",
+            "source_field": "user.profile_image_url",
+        },
+        {
+            "type": "image",
+            "url": "https://cdn.qiita.com/diagram.png",
+            "relation": "body_image",
+            "source_field": "body",
+        },
+    ]
     assert payload["items"][0]["extras"]["source_hints"]["source_kind"] == "article"
     assert payload["meta"]["total_count"] == "42"
     assert payload["meta"]["body_mode"] == "full"
@@ -432,7 +455,7 @@ def test_qiita_adapter_success(config, monkeypatch):
 
 
 def test_qiita_adapter_body_mode_controls_text_and_raw(config, monkeypatch):
-    body = "x" * 600
+    body = ("x" * 580) + " ![diagram](https://cdn.qiita.com/diagram.png)"
 
     class FakeResponse:
         status_code = 200
@@ -450,7 +473,7 @@ def test_qiita_adapter_body_mode_controls_text_and_raw(config, monkeypatch):
                     "created_at": "2026-04-10T00:00:00+09:00",
                     "updated_at": "2026-04-10T01:00:00+09:00",
                     "tags": [],
-                    "user": {"id": "Qiita"},
+                    "user": {"id": "Qiita", "profile_image_url": "https://qiita-user.example/avatar.png"},
                 }
             ]
 
@@ -470,9 +493,25 @@ def test_qiita_adapter_body_mode_controls_text_and_raw(config, monkeypatch):
     assert none_payload["items"][0]["text"] is None
     assert "body" not in none_payload["raw"][0]
     assert none_payload["meta"]["body_mode"] == "none"
+    assert none_payload["items"][0]["extras"]["media_references"] == [
+        {
+            "type": "image",
+            "url": "https://qiita-user.example/avatar.png",
+            "relation": "avatar",
+            "source_field": "user.profile_image_url",
+        }
+    ]
     assert snippet_payload["items"][0]["text"] == body[:500]
     assert snippet_payload["raw"][0]["body"] == body[:500]
     assert snippet_payload["meta"]["body_mode"] == "snippet"
+    assert snippet_payload["items"][0]["extras"]["media_references"] == [
+        {
+            "type": "image",
+            "url": "https://qiita-user.example/avatar.png",
+            "relation": "avatar",
+            "source_field": "user.profile_image_url",
+        }
+    ]
 
 
 def test_github_adapter_read_success(config, monkeypatch):
@@ -550,7 +589,10 @@ def test_youtube_adapter_success(config, monkeypatch):
                     "upload_date": "20260410",
                     "duration": 19,
                     "thumbnail": "https://i.ytimg.com/vi/abc123/hqdefault.jpg",
-                    "thumbnails": [{"url": "thumb-1"}, {"url": "thumb-2"}],
+                    "thumbnails": [
+                        {"url": "https://i.ytimg.com/vi/abc123/1.jpg"},
+                        {"url": "https://i.ytimg.com/vi/abc123/2.jpg"},
+                    ],
                     "subtitles": {"en": [{}]},
                     "automatic_captions": {"ja": [{}]},
                     "requested_subtitles": {"en": {}},
@@ -565,6 +607,26 @@ def test_youtube_adapter_success(config, monkeypatch):
     assert payload["items"][0]["kind"] == "video"
     assert payload["items"][0]["extras"]["thumbnail_url"] == "https://i.ytimg.com/vi/abc123/hqdefault.jpg"
     assert payload["items"][0]["extras"]["thumbnail_count"] == 2
+    assert payload["items"][0]["extras"]["media_references"] == [
+        {
+            "type": "image",
+            "url": "https://i.ytimg.com/vi/abc123/hqdefault.jpg",
+            "relation": "thumbnail",
+            "source_field": "thumbnail",
+        },
+        {
+            "type": "image",
+            "url": "https://i.ytimg.com/vi/abc123/1.jpg",
+            "relation": "thumbnail",
+            "source_field": "thumbnails[]",
+        },
+        {
+            "type": "image",
+            "url": "https://i.ytimg.com/vi/abc123/2.jpg",
+            "relation": "thumbnail",
+            "source_field": "thumbnails[]",
+        },
+    ]
     assert payload["items"][0]["extras"]["subtitle_languages"] == ["en"]
     assert payload["items"][0]["extras"]["automatic_caption_languages"] == ["ja"]
     assert payload["items"][0]["extras"]["has_subtitles"] is True
@@ -725,6 +787,7 @@ def test_twitter_adapter_user_success(config, monkeypatch):
                         "tweets": 10,
                         "likes": 5,
                         "verified": True,
+                        "profileImageUrl": "https://pbs.twimg.com/profile_images/openai.png",
                         "url": "https://openai.com",
                         "createdAtISO": "2015-12-06T22:51:08+00:00",
                     },
@@ -739,6 +802,14 @@ def test_twitter_adapter_user_success(config, monkeypatch):
     assert payload["items"][0]["kind"] == "profile"
     assert payload["items"][0]["url"] == "https://x.com/OpenAI"
     assert payload["items"][0]["extras"]["followers"] == 100
+    assert payload["items"][0]["extras"]["media_references"] == [
+        {
+            "type": "image",
+            "url": "https://pbs.twimg.com/profile_images/openai.png",
+            "relation": "avatar",
+            "source_field": "profileImageUrl",
+        }
+    ]
 
 
 def test_twitter_adapter_user_posts_success(config, monkeypatch):
@@ -770,6 +841,15 @@ def test_twitter_adapter_user_posts_success(config, monkeypatch):
     assert payload["ok"] is True
     assert payload["operation"] == "user_posts"
     assert payload["items"][0]["extras"]["media"][0]["type"] == "photo"
+    assert payload["items"][0]["extras"]["media_references"] == [
+        {
+            "type": "image",
+            "url": "https://pbs.twimg.com/media/a.png",
+            "relation": "post_media",
+            "source_field": "media[]",
+            "media_type": "photo",
+        }
+    ]
 
 
 def test_twitter_adapter_tweet_success(config, monkeypatch):
@@ -1246,6 +1326,7 @@ def test_mcp_registry_search_success(config, monkeypatch):
                             "description": "Remote MCP server for docs",
                             "repository": {"url": "https://github.com/frumu-ai/tandem", "source": "github"},
                             "websiteUrl": "https://tandem.ac",
+                            "iconUrl": "https://tandem.ac/icon.png",
                             "version": "0.3.0",
                             "remotes": [{"type": "streamable-http", "url": "https://tandem.ac/mcp"}],
                             "unknownPreviewField": True,
@@ -1278,6 +1359,14 @@ def test_mcp_registry_search_success(config, monkeypatch):
     assert payload["items"][0]["kind"] == "mcp_server"
     assert payload["items"][0]["id"] == "ac.tandem/docs-mcp"
     assert payload["items"][0]["extras"]["repository_url"] == "https://github.com/frumu-ai/tandem"
+    assert payload["items"][0]["extras"]["media_references"] == [
+        {
+            "type": "image",
+            "url": "https://tandem.ac/icon.png",
+            "relation": "icon",
+            "source_field": "server.iconUrl",
+        }
+    ]
     assert payload["items"][0]["extras"]["source_hints"]["source_kind"] == "registry_entry"
     assert payload["meta"]["pages_fetched"] == 1
 
@@ -1424,7 +1513,26 @@ def test_reddit_search_success_with_rdt_cli(config, monkeypatch):
                         "subreddit": "LocalLLaMA",
                         "score": 10,
                         "num_comments": 2,
-                        "url": "https://www.reddit.com/r/LocalLLaMA/comments/abc/agent_discussion/",
+                        "url": "https://i.redd.it/example-image.png",
+                        "thumbnail": "https://preview.redd.it/example-thumb.png?width=140&format=png&auto=webp&s=1",
+                        "thumbnail_width": 140,
+                        "thumbnail_height": 140,
+                        "preview": {
+                            "images": [
+                                {
+                                    "source": {
+                                        "url": "https://preview.redd.it/example-preview.png?width=1024&format=png&auto=webp&s=1",
+                                        "width": 1024,
+                                        "height": 768,
+                                    },
+                                    "resolutions": [
+                                        {
+                                            "url": "https://preview.redd.it/example-preview.png?width=108&format=png&auto=webp&s=1"
+                                        }
+                                    ],
+                                }
+                            ]
+                        },
                     },
                 }
             ],
@@ -1455,6 +1563,31 @@ def test_reddit_search_success_with_rdt_cli(config, monkeypatch):
     ]
     assert payload["items"][0]["kind"] == "reddit_post"
     assert payload["items"][0]["extras"]["subreddit"] == "LocalLLaMA"
+    assert payload["items"][0]["extras"]["media_references"] == [
+        {
+            "type": "image",
+            "url": "https://preview.redd.it/example-preview.png?width=1024&format=png&auto=webp&s=1",
+            "relation": "preview",
+            "thumb_url": "https://preview.redd.it/example-preview.png?width=108&format=png&auto=webp&s=1",
+            "width": 1024,
+            "height": 768,
+            "source_field": "preview.images[].source",
+        },
+        {
+            "type": "image",
+            "url": "https://preview.redd.it/example-thumb.png?width=140&format=png&auto=webp&s=1",
+            "relation": "thumbnail",
+            "width": 140,
+            "height": 140,
+            "source_field": "thumbnail",
+        },
+        {
+            "type": "image",
+            "url": "https://i.redd.it/example-image.png",
+            "relation": "external_url",
+            "source_field": "url",
+        },
+    ]
     assert payload["items"][0]["extras"]["source_hints"]["source_kind"] == "forum_post"
     assert payload["meta"]["backend"] == "rdt_cli"
     assert payload["meta"]["next_cursor"] == "t3_next"

@@ -7,6 +7,7 @@ import time
 import warnings
 from urllib.parse import quote, unquote, urlparse
 
+from agent_reach.media_references import build_media_reference, dedupe_media_references
 from agent_reach.results import (
     CollectionResult,
     NormalizedItem,
@@ -53,6 +54,30 @@ def _remote_urls(server: dict) -> list[str]:
         if isinstance(remote, dict) and remote.get("url"):
             urls.append(str(remote["url"]))
     return urls
+
+
+def _icon_references(entry: dict) -> list[dict]:
+    server = _server(entry)
+    official = _official_meta(entry)
+    references = []
+    candidates = [
+        ("server.icon", server.get("icon")),
+        ("server.iconUrl", server.get("iconUrl")),
+        ("server.icon_url", server.get("icon_url")),
+        ("_meta.official.icon", official.get("icon")),
+        ("_meta.official.iconUrl", official.get("iconUrl")),
+        ("_meta.official.icon_url", official.get("icon_url")),
+    ]
+    for source_field, url in candidates:
+        reference = build_media_reference(
+            type="image",
+            url=url,
+            relation="icon",
+            source_field=source_field,
+        )
+        if reference is not None:
+            references.append(reference)
+    return dedupe_media_references(references)
 
 
 def _entry_name(entry: dict) -> str:
@@ -109,6 +134,7 @@ def _entry_item(
         "repository_source": repository.get("source"),
         "website_url": server.get("websiteUrl") or server.get("website_url"),
         "remotes": server.get("remotes") or [],
+        "media_references": _icon_references(entry),
         "registry_status": official.get("status"),
         "registry_updated_at": parse_timestamp(official.get("updatedAt") or official.get("updated_at")),
         "registry_status_changed_at": parse_timestamp(

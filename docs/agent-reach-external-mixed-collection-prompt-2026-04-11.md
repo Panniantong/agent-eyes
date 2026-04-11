@@ -146,14 +146,14 @@ Candidate and ledger checks:
 Media capability proof requirements:
 You must explicitly answer these questions with evidence from the saved JSON files:
 1. Can Twitter/X return post-level media references through Agent Reach on this machine?
-   - If yes, quote the exact `extras.media` shape for one item.
+   - If yes, quote the exact `extras.media` and `extras.media_references` shape for one item when present.
    - If no, explain whether the reason was readiness, auth, zero results, or missing media fields.
 2. Can YouTube return enough metadata to treat a video page as a research object?
    - Report exact `id`, `kind`, `title`, `url`, `published_at`, `extras.duration_seconds`, and `extras.subtitle_languages`.
    - Report normalized `extras.thumbnail_url`, `extras.thumbnail_count`, `extras.automatic_caption_languages`, `extras.has_subtitles`, `extras.has_automatic_captions`, `extras.requested_subtitle_languages`, and `extras.source_hints`.
    - Also report whether the raw payload exposed fields such as `thumbnail`, `subtitles`, or related caption metadata.
 3. Did any other channel expose image/video-like evidence?
-   - Check at least Bluesky `extras.media`, Hatena screenshot-related fields, or any other obvious media references in saved payloads.
+   - Check at least Bluesky `extras.media`, normalized `extras.media_references`, Hatena screenshot-related fields, or any other obvious media references in saved payloads.
 
 Evidence output format:
 Return a structured report with these sections:

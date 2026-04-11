@@ -8,6 +8,7 @@ import warnings
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
+from agent_reach.media_references import build_media_reference, dedupe_media_references
 from agent_reach.results import (
     CollectionResult,
     NormalizedItem,
@@ -134,6 +135,20 @@ class HatenaBookmarkAdapter(BaseAdapter):
                     "bookmark_count": raw.get("count"),
                     "comment_count": comment_count,
                     "screenshot": raw.get("screenshot"),
+                    "media_references": dedupe_media_references(
+                        [
+                            reference
+                            for reference in [
+                                build_media_reference(
+                                    type="image",
+                                    url=raw.get("screenshot"),
+                                    relation="screenshot",
+                                    source_field="screenshot",
+                                )
+                            ]
+                            if reference is not None
+                        ]
+                    ),
                 },
             )
         ]

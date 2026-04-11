@@ -9,6 +9,11 @@ import time
 from typing import Any, cast
 from urllib.parse import urlparse
 
+from agent_reach.media_references import (
+    build_media_reference,
+    dedupe_media_references,
+    looks_like_image_url,
+)
 from agent_reach.results import (
     CollectionResult,
     NormalizedItem,
@@ -58,10 +63,61 @@ def _search_query(value: str) -> tuple[str, str | None]:
     return match.group("query").strip(), match.group("subreddit")
 
 
+def _preview_media_references(data: dict[str, Any]) -> list[dict[str, Any]]:
+    references: list[dict[str, Any]] = []
+    preview = data.get("preview")
+    images = preview.get("images") if isinstance(preview, dict) else []
+    if isinstance(images, list):
+        for image in images:
+            if not isinstance(image, dict):
+                continue
+            raw_source = image.get("source")
+            source = raw_source if isinstance(raw_source, dict) else {}
+            raw_resolutions = image.get("resolutions")
+            resolutions = raw_resolutions if isinstance(raw_resolutions, list) else []
+            last_resolution = resolutions[-1] if resolutions else None
+            thumb = last_resolution if isinstance(last_resolution, dict) else {}
+            reference = build_media_reference(
+                type="image",
+                url=source.get("url"),
+                relation="preview",
+                thumb_url=thumb.get("url"),
+                width=source.get("width"),
+                height=source.get("height"),
+                source_field="preview.images[].source",
+            )
+            if reference is not None:
+                references.append(reference)
+    thumbnail = data.get("thumbnail")
+    if isinstance(thumbnail, str) and thumbnail.startswith(("http://", "https://")):
+        reference = build_media_reference(
+            type="image",
+            url=thumbnail,
+            relation="thumbnail",
+            width=data.get("thumbnail_width"),
+            height=data.get("thumbnail_height"),
+            source_field="thumbnail",
+        )
+        if reference is not None:
+            references.append(reference)
+    external_url = data.get("url")
+    if looks_like_image_url(external_url):
+        reference = build_media_reference(
+            type="image",
+            url=external_url,
+            relation="external_url",
+            source_field="url",
+        )
+        if reference is not None:
+            references.append(reference)
+    return dedupe_media_references(references)
+
+
 def _post_item(data: dict[str, Any], idx: int, *, source: str) -> NormalizedItem:
     item_id = str(data.get("name") or data.get("id") or f"reddit-post-{idx}")
     published_at = parse_timestamp(data.get("created_utc") or data.get("created"))
     permalink = _permalink_url(data.get("permalink"))
+    media_references = _preview_media_references(data)
     return build_item(
         item_id=item_id,
         kind="reddit_post",
@@ -79,6 +135,7 @@ def _post_item(data: dict[str, Any], idx: int, *, source: str) -> NormalizedItem
             "num_comments": data.get("num_comments"),
             "domain": data.get("domain"),
             "external_url": data.get("url") if data.get("url") != permalink else None,
+            "media_references": media_references,
             "is_self": data.get("is_self"),
             "over_18": data.get("over_18"),
             "link_flair_text": data.get("link_flair_text"),

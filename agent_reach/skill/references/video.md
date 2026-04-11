@@ -6,7 +6,7 @@ Use Agent Reach for normalized video metadata, subtitle/caption availability, an
 agent-reach collect --channel youtube --operation read --input "https://www.youtube.com/watch?v=VIDEO_ID" --json
 ```
 
-The normalized item includes video diagnostics such as `extras.duration_seconds`, `extras.thumbnail_url`, `extras.subtitle_languages`, `extras.automatic_caption_languages`, `extras.has_subtitles`, `extras.has_automatic_captions`, and `extras.source_hints`. Agent Reach does not download video binaries, extract frames, run OCR, or transcribe audio.
+The normalized item includes video diagnostics such as `extras.duration_seconds`, `extras.thumbnail_url`, `extras.media_references`, `extras.subtitle_languages`, `extras.automatic_caption_languages`, `extras.has_subtitles`, `extras.has_automatic_captions`, and `extras.source_hints`. Agent Reach does not download video binaries, extract frames, run OCR, or transcribe audio.
 
 ```powershell
 yt-dlp --dump-single-json "https://www.youtube.com/watch?v=VIDEO_ID"

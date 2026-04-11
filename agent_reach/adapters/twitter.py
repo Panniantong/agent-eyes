@@ -7,6 +7,7 @@ import json
 import time
 from urllib.parse import urlparse
 
+from agent_reach.media_references import build_media_reference, dedupe_media_references
 from agent_reach.results import (
     CollectionResult,
     NormalizedItem,
@@ -50,7 +51,35 @@ def _tweet_url(tweet: dict) -> str | None:
     return None
 
 
+def _twitter_media_references(media: object) -> list[dict[str, object]]:
+    if not isinstance(media, list):
+        return []
+
+    references: list[dict[str, object]] = []
+    for entry in media:
+        if not isinstance(entry, dict):
+            continue
+        raw_type = str(entry.get("type") or "")
+        normalized_type = "video" if raw_type in {"video", "animated_gif", "gif"} else "image"
+        reference = build_media_reference(
+            type=normalized_type,
+            media_type=raw_type or None,
+            url=entry.get("url") or entry.get("mediaUrl") or entry.get("media_url"),
+            relation="post_media",
+            thumb_url=entry.get("thumbnail") or entry.get("thumbUrl") or entry.get("previewImageUrl"),
+            alt=entry.get("alt"),
+            width=entry.get("width"),
+            height=entry.get("height"),
+            duration_seconds=entry.get("durationSeconds"),
+            source_field="media[]",
+        )
+        if reference is not None:
+            references.append(reference)
+    return dedupe_media_references(references)
+
+
 def _tweet_item(tweet: dict, idx: int, source: str) -> NormalizedItem:
+    media = tweet.get("media") or []
     return build_item(
         item_id=str(tweet.get("id") or f"tweet-{idx}"),
         kind="post",
@@ -65,7 +94,8 @@ def _tweet_item(tweet: dict, idx: int, source: str) -> NormalizedItem:
             "verified": (tweet.get("author") or {}).get("verified"),
             "metrics": tweet.get("metrics") or {},
             "urls": tweet.get("urls") or [],
-            "media": tweet.get("media") or [],
+            "media": media,
+            "media_references": _twitter_media_references(media),
             "lang": tweet.get("lang"),
             "is_retweet": tweet.get("isRetweet"),
             "retweeted_by": tweet.get("retweetedBy"),
@@ -211,6 +241,20 @@ class TwitterAdapter(BaseAdapter):
                 "location": data.get("location"),
                 "profile_image_url": data.get("profileImageUrl"),
                 "website_url": data.get("url"),
+                "media_references": dedupe_media_references(
+                    [
+                        reference
+                        for reference in [
+                            build_media_reference(
+                                type="image",
+                                url=data.get("profileImageUrl"),
+                                relation="avatar",
+                                source_field="profileImageUrl",
+                            )
+                        ]
+                        if reference is not None
+                    ]
+                ),
             },
         )
         return self.ok_result(

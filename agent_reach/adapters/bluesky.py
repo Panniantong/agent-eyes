@@ -8,6 +8,7 @@ import warnings
 from typing import Any
 from urllib.parse import urlencode
 
+from agent_reach.media_references import build_media_reference, dedupe_media_references
 from agent_reach.results import (
     CollectionResult,
     NormalizedItem,
@@ -105,6 +106,29 @@ def _media_from_embed(embed: Any) -> list[dict[str, Any]]:
     if nested_media:
         media.extend(_media_from_embed(nested_media))
     return media
+
+
+def _media_references_from_media(media: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    references: list[dict[str, Any]] = []
+    for entry in media:
+        if not isinstance(entry, dict):
+            continue
+        media_type = str(entry.get("type") or "")
+        normalized_type = "video" if media_type == "video" else "image"
+        reference = build_media_reference(
+            type=normalized_type,
+            media_type=media_type or None,
+            url=entry.get("url") or entry.get("playlist_url"),
+            relation="embed_media",
+            thumb_url=entry.get("thumb_url"),
+            alt=entry.get("alt"),
+            width=(entry.get("aspect_ratio") or {}).get("width"),
+            height=(entry.get("aspect_ratio") or {}).get("height"),
+            source_field="embed.media",
+        )
+        if reference is not None:
+            references.append(reference)
+    return dedupe_media_references(references)
 
 
 class BlueskyAdapter(BaseAdapter):
@@ -210,6 +234,7 @@ class BlueskyAdapter(BaseAdapter):
                 record = post.get("record") or {}
                 embed = post.get("embed") or {}
                 external = (embed.get("external") or {}) if isinstance(embed, dict) else {}
+                media = _media_from_embed(embed)
                 title = derive_title_from_text(
                     record.get("text"),
                     fallback=external.get("title") or f"Bluesky post {idx + 1}",
@@ -233,7 +258,8 @@ class BlueskyAdapter(BaseAdapter):
                             "quote_count": post.get("quoteCount"),
                             "bookmark_count": post.get("bookmarkCount"),
                             "labels": post.get("labels") or [],
-                            "media": _media_from_embed(embed),
+                            "media": media,
+                            "media_references": _media_references_from_media(media),
                             "external_uri": external.get("uri"),
                             "external_title": external.get("title"),
                             "source_hints": bluesky_source_hints(published_at),

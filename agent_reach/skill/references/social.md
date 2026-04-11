@@ -87,3 +87,5 @@ For account analysis, prefer these in order:
 - `search` with `from:handle`, `has:media`, and `type:photos` when you want media-heavy subsets
 
 Plain free-text `search "OpenAI"` may return related discussion rather than only `@OpenAI` posts.
+
+When a channel exposes linked images, thumbnails, screenshots, avatars, or other lightweight media pointers, prefer normalized `extras.media_references` for downstream evidence handling. These are references only; Agent Reach does not download or analyze the binaries.

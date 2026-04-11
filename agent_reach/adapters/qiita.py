@@ -6,6 +6,11 @@ from __future__ import annotations
 import time
 import warnings
 
+from agent_reach.media_references import (
+    build_media_reference,
+    dedupe_media_references,
+    extract_image_urls,
+)
 from agent_reach.results import (
     CollectionResult,
     NormalizedItem,
@@ -131,6 +136,7 @@ class QiitaAdapter(BaseAdapter):
         items: list[NormalizedItem] = []
         for idx, entry in enumerate(raw):
             published_at = parse_timestamp(entry.get("created_at") or entry.get("updated_at"))
+            media_references = _media_references_for_entry(entry, body_mode)
             items.append(
                 build_item(
                     item_id=entry.get("id") or f"qiita-{idx}",
@@ -150,6 +156,7 @@ class QiitaAdapter(BaseAdapter):
                         "private": entry.get("private"),
                         "tags": [tag.get("name") for tag in entry.get("tags") or [] if tag.get("name")],
                         "updated_at": parse_timestamp(entry.get("updated_at")),
+                        "media_references": media_references,
                         "source_hints": article_source_hints(published_at),
                     },
                 )
@@ -198,6 +205,34 @@ def _entry_for_body_mode(entry: dict, body_mode: str) -> dict:
     elif body_mode == "snippet" and "body" in output:
         output["body"] = _body_for_mode(output.get("body"), body_mode)
     return output
+
+
+def _media_references_for_entry(entry: dict, body_mode: str) -> list[dict]:
+    raw_user = entry.get("user")
+    user = raw_user if isinstance(raw_user, dict) else {}
+    body = _body_for_mode(entry.get("body"), body_mode)
+    references = [
+        reference
+        for reference in [
+            build_media_reference(
+                type="image",
+                url=user.get("profile_image_url"),
+                relation="avatar",
+                source_field="user.profile_image_url",
+            )
+        ]
+        if reference is not None
+    ]
+    for image_url in extract_image_urls(body):
+        reference = build_media_reference(
+            type="image",
+            url=image_url,
+            relation="body_image",
+            source_field="body",
+        )
+        if reference is not None:
+            references.append(reference)
+    return dedupe_media_references(references)
 
 
 def _has_more(total_count: str | int | None, returned_count: int) -> bool | None:

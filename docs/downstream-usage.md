@@ -40,7 +40,7 @@ agent-reach plan candidates --input .agent-reach/evidence.jsonl --by url --limit
 
 This does not require `.codex-plugin`, `.mcp.json`, or `agent_reach/skill` files inside the downstream project.
 
-Treat `extras.source_hints` and web `meta` hygiene fields as diagnostics only. They can help downstream code explain provenance or flag suspicious extraction shape, but they are not ranking, trust scoring, summarization, or publishing instructions. `collect --max-text-chars N` is only for human text-mode snippets and does not truncate `--json` output or saved ledgers.
+Treat `extras.source_hints`, `extras.media_references`, and web `meta` hygiene fields as diagnostics only. They can help downstream code explain provenance or flag suspicious extraction shape, but they are not ranking, trust scoring, summarization, or publishing instructions. `collect --max-text-chars N` is only for human text-mode snippets and does not truncate `--json` output or saved ledgers.
 
 If a conditional command was captured without `--save`, append it later with:
 
@@ -181,7 +181,7 @@ Map `payload["items"]` to the bot's normalized item type:
 - `text` -> summary candidate or body snippet
 - `author` -> source author
 - `published_at` -> item timestamp
-- `extras.metrics` / channel-specific extras -> engagement, media, labels, source hints, or diagnostics
+- `extras.metrics` / channel-specific extras -> engagement, linked media references, labels, source hints, or diagnostics
 
 Use `agent-reach doctor --json --probe` in CI or scheduled workflows when readiness matters. By default, `doctor --json` uses the `core` exit policy: optional gaps appear in `summary.advisory_not_ready` rather than failing the command. Use `--exit-policy all` for strict all-channel readiness. Treat Twitter/X as optional: authenticated-but-unprobed status is a `warn` with `usability_hint=authenticated_but_unprobed`, while `doctor --json --probe` separates live `user` and `search` readiness under `operation_statuses`.
 

@@ -28,7 +28,7 @@ Do not assume this fork owns scheduling, ranking, summarization, or publishing. 
 - Use `agent-reach plan candidates --input .agent-reach/evidence.jsonl --json` for lightweight URL or ID dedupe before selected follow-up reads.
 - Use `agent-reach ledger validate --input .agent-reach/evidence.jsonl --json` when downstream automation needs to prove the evidence ledger is parseable.
 - Use `agent-reach ledger append --input RESULT.json --output .agent-reach/evidence.jsonl --json` when a successful conditional collection was captured without `--save`.
-- Treat `extras.source_hints` and web extraction hygiene fields as diagnostics only, not ranking or trust scores.
+- Treat `extras.source_hints`, `extras.media_references`, and web extraction hygiene fields as diagnostics only, not ranking or trust scores.
 - Treat `doctor --json` as core-blocking by default: tier 0 failures affect the exit code, while optional setup gaps appear under `summary.advisory_not_ready`.
 - For large research tasks, fan out bounded searches, use `plan candidates` for no-model dedupe, then deep-read only selected URLs.
 - Treat optional channel failures as partial results unless the user asked for strict completeness.

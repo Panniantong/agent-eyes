@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import time
 
+from agent_reach.media_references import build_media_reference, dedupe_media_references
 from agent_reach.results import CollectionResult, build_item, parse_timestamp
 from agent_reach.source_hints import video_source_hints
 
@@ -73,6 +74,33 @@ class YouTubeAdapter(BaseAdapter):
         automatic_caption_langs = sorted((raw.get("automatic_captions") or {}).keys())
         requested_subtitle_langs = sorted((raw.get("requested_subtitles") or {}).keys())
         thumbnails = raw.get("thumbnails") if isinstance(raw.get("thumbnails"), list) else []
+        media_references = [
+            reference
+            for reference in [
+                build_media_reference(
+                    type="image",
+                    url=raw.get("thumbnail"),
+                    relation="thumbnail",
+                    width=raw.get("thumbnail_width"),
+                    height=raw.get("thumbnail_height"),
+                    source_field="thumbnail",
+                )
+            ]
+            if reference is not None
+        ]
+        for thumbnail in thumbnails:
+            if not isinstance(thumbnail, dict):
+                continue
+            reference = build_media_reference(
+                type="image",
+                url=thumbnail.get("url"),
+                relation="thumbnail",
+                width=thumbnail.get("width"),
+                height=thumbnail.get("height"),
+                source_field="thumbnails[]",
+            )
+            if reference is not None:
+                media_references.append(reference)
         published_at = parse_timestamp(raw.get("upload_date") or raw.get("timestamp"))
         item = build_item(
             item_id=raw.get("id") or url,
@@ -93,6 +121,7 @@ class YouTubeAdapter(BaseAdapter):
                 "uploader_url": raw.get("uploader_url"),
                 "thumbnail_url": raw.get("thumbnail"),
                 "thumbnail_count": len(thumbnails),
+                "media_references": dedupe_media_references(media_references),
                 "subtitle_languages": subtitle_langs,
                 "automatic_caption_languages": automatic_caption_langs,
                 "has_subtitles": bool(subtitle_langs),

@@ -46,7 +46,7 @@ mcporter --config "$HOME\.mcporter\mcporter.json" config add exa https://mcp.exa
 
 Install Node.js LTS with `winget`, then run the fix command printed by `doctor`.
 
-YouTube collection returns video metadata, subtitle/caption availability, and thumbnail references. It does not download video binaries, extract frames, run OCR, or transcribe audio.
+YouTube collection returns video metadata, subtitle/caption availability, thumbnail references, and normalized linked media references. It does not download video binaries, extract frames, run OCR, or transcribe audio.
 
 ## `doctor --json` returns success even when optional channels are off
 

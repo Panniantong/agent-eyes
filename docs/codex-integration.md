@@ -72,4 +72,4 @@ When `agent-reach` is running from a tool install instead of a source checkout, 
 - `reddit` (optional `rdt-cli`, no Reddit OAuth config)
 - `twitter` (optional)
 
-These channels are exposed as metadata, setup guidance, diagnostics, and read-only collection operations so downstream tools can wire their own workflows without scraping repo docs. YouTube returns video metadata, subtitle/caption availability, and thumbnail references; Agent Reach does not perform media binary analysis.
+These channels are exposed as metadata, setup guidance, diagnostics, and read-only collection operations so downstream tools can wire their own workflows without scraping repo docs. YouTube returns video metadata, subtitle/caption availability, thumbnail references, and normalized linked media references; Agent Reach does not perform media binary analysis.
