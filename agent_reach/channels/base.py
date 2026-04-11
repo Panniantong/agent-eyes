@@ -22,7 +22,6 @@ class Channel(ABC):
     name: str = ""
     description: str = ""
     backends: List[str] = []
-    tier: int = 0  # 0 = core, 1 = optional login/setup, 2 = advanced/manual
     auth_kind: str = "none"
     entrypoint_kind: str = "cli"
     operations: List[str] = []
@@ -103,7 +102,6 @@ class Channel(ABC):
         return {
             "name": self.name,
             "description": self.description,
-            "tier": self.tier,
             "backends": list(self.backends),
             "auth_kind": self.auth_kind,
             "entrypoint_kind": self.entrypoint_kind,

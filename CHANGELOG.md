@@ -4,8 +4,14 @@ All notable changes to this fork are documented here.
 
 ## Unreleased
 
+## [1.7.0] - 2026-04-11
+
 ### Changed
 
+- flattened the channel registry so Agent Reach no longer ships built-in core/optional source tiers
+- replaced doctor's static exit policy with caller-defined readiness controls through `--require-channel`, `--require-channels`, and `--require-all`
+- updated the Python SDK, integration exports, bundled skill guidance, and docs to treat channel choice and readiness gating as caller-owned policy
+- generalized install planning metadata from fixed core/optional channel buckets to flat selected-channel inputs
 - removed transient prompt and research-note docs so the repo ships only the external-use guides that match the current CLI surface
 - aligned `README.md`, `llms.txt`, and Codex integration exports around the current channel registry and no-copy downstream workflow
 - fixed `check-update` so fork builds newer than the latest upstream release are reported as ahead of upstream instead of update-available

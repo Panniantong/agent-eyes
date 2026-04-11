@@ -48,14 +48,16 @@ Install Node.js LTS with `winget`, then run the fix command printed by `doctor`.
 
 YouTube collection returns video metadata, subtitle/caption availability, thumbnail references, and normalized linked media references. It does not download video binaries, extract frames, run OCR, or transcribe audio.
 
-## `doctor --json` returns success even when optional channels are off
+## `doctor --json` returns success even when some channels are off
 
-This is expected with the default `--exit-policy core`. Tier 0 channel failures affect the exit code; optional setup gaps are reported in `summary.advisory_not_ready`.
+This is expected when you do not mark any channels as required. In diagnostic-only mode, `doctor` reports readiness without imposing a caller policy on the exit code.
 
-Use strict mode when automation requires every optional channel to be ready:
+If automation needs a specific channel to gate the run, mark it as required:
 
 ```powershell
-agent-reach doctor --json --exit-policy all
+agent-reach doctor --json --require-channel github
+agent-reach doctor --json --require-channels github,web
+agent-reach doctor --json --require-all
 ```
 
 ## `doctor` says Crawl4AI is not installed
@@ -78,7 +80,7 @@ agent-reach doctor --json
 agent-reach doctor --json --probe
 ```
 
-If the affected channel is optional, confirm its backend directly:
+If the affected channel is not required for this run, confirm its backend directly:
 
 ```powershell
 gh auth status

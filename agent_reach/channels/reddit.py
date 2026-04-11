@@ -13,7 +13,6 @@ class RedditChannel(Channel):
     name = "reddit"
     description = "Reddit search results and public discussion threads"
     backends = ["rdt-cli"]
-    tier = 2
     auth_kind = "none"
     entrypoint_kind = "cli"
     operations = ["search", "read"]

@@ -88,7 +88,7 @@ When Codex is working inside an arbitrary project:
 - Keep `agent-reach plan candidates` at the default `--limit 20` unless the caller explicitly wants a broader candidate set.
 - Treat `batch` and `scout` as explicit opt-in helpers rather than the default route for everyday collection.
 - Keep ranking, summarization, scheduling, Discord publishing, and state in the downstream project.
-- Treat optional channel failures as partial results unless strict completeness is required.
+- Treat non-required channel failures as partial results unless the caller explicitly marked those channels required.
 
 Large-scale research is explicit opt-in. When the caller asks for it, use bounded fan-out:
 
@@ -214,7 +214,7 @@ Map `payload["items"]` to the bot's normalized item type:
 - `published_at` -> item timestamp
 - `extras.metrics` / channel-specific extras -> engagement, linked media references, labels, source hints, or diagnostics
 
-Use `agent-reach doctor --json --probe` in CI or scheduled workflows when readiness matters. By default, `doctor --json` uses the `core` exit policy: optional gaps appear in `summary.advisory_not_ready` rather than failing the command. Use `--exit-policy all` for strict all-channel readiness. Treat Twitter/X as optional: authenticated-but-unprobed status is a `warn` with `usability_hint=authenticated_but_unprobed`, while `doctor --json --probe` separates live `user` and `search` readiness under `operation_statuses`. Use `channels --json` fields such as `probe_operations` and `probe_coverage`, plus doctor fields such as `probed_operations`, `unprobed_operations`, `probe_run_coverage`, and `summary.probe_attention`, when downstream automation needs to know whether a probe covered every operation or only a subset.
+Use `agent-reach doctor --json --probe` in CI or scheduled workflows when readiness matters. By default, `doctor --json` is diagnostic-only; callers decide whether to add `--require-channel`, `--require-channels`, or `--require-all` for the channels that matter to a given run. Treat Twitter/X authenticated-but-unprobed status as `warn` with `usability_hint=authenticated_but_unprobed`, while `doctor --json --probe` separates live `user` and `search` readiness under `operation_statuses`. Use `channels --json` fields such as `probe_operations` and `probe_coverage`, plus doctor fields such as `probed_operations`, `unprobed_operations`, `probe_run_coverage`, `summary.required_not_ready`, `summary.informational_not_ready`, and `summary.probe_attention`, when downstream automation needs to know whether a probe covered every operation or only a subset.
 
 When a channel exposes bounded pagination or time-window controls, `channels --json` `operation_contracts` now lists those options directly. Downstream code should decide whether to use `page_size`, `max_pages`, `cursor`, `page`, `since`, or `until`; Agent Reach only forwards them and records the resulting pagination metadata under both flat `meta` keys and `meta.pagination`.
 

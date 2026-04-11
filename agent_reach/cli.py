@@ -48,18 +48,7 @@ from agent_reach.utils.paths import (
     render_ytdlp_fix_command,
 )
 
-CORE_CHANNELS = (
-    "web",
-    "exa_search",
-    "github",
-    "hatena_bookmark",
-    "bluesky",
-    "qiita",
-    "youtube",
-    "rss",
-)
-OPTIONAL_CHANNELS = ("reddit", "twitter")
-ALL_OPTIONAL_CHANNELS = set(OPTIONAL_CHANNELS)
+CHANNEL_SPECIFIC_INSTALL_CHANNELS = ("reddit", "twitter")
 
 EXA_SERVER_URL = "https://mcp.exa.ai/mcp"
 UPSTREAM_REPO = "Panniantong/Agent-Reach"
@@ -126,7 +115,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p_install.add_argument(
         "--channels",
         default="",
-        help="Comma-separated optional channels to install (reddit,twitter,all)",
+        help="Comma-separated channel names to prepare for this environment, or all",
     )
     p_install.add_argument(
         "--json",
@@ -161,10 +150,19 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Run lightweight live probes after readiness checks",
     )
     p_doctor.add_argument(
-        "--exit-policy",
-        choices=["core", "all"],
-        default="core",
-        help="Exit-code policy: core ignores optional setup gaps, all preserves strict all-channel readiness",
+        "--require-channel",
+        action="append",
+        default=[],
+        help="Require this channel to be ready for exit-code purposes. Repeatable.",
+    )
+    p_doctor.add_argument(
+        "--require-channels",
+        help="Comma-separated channel names to require ready for exit-code purposes",
+    )
+    p_doctor.add_argument(
+        "--require-all",
+        action="store_true",
+        help="Require every registered channel to be ready for exit-code purposes",
     )
 
     p_collect = sub.add_parser("collect", help="Run a read-only collection operation")
@@ -388,18 +386,64 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     return 0
 
 
-def _parse_requested_channels(raw: str) -> List[str]:
+def _all_channel_names() -> List[str]:
+    from agent_reach.channels import get_all_channel_contracts
+
+    return [contract["name"] for contract in get_all_channel_contracts()]
+
+
+def _parse_channel_names(
+    raw: str,
+    *,
+    supported_channels: Sequence[str],
+    allow_all: bool = False,
+) -> List[str]:
     items = [item.strip().lower() for item in raw.split(",") if item.strip()]
     if not items:
         return []
-    if "all" in items:
-        return list(OPTIONAL_CHANNELS)
+    normalized_supported = list(supported_channels)
+    if allow_all and "all" in items:
+        return normalized_supported
 
-    invalid = [item for item in items if item not in ALL_OPTIONAL_CHANNELS]
+    supported_set = set(normalized_supported)
+    invalid = [item for item in items if item not in supported_set]
     if invalid:
-        supported = ", ".join(list(OPTIONAL_CHANNELS) + ["all"])
+        supported_values = normalized_supported + (["all"] if allow_all else [])
+        supported = ", ".join(supported_values)
         raise SystemExit(f"Unsupported channel(s): {', '.join(invalid)}. Supported values: {supported}")
-    return items
+    normalized: List[str] = []
+    for item in items:
+        if item not in normalized:
+            normalized.append(item)
+    return normalized
+
+
+def _parse_requested_channels(raw: str) -> List[str]:
+    return _parse_channel_names(
+        raw,
+        supported_channels=_all_channel_names(),
+        allow_all=True,
+    )
+
+
+def _resolve_doctor_requirements(args) -> tuple[List[str], bool]:
+    supported_channels = _all_channel_names()
+    required: List[str] = []
+    for name in args.require_channel or []:
+        parsed = _parse_channel_names(name, supported_channels=supported_channels, allow_all=False)
+        for item in parsed:
+            if item not in required:
+                required.append(item)
+    if args.require_channels:
+        parsed = _parse_channel_names(
+            args.require_channels,
+            supported_channels=supported_channels,
+            allow_all=False,
+        )
+        for item in parsed:
+            if item not in required:
+                required.append(item)
+    return required, bool(args.require_all)
 
 
 def _build_install_plan_payload(
@@ -419,8 +463,10 @@ def _build_install_plan_payload(
         "mode": mode,
         "environment": env,
         "platform": sys.platform,
-        "core_channels": list(CORE_CHANNELS),
-        "optional_channels_requested": list(requested_channels),
+        "selected_channels": list(requested_channels),
+        "channel_specific_setup_channels": [
+            channel for channel in requested_channels if channel in CHANNEL_SPECIFIC_INSTALL_CHANNELS
+        ],
         "commands": _manual_install_commands(requested_channels),
         "skill_targets": [str(root / skill_name) for root in _candidate_skill_roots() for skill_name in PACKAGED_SKILL_NAMES],
         "execution_context": integration["execution_context"],
@@ -463,8 +509,7 @@ def _cmd_install(args) -> int:
     print("Agent Reach Installer")
     print("========================================")
     print(f"Environment: {env}")
-    print(f"Core channels: {', '.join(CORE_CHANNELS)}")
-    print(f"Optional channels requested: {', '.join(requested_channels) if requested_channels else 'none'}")
+    print(f"Selected channels: {', '.join(requested_channels) if requested_channels else 'none'}")
     print()
 
     failures: List[str] = []
@@ -1044,12 +1089,31 @@ def _cmd_doctor(args) -> int:
     from agent_reach.doctor import check_all, doctor_exit_code, format_report, make_doctor_payload
 
     config = Config()
+    required_channels, require_all = _resolve_doctor_requirements(args)
     results = check_all(config, probe=args.probe)
     if args.json:
-        _print_json(make_doctor_payload(results, probe=args.probe, exit_policy=args.exit_policy))
+        _print_json(
+            make_doctor_payload(
+                results,
+                probe=args.probe,
+                required_channels=required_channels,
+                require_all=require_all,
+            )
+        )
     else:
-        print(format_report(results, probe=args.probe, exit_policy=args.exit_policy))
-    return doctor_exit_code(results, exit_policy=args.exit_policy)
+        print(
+            format_report(
+                results,
+                probe=args.probe,
+                required_channels=required_channels,
+                require_all=require_all,
+            )
+        )
+    return doctor_exit_code(
+        results,
+        required_channels=required_channels,
+        require_all=require_all,
+    )
 
 
 def _compact_text_snippet(text: str | None, max_chars: int | None) -> str | None:
@@ -1406,8 +1470,7 @@ def _render_channels_text(contracts: Sequence[dict]) -> str:
         "",
     ]
     for contract in contracts:
-        tier = "core" if contract["tier"] == 0 else "optional"
-        lines.append(f"{contract['name']} ({tier})")
+        lines.append(contract["name"])
         lines.append(f"  {contract['description']}")
         lines.append(f"  backends: {', '.join(contract['backends']) or 'none'}")
         lines.append(

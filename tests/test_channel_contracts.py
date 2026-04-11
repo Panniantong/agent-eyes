@@ -16,7 +16,6 @@ def test_channel_registry_contract():
         assert isinstance(contract["name"], str) and contract["name"]
         assert isinstance(contract["description"], str) and contract["description"]
         assert isinstance(contract["backends"], list)
-        assert contract["tier"] in {0, 1, 2}
         assert contract["auth_kind"] in {"none", "token", "cookie", "runtime"}
         assert contract["entrypoint_kind"] in {"cli", "mcp", "http_reader", "python"}
         assert isinstance(contract["operations"], list)

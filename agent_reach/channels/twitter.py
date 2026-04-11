@@ -22,7 +22,6 @@ class TwitterChannel(Channel):
     name = "twitter"
     description = "Twitter/X search, profiles, posts, and tweet threads"
     backends = ["twitter-cli"]
-    tier = 1
     auth_kind = "cookie"
     entrypoint_kind = "cli"
     operations = ["search", "user", "user_posts", "tweet"]

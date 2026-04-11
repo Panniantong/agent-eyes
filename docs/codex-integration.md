@@ -24,7 +24,7 @@ agent-reach collect --channel github --operation read --input "openai/openai-pyt
 agent-reach export-integration --client codex --format json
 ```
 
-`doctor --json` defaults to `--exit-policy core`: tier 0 channel failures affect the exit code, while optional gaps are reported under `summary.advisory_not_ready`. Inspect `summary.probe_attention` when a channel supports only partial probe coverage or a probe run left operations unprobed. Use `--exit-policy all` for strict all-channel readiness.
+`doctor --json` is diagnostic-only by default. When a workflow wants readiness to affect the exit code, the caller chooses `--require-channel`, `--require-channels`, or `--require-all`, then inspects `summary.required_channels`, `summary.required_not_ready`, `summary.informational_not_ready`, and `summary.probe_attention`.
 
 ## No-Copy External Project Mode
 
@@ -103,7 +103,7 @@ When a channel supports bounded pagination or time windows, those controls are e
 | MCP wiring for Exa | Supported | Repo-local in checkouts, inline export in tool installs |
 | Python SDK | Supported | `AgentReachClient` works after install into the caller project environment |
 | Read-only collect CLI | Supported | `agent-reach collect --json` |
-| Core-based doctor exit policy | Supported | `doctor --json` exits on core readiness by default and reports optional gaps under `summary.advisory_not_ready` |
+| Caller-defined doctor readiness policy | Supported | `doctor --json` stays diagnostic by default; callers opt into `--require-channel`, `--require-channels`, or `--require-all` |
 | Evidence ledger validation | Supported | `ledger validate --json` checks saved JSONL artifacts, and `ledger append --json` can add a captured `CollectionResult` later |
 | macOS/Linux installer automation | Not first-class | Use `install --safe` for guidance only |
 | Full workflow orchestration | Deferred | Scheduling, ranking, summarization, and publishing stay downstream |

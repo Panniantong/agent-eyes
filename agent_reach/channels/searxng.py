@@ -12,7 +12,6 @@ class SearXNGChannel(Channel):
     name = "searxng"
     description = "Configurable metasearch via a SearXNG instance"
     backends = ["SearXNG"]
-    tier = 2
     auth_kind = "runtime"
     entrypoint_kind = "python"
     operations = ["search"]

@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Sequence
 
 from agent_reach.adapters import get_adapter
 from agent_reach.channels import get_all_channel_contracts
@@ -99,15 +99,37 @@ class AgentReachClient:
 
         return check_all(self.config)
 
-    def doctor_payload(self, probe: bool = False) -> dict:
+    def doctor_payload(
+        self,
+        probe: bool = False,
+        *,
+        required_channels: Sequence[str] | None = None,
+        require_all: bool = False,
+    ) -> dict:
         from agent_reach.doctor import check_all, make_doctor_payload
 
-        return make_doctor_payload(check_all(self.config, probe=probe), probe=probe)
+        return make_doctor_payload(
+            check_all(self.config, probe=probe),
+            probe=probe,
+            required_channels=required_channels,
+            require_all=require_all,
+        )
 
-    def doctor_report(self) -> str:
+    def doctor_report(
+        self,
+        probe: bool = False,
+        *,
+        required_channels: Sequence[str] | None = None,
+        require_all: bool = False,
+    ) -> str:
         from agent_reach.doctor import check_all, format_report
 
-        return format_report(check_all(self.config))
+        return format_report(
+            check_all(self.config, probe=probe),
+            probe=probe,
+            required_channels=required_channels,
+            require_all=require_all,
+        )
 
     def channels(self) -> list[dict]:
         """Return the stable channel registry contract."""

@@ -12,7 +12,6 @@ class HackerNewsChannel(Channel):
     name = "hacker_news"
     description = "Hacker News stories, discussions, and search"
     backends = ["Hacker News API", "HN Algolia search"]
-    tier = 2
     auth_kind = "none"
     entrypoint_kind = "python"
     operations = ["search", "read", "top", "new", "best", "ask", "show", "job"]

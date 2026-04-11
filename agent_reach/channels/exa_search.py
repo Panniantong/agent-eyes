@@ -17,7 +17,6 @@ class ExaSearchChannel(Channel):
     name = "exa_search"
     description = "Cross-web search via Exa"
     backends = ["mcporter", "Exa MCP"]
-    tier = 0
     auth_kind = "runtime"
     entrypoint_kind = "mcp"
     operations = ["search"]

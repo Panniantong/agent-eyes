@@ -10,7 +10,6 @@ class RSSChannel(Channel):
     name = "rss"
     description = "RSS and Atom feeds"
     backends = ["feedparser"]
-    tier = 0
     auth_kind = "none"
     entrypoint_kind = "python"
     operations = ["read"]

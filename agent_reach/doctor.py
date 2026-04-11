@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Sequence
 
 from agent_reach.channels import get_all_channels
 from agent_reach.config import Config
@@ -84,7 +84,6 @@ def check_all(config: Config, probe: bool = False) -> Dict[str, dict]:
             else {
                 "name": channel.name,
                 "description": getattr(channel, "description", channel.name),
-                "tier": getattr(channel, "tier", 0),
                 "backends": list(getattr(channel, "backends", [])),
                 "auth_kind": getattr(channel, "auth_kind", "none"),
                 "entrypoint_kind": getattr(channel, "entrypoint_kind", "cli"),
@@ -119,28 +118,45 @@ def _not_ready_names(items: list[dict]) -> list[str]:
     return [item["name"] for item in items if item["status"] != "ok"]
 
 
-def _blocking_and_advisory_not_ready(
+def _normalize_required_channels(
     results: Dict[str, dict],
     *,
-    exit_policy: str = "core",
-) -> tuple[list[str], list[str]]:
-    values = list(results.values())
-    if exit_policy == "all":
-        return _not_ready_names(values), []
-    if exit_policy != "core":
-        raise ValueError("exit_policy must be one of: core, all")
+    required_channels: Sequence[str] | None = None,
+    require_all: bool = False,
+) -> list[str]:
+    available = list(results)
+    available_set = set(available)
+    if require_all:
+        return available
 
-    blocking = [
-        item["name"]
-        for item in values
-        if (item["tier"] == 0 and item["status"] != "ok") or item["status"] == "error"
+    normalized: list[str] = []
+    for name in required_channels or ():
+        if name not in available_set:
+            raise ValueError(f"Unknown required channel: {name}")
+        if name not in normalized:
+            normalized.append(name)
+    return normalized
+
+
+def _required_and_informational_items(
+    results: Dict[str, dict],
+    *,
+    required_channels: Sequence[str] | None = None,
+    require_all: bool = False,
+) -> tuple[list[dict], list[dict], list[str]]:
+    normalized_required = _normalize_required_channels(
+        results,
+        required_channels=required_channels,
+        require_all=require_all,
+    )
+    required_set = set(normalized_required)
+    required_items = [results[name] for name in normalized_required]
+    informational_items = [
+        item
+        for name, item in results.items()
+        if name not in required_set
     ]
-    advisory = [
-        item["name"]
-        for item in values
-        if item["tier"] != 0 and item["status"] != "ok" and item["status"] != "error"
-    ]
-    return blocking, advisory
+    return required_items, informational_items, normalized_required
 
 
 def _probe_attention(results: Dict[str, dict], *, probe: bool = False) -> list[dict[str, Any]]:
@@ -164,15 +180,28 @@ def _probe_attention(results: Dict[str, dict], *, probe: bool = False) -> list[d
     return attention
 
 
-def summarize_results(results: Dict[str, dict], *, probe: bool = False, exit_policy: str = "core") -> dict:
+def summarize_results(
+    results: Dict[str, dict],
+    *,
+    probe: bool = False,
+    required_channels: Sequence[str] | None = None,
+    require_all: bool = False,
+) -> dict:
     """Build a stable summary block for machine-readable output."""
 
     values = list(results.values())
-    core = [item for item in values if item["tier"] == 0]
-    optional = [item for item in values if item["tier"] != 0]
-    exit_code = doctor_exit_code(results, exit_policy=exit_policy)
-    blocking, advisory = _blocking_and_advisory_not_ready(results, exit_policy=exit_policy)
+    required_items, informational_items, normalized_required = _required_and_informational_items(
+        results,
+        required_channels=required_channels,
+        require_all=require_all,
+    )
+    exit_code = doctor_exit_code(
+        results,
+        required_channels=required_channels,
+        require_all=require_all,
+    )
     probe_attention = _probe_attention(results, probe=probe)
+    readiness_mode = "all" if require_all else ("selected" if normalized_required else "none")
     return {
         "total": len(values),
         "ready": sum(1 for item in values if item["status"] == "ok"),
@@ -180,36 +209,41 @@ def summarize_results(results: Dict[str, dict], *, probe: bool = False, exit_pol
         "off": sum(1 for item in values if item["status"] == "off"),
         "errors": sum(1 for item in values if item["status"] == "error"),
         "not_ready": [item["name"] for item in values if item["status"] != "ok"],
-        "exit_policy": exit_policy,
+        "readiness_mode": readiness_mode,
+        "required_channels": normalized_required,
         "exit_code": exit_code,
-        "blocking_not_ready": blocking,
-        "advisory_not_ready": advisory,
-        "core": {
-            "total": len(core),
-            "ready": sum(1 for item in core if item["status"] == "ok"),
+        "required_not_ready": _not_ready_names(required_items),
+        "informational_not_ready": _not_ready_names(informational_items),
+        "required": {
+            "total": len(required_items),
+            "ready": sum(1 for item in required_items if item["status"] == "ok"),
         },
-        "optional": {
-            "total": len(optional),
-            "ready": sum(1 for item in optional if item["status"] == "ok"),
+        "informational": {
+            "total": len(informational_items),
+            "ready": sum(1 for item in informational_items if item["status"] == "ok"),
         },
         "probe_attention": probe_attention,
     }
 
 
-def doctor_exit_code(results: Dict[str, dict], *, exit_policy: str = "core") -> int:
+def doctor_exit_code(
+    results: Dict[str, dict],
+    *,
+    required_channels: Sequence[str] | None = None,
+    require_all: bool = False,
+) -> int:
     """Return the standardized exit code for doctor results."""
 
-    if exit_policy not in {"core", "all"}:
-        raise ValueError("exit_policy must be one of: core, all")
-
-    core = [item for item in results.values() if item["tier"] == 0]
-    if any(item["status"] in {"off", "error"} for item in core):
+    required_items, informational_items, _normalized_required = _required_and_informational_items(
+        results,
+        required_channels=required_channels,
+        require_all=require_all,
+    )
+    if any(item["status"] in {"off", "error"} for item in required_items):
         return 2
-    if exit_policy == "all" and any(item["status"] != "ok" for item in results.values()):
+    if any(item["status"] == "warn" for item in required_items):
         return 1
-    if any(item["status"] == "warn" for item in core):
-        return 1
-    if any(item["status"] == "error" for item in results.values()):
+    if any(item["status"] == "error" for item in informational_items):
         return 1
     return 0
 
@@ -218,7 +252,8 @@ def make_doctor_payload(
     results: Dict[str, dict],
     probe: bool = False,
     *,
-    exit_policy: str = "core",
+    required_channels: Sequence[str] | None = None,
+    require_all: bool = False,
 ) -> dict:
     """Build a machine-readable doctor payload."""
 
@@ -226,12 +261,23 @@ def make_doctor_payload(
         "schema_version": SCHEMA_VERSION,
         "generated_at": utc_timestamp(),
         "probe": probe,
-        "summary": summarize_results(results, probe=probe, exit_policy=exit_policy),
+        "summary": summarize_results(
+            results,
+            probe=probe,
+            required_channels=required_channels,
+            require_all=require_all,
+        ),
         "channels": list(results.values()),
     }
 
 
-def format_report(results: Dict[str, dict], probe: bool = False, *, exit_policy: str = "core") -> str:
+def format_report(
+    results: Dict[str, dict],
+    probe: bool = False,
+    *,
+    required_channels: Sequence[str] | None = None,
+    require_all: bool = False,
+) -> str:
     """Render a compact terminal-friendly health report."""
 
     escape_markup: Callable[[str], str]
@@ -244,52 +290,68 @@ def format_report(results: Dict[str, dict], probe: bool = False, *, exit_policy:
         def escape_markup(value: str) -> str:
             return value
 
+    normalized_required = _normalize_required_channels(
+        results,
+        required_channels=required_channels,
+        require_all=require_all,
+    )
+    required_set = set(normalized_required)
+
     def render_line(result: dict) -> str:
         status = result["status"]
         label_name = result.get("description") or result.get("name", "unknown")
+        channel_name = result.get("name", "")
+        required_suffix = " (required)" if channel_name in required_set else ""
         label = f"[bold]{escape_markup(label_name)}[/bold]: {escape_markup(result['message'])}"
         if status == "ok":
-            return f"  [green][OK][/green] {label}"
+            return f"  [green][OK][/green] {label}{required_suffix}"
         if status == "warn":
-            return f"  [yellow][WARN][/yellow] {label}"
+            return f"  [yellow][WARN][/yellow] {label}{required_suffix}"
         if status == "off":
-            return f"  [red][OFF][/red] {label}"
-        return f"  [red][ERR][/red] {label}"
+            return f"  [red][OFF][/red] {label}{required_suffix}"
+        return f"  [red][ERR][/red] {label}{required_suffix}"
 
-    summary = summarize_results(results, probe=probe, exit_policy=exit_policy)
+    summary = summarize_results(
+        results,
+        probe=probe,
+        required_channels=required_channels,
+        require_all=require_all,
+    )
     lines = [
         "[bold cyan]Agent Reach Health[/bold cyan]",
         "[cyan]========================================[/cyan]",
     ]
     if probe:
         lines.append("[cyan]Mode: lightweight live probes enabled[/cyan]")
-    lines.extend(["", "[bold]Core channels[/bold]"])
+    if summary["readiness_mode"] == "all":
+        lines.append("[cyan]Readiness policy: all channels required[/cyan]")
+    elif summary["required_channels"]:
+        lines.append(
+            "[cyan]Readiness policy: required channels = "
+            f"{escape_markup(', '.join(summary['required_channels']))}[/cyan]"
+        )
+    else:
+        lines.append("[cyan]Readiness policy: diagnostic only (no required channels)[/cyan]")
+    lines.extend(["", "[bold]Channels[/bold]"])
 
-    core = [result for result in results.values() if result["tier"] == 0]
-    optional = [result for result in results.values() if result["tier"] != 0]
-    for result in core:
+    for result in results.values():
         lines.append(render_line(result))
 
-    if optional:
-        lines.extend(["", "[bold]Optional channels[/bold]"])
-        for result in optional:
-            lines.append(render_line(result))
-
     lines.extend(["", f"Summary: [bold]{summary['ready']}/{summary['total']}[/bold] channels ready"])
-    if summary["blocking_not_ready"]:
+    if summary["required_not_ready"]:
         labels = [
             item.get("description") or item.get("name", "unknown")
             for item in results.values()
-            if item["name"] in summary["blocking_not_ready"]
+            if item["name"] in summary["required_not_ready"]
         ]
-        lines.append(f"Not ready: {', '.join(labels)}")
-    if summary["advisory_not_ready"]:
+        lines.append(f"Required not ready: {', '.join(labels)}")
+    if summary["informational_not_ready"]:
         labels = [
             item.get("description") or item.get("name", "unknown")
             for item in results.values()
-            if item["name"] in summary["advisory_not_ready"]
+            if item["name"] in summary["informational_not_ready"]
         ]
-        lines.append(f"Advisory only: {', '.join(labels)}")
+        lines.append(f"Informational only: {', '.join(labels)}")
     if summary["probe_attention"]:
         lines.append("Probe attention:")
         for item in summary["probe_attention"]:

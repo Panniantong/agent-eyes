@@ -16,7 +16,6 @@ class GitHubChannel(Channel):
     name = "github"
     description = "GitHub repositories and code search"
     backends = ["gh CLI"]
-    tier = 0
     auth_kind = "token"
     entrypoint_kind = "cli"
     operations = ["search", "read"]

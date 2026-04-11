@@ -12,7 +12,6 @@ class MCPRegistryChannel(Channel):
     name = "mcp_registry"
     description = "Model Context Protocol server registry discovery"
     backends = ["MCP Registry API"]
-    tier = 2
     auth_kind = "none"
     entrypoint_kind = "python"
     operations = ["search", "read"]

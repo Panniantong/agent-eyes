@@ -12,7 +12,6 @@ class HatenaBookmarkChannel(Channel):
     name = "hatena_bookmark"
     description = "Hatena Bookmark URL reactions and related entries"
     backends = ["Hatena Bookmark entry API"]
-    tier = 0
     auth_kind = "none"
     entrypoint_kind = "python"
     operations = ["read"]

@@ -28,10 +28,9 @@ class _StubChannel:
         }
     }
 
-    def __init__(self, name, description, tier, status, message, backends=None):
+    def __init__(self, name, description, status, message, backends=None):
         self.name = name
         self.description = description
-        self.tier = tier
         self._status = status
         self._message = message
         self.backends = backends or []
@@ -46,7 +45,6 @@ class _StubChannel:
         return {
             "name": self.name,
             "description": self.description,
-            "tier": self.tier,
             "backends": self.backends,
             "auth_kind": self.auth_kind,
             "entrypoint_kind": self.entrypoint_kind,
@@ -72,9 +70,9 @@ def test_check_all_collects_channel_results(tmp_config, monkeypatch):
         doctor,
         "get_all_channels",
         lambda: [
-            _StubChannel("web", "Any web page", 0, "ok", "Jina Reader is ready", ["Jina"]),
-            _StubChannel("github", "GitHub repositories and code search", 0, "warn", "gh missing", ["gh"]),
-            _StubChannel("twitter", "Twitter/X search and timeline access", 1, "warn", "twitter missing", ["twitter-cli"]),
+            _StubChannel("web", "Any web page", "ok", "Jina Reader is ready", ["Jina"]),
+            _StubChannel("github", "GitHub repositories and code search", "warn", "gh missing", ["gh"]),
+            _StubChannel("twitter", "Twitter/X search and timeline access", "warn", "twitter missing", ["twitter-cli"]),
         ],
     )
 
@@ -88,12 +86,11 @@ def test_check_all_collects_channel_results(tmp_config, monkeypatch):
     assert results["web"]["probe_run_coverage"] == "not_run"
     assert results["web"]["unprobed_operations"] == ["read"]
     assert results["github"]["backends"] == ["gh"]
-    assert results["twitter"]["tier"] == 1
     assert results["twitter"]["supports_probe"] is True
 
 
 def test_check_all_uses_probe_when_requested(tmp_config, monkeypatch):
-    monkeypatch.setattr(doctor, "get_all_channels", lambda: [_StubChannel("web", "Any web page", 0, "warn", "ignored")])
+    monkeypatch.setattr(doctor, "get_all_channels", lambda: [_StubChannel("web", "Any web page", "warn", "ignored")])
 
     results = doctor.check_all(tmp_config, probe=True)
     assert results["web"]["status"] == "ok"
@@ -113,7 +110,7 @@ def test_check_all_skips_probe_for_channels_without_probe_support(tmp_config, mo
     monkeypatch.setattr(
         doctor,
         "get_all_channels",
-        lambda: [_NoProbeChannel("crawl4ai", "Browser-backed page reads", 2, "ok", "ready")],
+        lambda: [_NoProbeChannel("crawl4ai", "Browser-backed page reads", "ok", "ready")],
     )
 
     results = doctor.check_all(tmp_config, probe=True)
@@ -131,7 +128,7 @@ def test_check_all_includes_extra_machine_readable_fields(tmp_config, monkeypatc
     monkeypatch.setattr(
         doctor,
         "get_all_channels",
-        lambda: [_DetailedChannel("twitter", "Twitter/X search and timeline access", 1, "warn", "unused")],
+        lambda: [_DetailedChannel("twitter", "Twitter/X search and timeline access", "warn", "unused")],
     )
 
     results = doctor.check_all(tmp_config)
@@ -139,7 +136,7 @@ def test_check_all_includes_extra_machine_readable_fields(tmp_config, monkeypatc
     assert results["twitter"]["probe_run_coverage"] == "not_run"
 
 
-def test_format_report_groups_core_and_optional():
+def test_format_report_lists_flat_channels_and_required_markers():
     report = doctor.format_report(
         {
             "web": {
@@ -147,7 +144,6 @@ def test_format_report_groups_core_and_optional():
                 "name": "web",
                 "description": "Any web page",
                 "message": "Jina Reader is ready",
-                "tier": 0,
                 "backends": ["Jina"],
             },
             "exa_search": {
@@ -155,7 +151,6 @@ def test_format_report_groups_core_and_optional():
                 "name": "exa_search",
                 "description": "Cross-web search via Exa",
                 "message": "mcporter missing",
-                "tier": 0,
                 "backends": ["mcporter"],
             },
             "twitter": {
@@ -163,50 +158,52 @@ def test_format_report_groups_core_and_optional():
                 "name": "twitter",
                 "description": "Twitter/X search and timeline access",
                 "message": "not authenticated",
-                "tier": 1,
                 "backends": ["twitter-cli"],
                 "supports_probe": True,
                 "probe_coverage": "partial",
                 "probe_run_coverage": "not_run",
                 "unprobed_operations": ["search", "user", "user_posts", "tweet"],
             },
-        }
+        },
+        required_channels=["web", "exa_search"],
     )
 
+    assert "(required)" in report
     plain = re.sub(r"\[[^\]]*\]", "", report)
     assert "Agent Reach Health" in plain
-    assert "Core channels" in plain
-    assert "Optional channels" in plain
+    assert "Readiness policy: required channels = web, exa_search" in plain
+    assert "Channels" in plain
     assert "Summary: 1/3 channels ready" in plain
-    assert "Not ready: Cross-web search via Exa" in plain
-    assert "Advisory only: Twitter/X search and timeline access" in plain
+    assert "Required not ready: Cross-web search via Exa" in plain
+    assert "Informational only: Twitter/X search and timeline access" in plain
     assert "Probe attention:" in plain
     assert "user_posts, tweet" in plain
 
 
 def test_doctor_payload_and_exit_code():
     results = {
-        "web": {"name": "web", "description": "Any web page", "status": "ok", "message": "ok", "tier": 0},
+        "web": {"name": "web", "description": "Any web page", "status": "ok", "message": "ok"},
         "github": {
             "name": "github",
             "description": "GitHub repositories and code search",
             "status": "warn",
             "message": "auth missing",
-            "tier": 0,
         },
     }
 
-    payload = doctor.make_doctor_payload(results, probe=True)
+    payload = doctor.make_doctor_payload(results, probe=True, required_channels=["github"])
     assert payload["schema_version"]
     assert payload["probe"] is True
     assert payload["summary"]["ready"] == 1
-    assert payload["summary"]["exit_policy"] == "core"
+    assert payload["summary"]["readiness_mode"] == "selected"
+    assert payload["summary"]["required_channels"] == ["github"]
     assert payload["summary"]["exit_code"] == 1
-    assert payload["summary"]["blocking_not_ready"] == ["github"]
-    assert payload["summary"]["advisory_not_ready"] == []
+    assert payload["summary"]["required_not_ready"] == ["github"]
+    assert payload["summary"]["informational_not_ready"] == []
     assert payload["summary"]["probe_attention"] == []
     assert payload["channels"][0]["name"] == "web"
-    assert doctor.doctor_exit_code(results) == 1
+    assert doctor.doctor_exit_code(results) == 0
+    assert doctor.doctor_exit_code(results, required_channels=["github"]) == 1
 
 
 def test_doctor_summary_includes_probe_attention_for_partial_contract():
@@ -216,7 +213,6 @@ def test_doctor_summary_includes_probe_attention_for_partial_contract():
             "description": "Twitter/X search and timeline access",
             "status": "warn",
             "message": "authenticated but not fully probed",
-            "tier": 1,
             "supports_probe": True,
             "probe_coverage": "partial",
             "probe_run_coverage": "not_run",
@@ -243,7 +239,6 @@ def test_doctor_summary_includes_probe_attention_for_partial_probe_run():
             "description": "GitHub repositories and code search",
             "status": "ok",
             "message": "ready",
-            "tier": 0,
             "supports_probe": True,
             "probe_coverage": "full",
             "probe_run_coverage": "partial",
@@ -263,59 +258,67 @@ def test_doctor_summary_includes_probe_attention_for_partial_probe_run():
     ]
 
 
-def test_doctor_exit_policy_core_ignores_optional_setup_gaps():
+def test_doctor_exit_code_uses_caller_selected_required_channels():
     results = {
-        "web": {"name": "web", "description": "Any web page", "status": "ok", "message": "ok", "tier": 0},
+        "web": {"name": "web", "description": "Any web page", "status": "ok", "message": "ok"},
         "twitter": {
             "name": "twitter",
             "description": "Twitter/X",
             "status": "warn",
             "message": "unprobed",
-            "tier": 1,
         },
         "crawl4ai": {
             "name": "crawl4ai",
             "description": "Crawl4AI",
             "status": "off",
             "message": "missing extra",
-            "tier": 2,
         },
     }
 
-    payload = doctor.make_doctor_payload(results)
+    payload = doctor.make_doctor_payload(results, require_all=True)
 
     assert doctor.doctor_exit_code(results) == 0
-    assert doctor.doctor_exit_code(results, exit_policy="all") == 1
-    assert payload["summary"]["exit_code"] == 0
-    assert payload["summary"]["blocking_not_ready"] == []
-    assert payload["summary"]["advisory_not_ready"] == ["twitter", "crawl4ai"]
+    assert doctor.doctor_exit_code(results, required_channels=["twitter"]) == 1
+    assert doctor.doctor_exit_code(results, required_channels=["crawl4ai"]) == 2
+    assert doctor.doctor_exit_code(results, require_all=True) == 2
+    assert payload["summary"]["required_channels"] == ["web", "twitter", "crawl4ai"]
+    assert payload["summary"]["required_not_ready"] == ["twitter", "crawl4ai"]
+    assert payload["summary"]["informational_not_ready"] == []
 
 
-def test_doctor_exit_policy_core_error_is_blocking_even_for_optional():
+def test_doctor_non_required_error_still_returns_exit_1():
     results = {
-        "web": {"name": "web", "description": "Any web page", "status": "ok", "message": "ok", "tier": 0},
+        "web": {"name": "web", "description": "Any web page", "status": "ok", "message": "ok"},
         "reddit": {
             "name": "reddit",
             "description": "Reddit",
             "status": "error",
             "message": "health crashed",
-            "tier": 2,
         },
     }
 
     payload = doctor.make_doctor_payload(results)
 
     assert doctor.doctor_exit_code(results) == 1
-    assert payload["summary"]["blocking_not_ready"] == ["reddit"]
-    assert payload["summary"]["advisory_not_ready"] == []
+    assert payload["summary"]["required_not_ready"] == []
+    assert payload["summary"]["informational_not_ready"] == ["reddit"]
 
 
-def test_doctor_exit_policy_core_off_returns_exit_2():
+def test_doctor_required_off_returns_exit_2():
     results = {
-        "web": {"name": "web", "description": "Any web page", "status": "off", "message": "missing", "tier": 0},
+        "web": {"name": "web", "description": "Any web page", "status": "off", "message": "missing"},
     }
 
-    assert doctor.doctor_exit_code(results) == 2
+    assert doctor.doctor_exit_code(results, required_channels=["web"]) == 2
+
+
+def test_doctor_rejects_unknown_required_channel():
+    results = {
+        "web": {"name": "web", "description": "Any web page", "status": "ok", "message": "ok"},
+    }
+
+    with pytest.raises(ValueError, match="Unknown required channel"):
+        doctor.make_doctor_payload(results, required_channels=["twitter"])
 
 
 def test_check_all_handles_channel_crash(tmp_config, monkeypatch):
@@ -326,7 +329,7 @@ def test_check_all_handles_channel_crash(tmp_config, monkeypatch):
     monkeypatch.setattr(
         doctor,
         "get_all_channels",
-        lambda: [_BrokenChannel("web", "Any web page", 0, "ok", "unused")],
+        lambda: [_BrokenChannel("web", "Any web page", "ok", "unused")],
     )
 
     results = doctor.check_all(tmp_config)

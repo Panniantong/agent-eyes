@@ -206,7 +206,8 @@ def _documentation_summary() -> list[str]:
         "Use `agent-reach ledger append --input RESULT.json --output .agent-reach/evidence.jsonl --json` to add a successful conditional collection captured without `--save`.",
         "Use `agent-reach batch --plan PLAN.json --validate-only --json` as a non-mutating preflight before any large-scale batch run.",
         "Use `agent-reach plan candidates --input .agent-reach/evidence.jsonl --json` for no-model URL or ID dedupe before follow-up reads.",
-        "`doctor --json` defaults to core exit policy: tier 0 channels affect the exit code, while optional setup gaps are listed under `summary.advisory_not_ready`.",
+        "Use `doctor --json` for flat readiness diagnostics and pass `--require-channel`, `--require-channels`, or `--require-all` only when the caller wants readiness to affect the exit code.",
+        "Read `doctor.summary.required_channels`, `doctor.summary.required_not_ready`, `doctor.summary.informational_not_ready`, and `doctor.summary.probe_attention` to apply caller-defined readiness policy downstream.",
         "Inspect `doctor.summary.probe_attention` when a channel supports only partial probe coverage or a probe run left operations unprobed.",
         "Treat `extras.source_hints`, `extras.media_references`, and web extraction hygiene metadata as diagnostics only, not ranking or trust scores.",
         "YouTube collection exposes video metadata, subtitle/caption availability, thumbnail references, and normalized linked media references, not video binary analysis.",
@@ -223,6 +224,27 @@ def _inline_payload_notes() -> list[str]:
         "Write `plugin_manifest_inline` to `suggested_destinations.plugin_manifest` and `mcp_config_inline` to `suggested_destinations.mcp_config`.",
         "`plugin_manifest_inline.mcpServers` is a relative reference that resolves after both inline payloads are written to the suggested Codex paths.",
     ]
+
+
+def _readiness_controls() -> dict[str, Any]:
+    return {
+        "doctor_args": [
+            "--require-channel <name>",
+            "--require-channels <a,b>",
+            "--require-all",
+        ],
+        "summary_fields": [
+            "required_channels",
+            "required_not_ready",
+            "informational_not_ready",
+            "probe_attention",
+        ],
+        "notes": [
+            "Agent Reach does not impose a fixed required-channel set.",
+            "Downstream tools choose which channels must be ready for a given run.",
+            "Without `--require-*`, doctor stays in diagnostic-only mode and reports readiness without enforcing a caller policy.",
+        ],
+    }
 
 
 def _external_project_usage() -> dict[str, Any]:
@@ -259,7 +281,7 @@ def _external_project_usage() -> dict[str, Any]:
                 "Use `--save .agent-reach/evidence.jsonl` when the bot or CI job needs a raw evidence artifact.",
                 "Use `agent-reach plan candidates` when the bot or CI job wants a no-model dedupe pass before deeper reads.",
                 "Use source hints and web hygiene fields only as diagnostics; keep scoring and posting policy in the bot.",
-                "Treat optional channels as capability surfaces; gate them with `channels --json`, `doctor --json`, and `doctor --json --probe` when reliability matters.",
+                "Treat channels as flat capability surfaces; gate the caller's chosen channels with `channels --json`, `doctor --json`, `doctor --json --probe`, and caller-selected `--require-*` flags when reliability matters.",
                 "Validate saved evidence with `agent-reach ledger validate --json` before downstream ingestion.",
             ],
         },
@@ -336,12 +358,12 @@ def _codex_runtime_policy() -> dict[str, Any]:
         ),
         "decision_order": [
             "If readiness is unknown, run `agent-reach channels --json` and `agent-reach doctor --json` first.",
-            "Read `doctor.summary.blocking_not_ready`, `doctor.summary.advisory_not_ready`, and `doctor.summary.probe_attention`; use `--exit-policy all` only when every optional channel must be ready.",
+            "Read `doctor.summary.required_not_ready`, `doctor.summary.informational_not_ready`, and `doctor.summary.probe_attention`; let the caller choose `--require-channel`, `--require-channels`, or `--require-all` for the run.",
             "Let the caller choose request scale first: keep narrow asks as `collect`, use bounded multi-source collection only when needed, and treat large-scale research as explicit opt-in.",
             "Inspect the live channel contract and let the calling workflow choose channels for the user's task.",
             "Inspect `operation_contracts` and let the calling workflow choose bounded pagination or time-window inputs such as `page_size`, `max_pages`, `cursor`, `page`, `since`, or `until` when a channel supports them.",
             "Use specialist channels such as `github`, `qiita`, `bluesky`, `rss`, `youtube`, `hatena_bookmark`, `hacker_news`, `mcp_registry`, `reddit`, `searxng`, or `crawl4ai` only when the caller's task and readiness checks support them.",
-            "Use Twitter/X only when optional credentials and `doctor --json --probe` show the required operation is ready.",
+            "Use Twitter/X only when configured credentials and `doctor --json --probe` show the required operation is ready.",
             "Treat `source_hints`, `media_references`, `text_length`, `link_count`, and `extraction_warning` as diagnostic metadata only.",
             "Keep ranking, summarization, scheduling, Discord publishing, and state in the downstream project.",
         ],
@@ -349,8 +371,8 @@ def _codex_runtime_policy() -> dict[str, Any]:
         "large_scale_research": request_scale_policy["large_scale_research"],
         "failure_policy": [
             "Do not fall back to backend-specific CLIs unless debugging a failed Agent Reach operation.",
-            "If `doctor --json` marks an optional channel warn, continue with ready channels unless that channel is essential.",
-            "For optional or credential/runtime-gated channels, report operation-level readiness and the JSON error envelope separately.",
+            "If `doctor --json` marks a non-required channel warn or off, continue with ready channels unless the caller marked that channel as required.",
+            "For credential or runtime-gated channels, report operation-level readiness and the JSON error envelope separately.",
             "Inspect `doctor.summary.probe_attention` before assuming probe coverage is complete for a channel.",
             "For Twitter/X, authenticated-but-unprobed `warn` means collection may work but operation readiness is unverified until `doctor --json --probe`.",
         ],
@@ -397,6 +419,7 @@ def export_codex_integration() -> dict[str, Any]:
         "suggested_destinations": suggested_destinations,
         "inline_payload_notes": _inline_payload_notes(),
         "mcp_snippet": _mcp_snippet(),
+        "readiness_controls": _readiness_controls(),
         "external_project_usage": _external_project_usage(),
         "codex_runtime_policy": _codex_runtime_policy(),
         "verification_commands": [

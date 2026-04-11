@@ -24,7 +24,7 @@ Choose routing hints that match the task. Do not hard-code unavailable channels;
 
 ## Community Reaction Collection
 
-- Use `bluesky`, `reddit`, `hacker_news`, and optional `twitter` when the request is about public reaction.
+- Use `bluesky`, `reddit`, `hacker_news`, and `twitter` when the request is about public reaction and the configured runtime supports them.
 - Pair reaction collection with the relevant official announcement or product page so community discussion has an anchor.
 - Ask for `doctor --json --probe` only if the requested reaction channel is operationally important and its readiness is uncertain.
 

@@ -14,7 +14,6 @@ class Crawl4AIChannel(Channel):
     name = "crawl4ai"
     description = "Browser-backed page reads and bounded same-origin crawls"
     backends = ["crawl4ai", "Playwright"]
-    tier = 2
     auth_kind = "runtime"
     entrypoint_kind = "python"
     operations = ["read", "crawl"]

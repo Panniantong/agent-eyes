@@ -17,7 +17,6 @@ class YouTubeChannel(Channel):
     name = "youtube"
     description = "YouTube video metadata and subtitles"
     backends = ["yt-dlp"]
-    tier = 0
     auth_kind = "runtime"
     entrypoint_kind = "cli"
     operations = ["read"]

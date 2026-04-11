@@ -51,13 +51,14 @@ class TestCLI:
         payload = json.loads(capsys.readouterr().out)
         assert payload["command"] == "install"
         assert payload["mode"] == "dry-run"
-        assert payload["optional_channels_requested"] == ["twitter"]
+        assert payload["selected_channels"] == ["twitter"]
+        assert payload["channel_specific_setup_channels"] == ["twitter"]
         assert "FIX-YTDLP" in payload["commands"]
         assert payload["execution_context"] == "checkout"
         assert payload["plugin_manifest"] is not None
         assert payload["mcp_config"] is not None
 
-    def test_install_parses_all_optional_channels(self, monkeypatch):
+    def test_install_parses_all_channels(self, monkeypatch):
         calls = []
 
         monkeypatch.setattr(cli, "_ensure_gh_cli", lambda: True)
@@ -87,7 +88,6 @@ class TestCLI:
                     "name": "web",
                     "description": "Any web page",
                     "message": "ok",
-                    "tier": 0,
                     "backends": [],
                 }
             },
@@ -106,18 +106,18 @@ class TestCLI:
                     "description": "Any web page",
                     "status": "ok",
                     "message": "ready",
-                    "tier": 0,
                 }
             },
         )
         assert main(["doctor", "--json"]) == 0
         payload = json.loads(capsys.readouterr().out)
         assert payload["summary"]["ready"] == 1
-        assert payload["summary"]["exit_policy"] == "core"
+        assert payload["summary"]["readiness_mode"] == "none"
+        assert payload["summary"]["required_channels"] == []
         assert payload["summary"]["exit_code"] == 0
         assert payload["channels"][0]["name"] == "web"
 
-    def test_doctor_exit_policy_all_preserves_strict_optional_readiness(self, capsys, monkeypatch):
+    def test_doctor_require_all_and_require_channel_preserve_caller_control(self, capsys, monkeypatch):
         monkeypatch.setattr(
             "agent_reach.doctor.check_all",
             lambda _config, probe=False: {
@@ -126,27 +126,31 @@ class TestCLI:
                     "description": "Any web page",
                     "status": "ok",
                     "message": "ready",
-                    "tier": 0,
                 },
                 "crawl4ai": {
                     "name": "crawl4ai",
                     "description": "Crawl4AI",
                     "status": "off",
                     "message": "missing extra",
-                    "tier": 2,
                 },
             },
         )
 
         assert main(["doctor", "--json"]) == 0
         default_payload = json.loads(capsys.readouterr().out)
-        assert default_payload["summary"]["exit_policy"] == "core"
-        assert default_payload["summary"]["advisory_not_ready"] == ["crawl4ai"]
+        assert default_payload["summary"]["readiness_mode"] == "none"
+        assert default_payload["summary"]["informational_not_ready"] == ["crawl4ai"]
 
-        assert main(["doctor", "--json", "--exit-policy", "all"]) == 1
+        assert main(["doctor", "--json", "--require-channel", "crawl4ai"]) == 2
+        required_payload = json.loads(capsys.readouterr().out)
+        assert required_payload["summary"]["readiness_mode"] == "selected"
+        assert required_payload["summary"]["required_channels"] == ["crawl4ai"]
+        assert required_payload["summary"]["required_not_ready"] == ["crawl4ai"]
+
+        assert main(["doctor", "--json", "--require-all"]) == 2
         strict_payload = json.loads(capsys.readouterr().out)
-        assert strict_payload["summary"]["exit_policy"] == "all"
-        assert strict_payload["summary"]["blocking_not_ready"] == ["crawl4ai"]
+        assert strict_payload["summary"]["readiness_mode"] == "all"
+        assert strict_payload["summary"]["required_not_ready"] == ["crawl4ai"]
 
     def test_collect_json_success(self, capsys, monkeypatch):
         class _FakeClient:
@@ -1049,14 +1053,14 @@ class TestCLI:
         monkeypatch.setattr(
             "agent_reach.scout.get_all_channel_contracts",
             lambda: [
-                {"name": "github", "description": "GitHub", "tier": 0, "operations": ["search", "read"], "supports_probe": True},
-                {"name": "mcp_registry", "description": "MCP Registry", "tier": 2, "operations": ["search", "read"], "supports_probe": True},
-                {"name": "hacker_news", "description": "Hacker News", "tier": 2, "operations": ["search", "read", "top"], "supports_probe": True},
-                {"name": "exa_search", "description": "Exa", "tier": 0, "operations": ["search"], "supports_probe": True},
-                {"name": "web", "description": "Any web page", "tier": 0, "operations": ["read"], "supports_probe": True},
-                {"name": "searxng", "description": "SearXNG", "tier": 2, "operations": ["search"], "supports_probe": True},
-                {"name": "crawl4ai", "description": "crawl4ai", "tier": 2, "operations": ["read", "crawl"], "supports_probe": False},
-                {"name": "twitter", "description": "Twitter/X", "tier": 1, "operations": ["search"], "supports_probe": True},
+                {"name": "github", "description": "GitHub", "operations": ["search", "read"], "supports_probe": True},
+                {"name": "mcp_registry", "description": "MCP Registry", "operations": ["search", "read"], "supports_probe": True},
+                {"name": "hacker_news", "description": "Hacker News", "operations": ["search", "read", "top"], "supports_probe": True},
+                {"name": "exa_search", "description": "Exa", "operations": ["search"], "supports_probe": True},
+                {"name": "web", "description": "Any web page", "operations": ["read"], "supports_probe": True},
+                {"name": "searxng", "description": "SearXNG", "operations": ["search"], "supports_probe": True},
+                {"name": "crawl4ai", "description": "crawl4ai", "operations": ["read", "crawl"], "supports_probe": False},
+                {"name": "twitter", "description": "Twitter/X", "operations": ["search"], "supports_probe": True},
             ],
         )
 
@@ -1114,7 +1118,6 @@ class TestCLI:
                 {
                     "name": "web",
                     "description": "Any web page",
-                    "tier": 0,
                     "operations": ["read"],
                     "operation_contracts": {"read": {"name": "read", "input_kind": "url", "accepts_limit": True, "options": []}},
                     "supports_probe": True,

@@ -42,7 +42,7 @@ uv tool install --force .
 agent-reach version
 ```
 
-For the current collection and ledger surface, `agent-reach version` should report `Agent Reach v1.6.0` or newer.
+For the current collection and ledger surface, `agent-reach version` should report `Agent Reach v1.7.0` or newer.
 
 ## Preview mode
 
@@ -137,12 +137,13 @@ For checkout development, use `uv pip install -e .[crawl4ai]` instead.
 ```powershell
 agent-reach channels --json
 agent-reach doctor --json
-agent-reach doctor --json --exit-policy all
+agent-reach doctor --json --require-channel github
+agent-reach doctor --json --require-all
 agent-reach doctor --json --probe
 agent-reach export-integration --client codex --format json
 ```
 
-By default, `doctor` uses `--exit-policy core`: tier 0 channels control the exit code, while optional setup gaps are reported in `summary.advisory_not_ready`. Use `--exit-policy all` when automation requires every optional channel to be ready.
+By default, `doctor` is diagnostic-only: it reports flat readiness across all channels and leaves exit-code gating to the caller. Use `--require-channel`, `--require-channels`, or `--require-all` when automation wants a specific readiness policy.
 
 ## Read-only collection smoke commands
 

@@ -70,7 +70,6 @@ def build_scout_plan(
             {
                 "channel": contract["name"],
                 "description": contract["description"],
-                "tier": contract["tier"],
                 "operations": contract.get("operations", []),
                 "operation_contracts": contract.get("operation_contracts", {}),
                 "supports_probe": contract.get("supports_probe", False),

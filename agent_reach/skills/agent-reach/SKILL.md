@@ -1,6 +1,6 @@
 ---
 name: agent-reach
-description: Windows-first research integration tooling for Codex. Use when the user needs to inspect research channel capabilities, verify readiness, export Codex integration settings, or run thin read-only collection over web, Exa, GitHub, Hatena Bookmark, Bluesky, Qiita, YouTube, RSS, SearXNG, Crawl4AI, Hacker News, MCP Registry, Reddit, or optional Twitter/X.
+description: Windows-first research integration tooling for Codex. Use when the user needs to inspect research channel capabilities, verify readiness, export Codex integration settings, or run thin read-only collection over web, Exa, GitHub, Hatena Bookmark, Bluesky, Qiita, YouTube, RSS, SearXNG, Crawl4AI, Hacker News, MCP Registry, Reddit, or Twitter/X.
 ---
 
 # Agent Reach
@@ -33,11 +33,11 @@ Do not assume this fork chooses investigation scope. The caller chooses scale, r
 - Use `agent-reach ledger validate --input .agent-reach/evidence.jsonl --json` when downstream automation needs to prove the evidence ledger is parseable.
 - Use `agent-reach ledger append --input RESULT.json --output .agent-reach/evidence.jsonl --json` when a successful conditional collection was captured without `--save`.
 - Treat `extras.source_hints`, `extras.media_references`, and web extraction hygiene fields as diagnostics only, not ranking or trust scores.
-- Treat `doctor --json` as core-blocking by default: tier 0 failures affect the exit code, while optional setup gaps appear under `summary.advisory_not_ready`.
+- Treat `doctor --json` as flat diagnostics by default. Add `--require-channel`, `--require-channels`, or `--require-all` only when the caller wants readiness to affect the exit code.
 - Inspect `doctor.summary.probe_attention` when a channel has partial probe coverage or a probe run left operations unprobed.
 - Treat `batch` and `scout` as explicit opt-in helpers. They are not the default route for everyday collection.
 - For large research tasks, only use bounded fan-out when the caller explicitly opts in; then use `plan candidates` for no-model dedupe and deep-read only selected URLs.
-- Treat optional channel failures as partial results unless the user asked for strict completeness.
+- Treat non-required channel failures as partial results unless the user asked for strict completeness.
 
 ## Discovery First
 
@@ -67,13 +67,13 @@ agent-reach export-integration --client codex --format json
 - `hacker_news`: Hacker News search, story lists, and discussion reads
 - `mcp_registry`: public MCP Registry server discovery and reads
 - `reddit`: public Reddit search and discussion reads through `rdt-cli`
-- `twitter`: optional Twitter/X search through `twitter-cli`
+- `twitter`: Twitter/X search through `twitter-cli`
 
 ## Workflow
 
 1. Run `agent-reach channels --json` if the available surfaces are unclear.
 2. Run `agent-reach doctor --json` when readiness matters.
-3. Inspect `summary.blocking_not_ready` and `summary.advisory_not_ready`; add `--exit-policy all` only when every optional channel must be ready.
+3. Inspect `summary.required_not_ready`, `summary.informational_not_ready`, and `summary.probe_attention`; let the caller choose `--require-channel`, `--require-channels`, or `--require-all` when readiness should gate the run.
 4. Use `--probe` only when a lightweight live check is useful.
 5. Use `agent-reach collect --json` by default when external code needs normalized results, and add `--save .agent-reach/evidence.jsonl` when provenance matters.
 6. Use `agent-reach plan candidates` when a saved ledger needs no-model URL or ID dedupe.
@@ -102,7 +102,7 @@ Use this pattern only when the caller explicitly opts into a broader run. Do not
 7. Run `agent-reach plan candidates --input .agent-reach/evidence.jsonl --by url --limit 20 --json` before deeper reads.
 8. Use `web read` for selected URLs, not every search result.
 9. Inspect source hints and web hygiene only as non-authoritative diagnostics.
-10. Return partial results with clear channel failures instead of blocking on one optional backend.
+10. Return partial results with clear channel failures instead of blocking on one non-required backend.
 
 ## Command Routing
 

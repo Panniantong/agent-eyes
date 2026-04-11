@@ -12,7 +12,6 @@ class BlueskyChannel(Channel):
     name = "bluesky"
     description = "Bluesky public post search"
     backends = ["Bluesky AppView API"]
-    tier = 0
     auth_kind = "none"
     entrypoint_kind = "python"
     operations = ["search"]

@@ -19,7 +19,7 @@ For most rough research asks, start with `agent-reach-orchestrate`. Use `agent-r
 
 ## Current channel surface
 
-Core channels:
+Supported channels:
 
 - `web`
 - `exa_search`
@@ -29,9 +29,6 @@ Core channels:
 - `qiita`
 - `youtube`
 - `rss`
-
-Additional and optional channels:
-
 - `searxng`
 - `crawl4ai`
 - `hacker_news`
@@ -121,6 +118,7 @@ Downstream projects do not need `.codex-plugin`, `.mcp.json`, or `agent_reach/sk
 - The caller chooses scope. Keep lightweight asks lightweight instead of trying to auto-escalate them into large-scale research.
 - `agent-reach collect --json` is the default thin interface for downstream collection.
 - `batch` and `scout` are explicit opt-in helpers. They are not the default route for everyday collection.
+- `agent-reach doctor --json` is diagnostic-only by default; use `--require-channel`, `--require-channels`, or `--require-all` only when the caller wants readiness to gate a run.
 - Inspect `agent-reach channels --json` `operation_contracts` before choosing bounded pagination or time-window options such as `page_size`, `max_pages`, `cursor`, `page`, `since`, or `until`.
 - `agent-reach plan candidates` keeps its default `--limit 20`; raise it only when the caller explicitly wants a wider candidate review set.
 - Large-scale research is explicit opt-in. When a saved batch plan is involved, run `agent-reach batch --plan PLAN.json --validate-only --json` before the write-producing batch execution.

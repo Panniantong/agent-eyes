@@ -14,7 +14,6 @@ class WebChannel(Channel):
     name = "web"
     description = "Any web page"
     backends = ["Jina Reader"]
-    tier = 0
     auth_kind = "none"
     entrypoint_kind = "http_reader"
     operations = ["read"]

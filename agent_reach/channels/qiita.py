@@ -12,7 +12,6 @@ class QiitaChannel(Channel):
     name = "qiita"
     description = "Qiita public article search"
     backends = ["Qiita API v2"]
-    tier = 0
     auth_kind = "none"
     entrypoint_kind = "python"
     operations = ["search"]

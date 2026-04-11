@@ -122,6 +122,8 @@ def test_export_points_at_existing_checkout_artifacts():
     assert Path(payload["skill"]["source"]).exists()
     assert payload["python_sdk"]["availability"] == "project_env_only"
     assert payload["python_sdk"]["import"] == "from agent_reach import AgentReachClient"
+    assert payload["readiness_controls"]["doctor_args"][0] == "--require-channel <name>"
+    assert "required_not_ready" in payload["readiness_controls"]["summary_fields"]
     assert payload["external_project_usage"]["copy_files_required"] is False
     assert payload["external_project_usage"]["preferred_interface"] == "agent-reach collect --json"
     assert payload["codex_runtime_policy"]["default_interface"] == "agent-reach collect --json"
@@ -168,14 +170,15 @@ def test_export_tool_install_omits_dead_paths(tmp_path):
     assert payload["documentation_summary"]
     assert any("latest fork build" in item for item in payload["documentation_summary"])
     assert any("ledger validate" in item for item in payload["documentation_summary"])
-    assert any("core exit policy" in item for item in payload["documentation_summary"])
+    assert any("--require-channel" in item for item in payload["documentation_summary"])
     assert any("YouTube collection exposes" in item for item in payload["documentation_summary"])
     assert any("probe_attention" in item for item in payload["documentation_summary"])
     assert any("validate-only" in item for item in payload["documentation_summary"])
     assert payload["inline_payload_notes"]
+    assert payload["readiness_controls"]["summary_fields"][-1] == "probe_attention"
     assert payload["external_project_usage"]["github_actions"]["uses"].startswith("iwachacha/Agent-Reach/")
     assert any("agent-reach[crawl4ai]" in note for note in payload["external_project_usage"]["github_actions"]["notes"])
     assert payload["codex_runtime_policy"]["large_scale_research"]["recommended_limits"]["discovery"] == 10
-    assert any("blocking_not_ready" in item for item in payload["codex_runtime_policy"]["decision_order"])
+    assert any("required_not_ready" in item for item in payload["codex_runtime_policy"]["decision_order"])
     assert any("probe_attention" in item for item in payload["codex_runtime_policy"]["decision_order"])
     assert any("authenticated-but-unprobed" in item for item in payload["codex_runtime_policy"]["failure_policy"])
