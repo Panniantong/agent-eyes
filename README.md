@@ -39,6 +39,8 @@ Supported channels:
 - `reddit`
 - `twitter`
 
+Use those exact stable channel names in commands and prompts. For example, Hatena Bookmark is exposed as `hatena_bookmark`; there is no separate `hatena` channel.
+
 The live contract is always `agent-reach channels --json`. External code should trust that surface over static README lists.
 
 ## Install The Right Build

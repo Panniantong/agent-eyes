@@ -22,6 +22,7 @@ Take a rough or structured research ask and move it to actual Agent Reach collec
 - Keep subagent usage conservative. Use at most one intake-only subagent per user request, and only when delegation is available and the ambiguity would materially change the research route.
 - Keep `channels --json`, `doctor --json`, channel choice, collection start, and final synthesis on the main agent.
 - Keep lightweight asks lightweight. Default to `agent-reach collect --json`.
+- When you name channels in commands or handoffs, use the exact stable names from `agent-reach channels --json`. Do not shorten names such as `exa_search`, `hatena_bookmark`, or `hacker_news`.
 - Use pagination or time-window controls only after checking live `operation_contracts`.
 - Use evidence ledgers, candidate planning, `batch`, or `scout` only when the user explicitly asks for broad or provenance-heavy research.
 - When the request is freshness-sensitive, confirm concrete dates and use absolute dates in the final answer.

@@ -38,7 +38,7 @@ If you need to debug Exa directly, fall back to:
 mcporter --config "$HOME\.mcporter\mcporter.json" call exa.web_search_exa --args "{\"query\":\"latest o3 vs gpt-5.4\",\"numResults\":5}" --output json
 ```
 
-For Hatena Bookmark URL reactions:
+For Hatena Bookmark URL reactions through `hatena_bookmark`:
 
 ```powershell
 agent-reach collect --channel hatena_bookmark --operation read --input "https://example.com" --limit 5 --json
@@ -64,7 +64,7 @@ Use bounded fan-out:
 
 1. Run 2-4 broad `exa_search` queries with small limits.
 2. Dedupe URLs or IDs before deeper reads.
-3. Use specialist channels for high-signal sources such as GitHub, Qiita, Bluesky, RSS, YouTube, Hatena Bookmark, Hacker News, MCP Registry, Reddit, or SearXNG when they match the task and are ready.
+3. Use specialist channels for high-signal sources such as `github`, `qiita`, `bluesky`, `rss`, `youtube`, `hatena_bookmark`, `hacker_news`, `mcp_registry`, `reddit`, or `searxng` when they match the task and are ready.
 4. Run `web read` only on selected URLs.
 5. Save the JSON envelopes when downstream ranking, summarization, or Discord publishing needs traceability.
 

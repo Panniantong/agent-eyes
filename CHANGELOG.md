@@ -4,6 +4,11 @@ All notable changes to this fork are documented here.
 
 ## Unreleased
 
+### Changed
+
+- clarified across downstream docs, packaged skills, and Codex integration exports that external prompts and commands must use exact stable channel names such as `exa_search`, `hatena_bookmark`, and `hacker_news`
+- documented that SDK convenience aliases such as `client.exa`, `client.hatena`, and `client.hn` remain compatibility helpers only and should not be reused as CLI or `collect(...)` channel names
+
 ## [1.11.0] - 2026-04-12
 
 ### Added

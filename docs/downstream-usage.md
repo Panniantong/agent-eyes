@@ -49,6 +49,8 @@ agent-reach collect --channel hacker_news --operation search --input "agent fram
 agent-reach collect --channel mcp_registry --operation search --input "docs mcp" --limit 5 --json
 ```
 
+Use the exact stable channel names from `agent-reach channels --json` in CLI commands, prompts, config files, and downstream handoffs. For example, use `exa_search`, `hatena_bookmark`, and `hacker_news`; do not shorten them to `exa`, `hatena`, or `hn`.
+
 When provenance matters, append each raw collection envelope to a JSONL ledger:
 
 ```powershell
@@ -86,6 +88,7 @@ When Codex is working inside an arbitrary project:
 - Use `agent-reach collect --json` as the stable handoff to project code.
 - Use `agent-reach schema collection-result --json` when a downstream project wants a contract-testable JSON Schema.
 - Inspect `agent-reach channels --json` `operation_contracts` before choosing per-channel pagination or time-window options.
+- Keep CLI channel names and SDK helper aliases separate. `AgentReachClient` may expose convenience aliases, but downstream CLI configs and `collect` calls should still use stable channel names such as `exa_search`, `hatena_bookmark`, and `hacker_news`.
 - Add `--save .agent-reach/evidence.jsonl` when the run needs an auditable evidence trail.
 - Prefer `--run-id`, `--intent`, `--query-id`, and `--source-role` with saved ledgers; use `ledger validate --require-metadata --json` when metadata completeness should gate automation.
 - Validate ledgers with `agent-reach ledger validate --json` before treating them as CI artifacts.

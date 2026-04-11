@@ -125,6 +125,9 @@ def test_export_points_at_existing_checkout_artifacts():
     assert Path(payload["skill"]["source"]).exists()
     assert payload["python_sdk"]["availability"] == "project_env_only"
     assert payload["python_sdk"]["import"] == "from agent_reach import AgentReachClient"
+    assert any("client.exa_search.search" in line for line in payload["python_sdk"]["quickstart"])
+    assert any("mirror stable channel names" in line for line in payload["python_sdk"]["notes"])
+    assert any("SDK-only shortcuts" in line for line in payload["python_sdk"]["notes"])
     assert payload["readiness_controls"]["doctor_args"][0] == "--require-channel <name>"
     assert "required_not_ready" in payload["readiness_controls"]["summary_fields"]
     assert payload["external_project_usage"]["copy_files_required"] is False

@@ -65,10 +65,12 @@ def test_orchestrate_references_cover_subagent_policy_and_run_rules():
 
     assert "Start actual Agent Reach checks and collection in-session." in skill
     assert "Use at most one intake-only subagent per user request" in skill
+    assert "exact stable names from `agent-reach channels --json`" in skill
     assert "調査ブリーフ" in intake
     assert "run `agent-reach channels --json`" in flow
     assert "run `agent-reach doctor --json`" in flow
     assert "agent-reach collect --json" in flow
+    assert "exact stable channel names" in flow
     assert "Use one intake-only subagent" in policy
     assert "do not delegate channel checks, collection start, or final synthesis" in policy
 

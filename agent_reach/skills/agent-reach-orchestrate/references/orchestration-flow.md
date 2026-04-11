@@ -7,7 +7,7 @@
 3. If channel surface or option support is unclear, run `agent-reach channels --json`.
 4. If readiness matters, run `agent-reach doctor --json`.
 5. Use `agent-reach doctor --json --probe` only when a live operation check would change the route.
-6. Start collection with one or a small number of `agent-reach collect --json` commands.
+6. Start collection with one or a small number of `agent-reach collect --json` commands using exact stable channel names from `agent-reach channels --json`.
 7. Synthesize results with source links and explicit uncertainty notes.
 
 ## Narrow Research

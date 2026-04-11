@@ -39,7 +39,7 @@ client = AgentReachClient()
 
 github_repo = client.github.read("openai/openai-python")
 web_page = client.web.read("https://example.com")
-search_results = client.exa.search("latest gpt-5.4 release notes", limit=3)
+search_results = client.exa_search.search("latest gpt-5.4 release notes", limit=3)
 qiita_results = client.qiita.search("python user:Qiita", limit=3)
 bluesky_results = client.bluesky.search("OpenAI", limit=3)
 hatena_reactions = client.hatena_bookmark.read("https://example.com", limit=5)
@@ -54,6 +54,8 @@ windowed_twitter_search = client.collect("twitter", "search", "OpenAI", limit=5,
 If your host project only needs a machine-readable subprocess interface, prefer `agent-reach collect --json` instead.
 
 Use the namespace helpers for simple default operations. Use `client.collect(...)` when the caller wants to choose per-channel options exposed by `channels --json` `operation_contracts`, such as `page_size`, `max_pages`, `cursor`, `page`, `since`, or `until`.
+
+Prefer the stable namespace names that mirror the channel registry, such as `client.exa_search`, `client.hatena_bookmark`, and `client.hacker_news`. Compatibility aliases like `client.exa`, `client.hatena`, and `client.hn` still exist, but they are SDK-only shortcuts and should not be copied into CLI commands or `client.collect(...)` channel names.
 
 ## Result shape
 
@@ -94,7 +96,7 @@ client = AgentReachClient()
 
 def collect_digest():
     results = []
-    results.append(client.exa.search("OpenAI pricing", limit=3))
+    results.append(client.exa_search.search("OpenAI pricing", limit=3))
     results.append(client.github.read("openai/openai-python"))
     results.append(client.qiita.search("python user:Qiita", limit=3))
     results.append(client.bluesky.search("OpenAI", limit=3))

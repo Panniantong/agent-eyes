@@ -97,6 +97,8 @@ When `agent-reach` is running from a tool install instead of a source checkout, 
 
 These channels are exposed as metadata, setup guidance, diagnostics, and read-only collection operations so downstream tools can wire their own workflows without scraping repo docs. YouTube returns video metadata, subtitle/caption availability, thumbnail references, and normalized linked media references; Agent Reach does not perform media binary analysis.
 
+When referring to a channel in prompts or commands, use the exact stable name from `agent-reach channels --json`. For example, Hatena Bookmark is `hatena_bookmark`, not `hatena`.
+
 When a channel supports bounded pagination or time windows, those controls are exposed as machine-readable option descriptors. Downstream code decides whether to use `page_size`, `max_pages`, `cursor`, `page`, `since`, or `until`; Agent Reach only forwards them and records pagination metadata in the returned `meta`.
 
 ## Compatibility Snapshot

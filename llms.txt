@@ -47,6 +47,7 @@ Agent Reach is a Windows-first integration layer for research tooling on Codex-s
 ## Current scope
 
 - Supported channels: `web`, `exa_search`, `github`, `hatena_bookmark`, `bluesky`, `qiita`, `youtube`, `rss`, `searxng`, `crawl4ai`, `hacker_news`, `mcp_registry`, `reddit`, `twitter`
+- Use the exact stable channel names from `agent-reach channels --json`; for example, Hatena Bookmark is `hatena_bookmark`, not `hatena`
 - Purpose: bootstrapper, channel registry, readiness diagnostics, thin read-only collection helper
 - Non-goal in this phase: full workflow orchestration such as scheduling, ranking, summarization, or publishing
 - External projects should prefer `agent-reach collect --json` and should not copy `.codex-plugin`, `.mcp.json`, or `agent_reach/skills` by default

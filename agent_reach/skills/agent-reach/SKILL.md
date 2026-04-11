@@ -1,6 +1,6 @@
 ---
 name: agent-reach
-description: Windows-first research integration tooling for Codex. Use when the user needs to inspect research channel capabilities, verify readiness, export Codex integration settings, or run thin read-only collection over web, Exa, GitHub, Hatena Bookmark, Bluesky, Qiita, YouTube, RSS, SearXNG, Crawl4AI, Hacker News, MCP Registry, Reddit, or Twitter/X.
+description: Windows-first research integration tooling for Codex. Use when the user needs to inspect research channel capabilities, verify readiness, export Codex integration settings, or run thin read-only collection over `web`, `exa_search`, `github`, `hatena_bookmark`, `bluesky`, `qiita`, `youtube`, `rss`, `searxng`, `crawl4ai`, `hacker_news`, `mcp_registry`, `reddit`, or `twitter`.
 ---
 
 # Agent Reach
@@ -25,6 +25,7 @@ Do not assume this fork chooses investigation scope. The caller chooses scale, r
 - Default to the globally installed `agent-reach` CLI in any downstream repository.
 - Do not ask the user to copy `.codex-plugin`, `.mcp.json`, `agent_reach/skills`, or Agent Reach source files into the downstream repository unless they explicitly ask for repo-local plugin artifacts.
 - Use `agent-reach collect --json` as the stable handoff. Preserve the returned `CollectionResult` JSON when another system will rank, summarize, dedupe, or publish it.
+- When naming channels in prompts or commands, use the exact stable names from `agent-reach channels --json`. For example, use `hatena_bookmark`, not `hatena`.
 - Keep lightweight asks lightweight. Do not auto-escalate a narrow request into large-scale research.
 - Inspect `agent-reach channels --json` `operation_contracts` before choosing per-channel options such as `page_size`, `max_pages`, `cursor`, `page`, `since`, or `until`.
 - Use `agent-reach collect --json --save .agent-reach/evidence.jsonl` when a research run needs provenance across multiple commands.
@@ -73,6 +74,8 @@ agent-reach export-integration --client codex --format json
 - `mcp_registry`: public MCP Registry server discovery and reads
 - `reddit`: public Reddit search and discussion reads through `rdt-cli`
 - `twitter`: Twitter/X search through `twitter-cli`
+
+Use those exact identifiers in commands and handoffs. Service names are fine in prose, but stable channel names should stay in backticks.
 
 ## Workflow
 
