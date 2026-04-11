@@ -358,7 +358,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p_ledger_query.add_argument(
         "--fields",
-        help="Comma-separated dotted fields to project, such as channel,operation,source.file",
+        help="Comma-separated projection fields such as channel,source.file,result.items[*].url",
     )
     p_ledger_query.add_argument("--json", action="store_true", help="Print machine-readable query output")
     p_ledger_append = ledger_sub.add_parser("append", help="Append a CollectionResult JSON file to a ledger")

@@ -1,6 +1,6 @@
 ---
 name: agent-reach-maintain-release
-description: Safely implement approved Agent Reach maintainer changes. Use when Codex should apply only already-approved proposal slices, keep public surfaces and packaged skills consistent, optionally run requested validation, then commit, push, and reinstall the latest exact ref when asked.
+description: Safely implement approved Agent Reach maintainer changes. Use when Codex should apply only already-approved proposal slices, keep public surfaces and packaged skills consistent, run the right validation, then commit, push, and reinstall the latest exact ref.
 ---
 
 # Agent Reach Maintain Release
@@ -16,7 +16,7 @@ Carry approved Agent Reach maintenance changes through implementation and shippi
 5. Keep versioning, docs, export metadata, packaged skill metadata, and tests consistent with the changed surface.
 6. Run only the validation the user asked for, plus any minimal checks needed to avoid shipping a clearly broken state. If the user explicitly says no tests, skip test execution and say so.
 7. Before push, stage only intended files and review the diff.
-8. If the user asked for shipping, commit, push, reinstall from the pushed exact commit or ref, rerun `agent-reach skill --install`, and do a lightweight smoke check when requested or clearly warranted.
+8. Commit, push, reinstall from the pushed exact commit or ref, rerun `agent-reach skill --install`, and do a lightweight smoke check when requested or clearly warranted.
 
 ## Guardrails
 

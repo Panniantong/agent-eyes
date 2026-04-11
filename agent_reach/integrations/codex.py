@@ -212,7 +212,7 @@ def _documentation_summary() -> list[str]:
         "Use `agent-reach ledger validate --input .agent-reach/evidence.jsonl --json` before treating saved evidence as a CI artifact.",
         "Use `agent-reach ledger validate --input .agent-reach/evidence.jsonl --require-metadata --json` only when missing intent, query_id, or source_role should fail automation.",
         "Use `agent-reach ledger summarize --input .agent-reach/evidence.jsonl --json` for neutral evidence health counts.",
-        "Use `agent-reach ledger query --input .agent-reach/evidence.jsonl --filter \"channel == github\" --json` for lightweight filtering and field projection over saved evidence.",
+        "Use `agent-reach ledger query --input .agent-reach/evidence.jsonl --filter \"channel == github\" --fields result.items[*].url --json` for lightweight filtering and field projection over saved evidence.",
         "Use `agent-reach ledger append --input RESULT.json --output .agent-reach/evidence.jsonl --json` to add a successful conditional collection captured without `--save`.",
         "Use `agent-reach batch --plan PLAN.json --validate-only --json` as a non-mutating preflight before any large-scale batch run.",
         "Use `agent-reach plan candidates --input .agent-reach/evidence.jsonl --json` for no-model URL or ID dedupe before follow-up reads; callers may choose `--by normalized_url`, `--by source_item_id`, `--by domain`, or `--by repo`.",

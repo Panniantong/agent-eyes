@@ -132,9 +132,18 @@ def test_maintainer_release_skill_has_shipping_guardrails():
     flow = (_skill_dir("agent-reach-maintain-release") / "references" / "release-flow.md").read_text(
         encoding="utf-8"
     )
+    metadata = (_skill_dir("agent-reach-maintain-release") / "agents" / "openai.yaml").read_text(encoding="utf-8")
+    handoff = (
+        _skill_dir("agent-reach-propose-improvements") / "references" / "handoff.md"
+    ).read_text(encoding="utf-8")
 
     assert "commit, push, or reinstall" in skill
+    assert "when asked" not in skill
     assert "Never push unrelated dirty-tree changes" in skill
     assert "Must-Stay-True Rules" in boundaries
     assert "Reinstall After Push" in flow
+    assert "When the user wants the latest pushed build reflected externally" not in flow
     assert "skip test execution and say so" in flow
+    assert "exact-ref reinstall" in metadata
+    assert "when requested" not in metadata
+    assert "exact pushed commit" in handoff

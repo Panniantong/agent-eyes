@@ -1967,6 +1967,52 @@ class TestCLI:
         assert payload["matches"][0]["ok"] is False
         assert payload["matches"][0]["source.line"] == 2
 
+    def test_ledger_query_command_projects_array_wildcard_fields(self, capsys, tmp_path):
+        ledger_path = tmp_path / "evidence.jsonl"
+        record = {
+            "record_type": "collection_result",
+            "run_id": "run-1",
+            "channel": "web",
+            "operation": "read",
+            "ok": True,
+            "result": {
+                "ok": True,
+                "channel": "web",
+                "operation": "read",
+                "items": [
+                    {"id": "1", "title": "Example One", "url": "https://example.com/one"},
+                    {"id": "2", "title": "Example Two", "url": "https://example.com/two"},
+                ],
+                "raw": None,
+                "meta": {"input": "https://example.com", "count": 2},
+                "error": None,
+            },
+        }
+        ledger_path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+        assert (
+            main(
+                [
+                    "ledger",
+                    "query",
+                    "--input",
+                    str(ledger_path),
+                    "--fields",
+                    "channel,result.items[*].url",
+                    "--json",
+                ]
+            )
+            == 0
+        )
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["command"] == "ledger query"
+        assert payload["returned_records"] == 1
+        assert payload["matches"][0]["channel"] == "web"
+        assert payload["matches"][0]["result.items[*].url"] == [
+            "https://example.com/one",
+            "https://example.com/two",
+        ]
+
     def test_ledger_validate_command_returns_exit_1_for_invalid_records(self, capsys, tmp_path):
         ledger_path = tmp_path / "evidence.jsonl"
         ledger_path.write_text('{"record_type":"collection_result"}\nnot-json\n', encoding="utf-8")

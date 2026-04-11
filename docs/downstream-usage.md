@@ -55,7 +55,7 @@ When provenance matters, append each raw collection envelope to a JSONL ledger:
 agent-reach collect --channel exa_search --operation search --input "latest AI agent frameworks" --limit 5 --json --save .agent-reach/evidence.jsonl --run-id agent-frameworks --intent discovery --query-id exa-agent-frameworks --source-role web_search
 agent-reach ledger validate --input .agent-reach/evidence.jsonl --require-metadata --json
 agent-reach ledger summarize --input .agent-reach/evidence.jsonl --json
-agent-reach ledger query --input .agent-reach/evidence.jsonl --filter "channel == exa_search" --fields channel,query_id,source.file --json
+agent-reach ledger query --input .agent-reach/evidence.jsonl --filter "channel == exa_search" --fields channel,query_id,source.file,result.items[*].url --json
 agent-reach plan candidates --input .agent-reach/evidence.jsonl --by normalized_url --limit 20 --json
 ```
 
@@ -90,7 +90,7 @@ When Codex is working inside an arbitrary project:
 - Prefer `--run-id`, `--intent`, `--query-id`, and `--source-role` with saved ledgers; use `ledger validate --require-metadata --json` when metadata completeness should gate automation.
 - Validate ledgers with `agent-reach ledger validate --json` before treating them as CI artifacts.
 - Use `agent-reach ledger summarize --json` for channel, operation, intent, query, source-role, item, error, and metadata health counts.
-- Use `agent-reach ledger query --json` for lightweight record filtering and field projection without leaving Agent Reach.
+- Use `agent-reach ledger query --json` for lightweight record filtering and field projection without leaving Agent Reach. Projection fields support array wildcards such as `result.items[*].url`.
 - Use `agent-reach plan candidates` for lightweight URL or ID dedupe before follow-up reads.
 - Keep `agent-reach plan candidates` at the default `--limit 20` unless the caller explicitly wants a broader candidate set.
 - Treat `batch` and `scout` as explicit opt-in helpers rather than the default route for everyday collection.

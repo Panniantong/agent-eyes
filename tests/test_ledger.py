@@ -333,6 +333,58 @@ def test_query_ledger_input_filters_and_projects(tmp_path):
     assert payload["matches"][0]["source.line"] == 2
 
 
+def test_query_ledger_input_projects_array_wildcard_fields(tmp_path):
+    path = tmp_path / "evidence.jsonl"
+    result = build_result(
+        ok=True,
+        channel="web",
+        operation="read",
+        items=[
+            build_item(
+                item_id="item-1",
+                kind="page",
+                title="Example One",
+                url="https://example.com/one",
+                text="hello",
+                author="alice",
+                published_at="2026-04-10T00:00:00Z",
+                source="web",
+            ),
+            build_item(
+                item_id="item-2",
+                kind="page",
+                title="Example Two",
+                url="https://example.com/two",
+                text="world",
+                author="bob",
+                published_at="2026-04-11T00:00:00Z",
+                source="web",
+            ),
+        ],
+        raw=None,
+        meta={"input": "https://example.com", "count": 2},
+        error=None,
+    )
+    record = build_ledger_record(result, run_id="run-1")
+    path.write_text(json.dumps(record, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    payload = query_ledger_input(
+        path,
+        fields=["channel", "result.items[*].url", "result.items[*].title"],
+    )
+
+    assert payload["returned_records"] == 1
+    assert payload["matches"][0]["channel"] == "web"
+    assert payload["matches"][0]["result.items[*].url"] == [
+        "https://example.com/one",
+        "https://example.com/two",
+    ]
+    assert payload["matches"][0]["result.items[*].title"] == [
+        "Example One",
+        "Example Two",
+    ]
+
+
 def test_query_ledger_input_rejects_invalid_filter(tmp_path):
     path = tmp_path / "evidence.jsonl"
     path.write_text(json.dumps(build_ledger_record(_success_result(), run_id="run-1")) + "\n", encoding="utf-8")

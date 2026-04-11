@@ -7,7 +7,7 @@ Use this order for approved Agent Reach maintenance work.
 - inspect `git status --short --branch`
 - confirm the approved proposal slice
 - identify the affected public surfaces
-- note whether the user asked for tests, smoke checks, push, and reinstall
+- note whether the user asked for tests or smoke checks
 
 ## 2. Edit
 
@@ -32,8 +32,6 @@ Use this order for approved Agent Reach maintenance work.
 - push the current branch unless the user asked for a different target
 
 ## 5. Reinstall After Push
-
-When the user wants the latest pushed build reflected externally:
 
 1. get the pushed commit with `git rev-parse HEAD`
 2. reinstall with `uv tool install --force git+https://github.com/iwachacha/Agent-Reach.git@<commit>`

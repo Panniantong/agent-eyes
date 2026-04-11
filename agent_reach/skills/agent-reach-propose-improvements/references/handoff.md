@@ -9,7 +9,7 @@ Use this skill as the first step in a maintainer workflow.
 2. `agent-reach-maintain-proposals`
    Perform the formal maintainer review and decide which items are truly `adopt_now`, `defer`, or `reject`.
 3. `agent-reach-maintain-release`
-   Implement only approved slices, then validate, push, and reinstall when requested.
+   Implement only approved slices, then validate, push, and reinstall from the exact pushed commit.
 
 ## Why This Split Is Safer
 

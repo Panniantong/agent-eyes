@@ -16,7 +16,7 @@ It also ships a bundled Codex skill suite for collection, orchestration, and mai
 - `agent-reach-orchestrate`: take a rough ask, optionally use one intake subagent when it is actually worth it, and start the Agent Reach investigation in-session
 - `agent-reach-propose-improvements`: maintainer-only skill for turning external research into clean, policy-compatible improvement proposals
 - `agent-reach-maintain-proposals`: maintainer-only review skill for adopting or rejecting Agent Reach improvement proposals before editing
-- `agent-reach-maintain-release`: maintainer-only shipping skill for approved Agent Reach changes, including push and reinstall flows when requested
+- `agent-reach-maintain-release`: maintainer-only shipping skill for approved Agent Reach changes, including push and exact-ref reinstall flows
 
 For most rough research asks, start with `agent-reach-orchestrate`. Use `agent-reach-shape-brief` only when you explicitly want to stop at brief formation before collection.
 
@@ -105,7 +105,7 @@ agent-reach schema collection-result --json
 agent-reach collect --channel exa_search --operation search --input "AI agent tooling" --limit 10 --json --save .agent-reach/evidence.jsonl --run-id agent-tooling --intent discovery --query-id exa-agent-tooling --source-role web_search
 agent-reach ledger validate --input .agent-reach/evidence.jsonl --require-metadata --json
 agent-reach ledger summarize --input .agent-reach/evidence.jsonl --json
-agent-reach ledger query --input .agent-reach/evidence.jsonl --filter "channel == exa_search" --fields channel,query_id,source.file --json
+agent-reach ledger query --input .agent-reach/evidence.jsonl --filter "channel == exa_search" --fields channel,query_id,source.file,result.items[*].url --json
 agent-reach plan candidates --input .agent-reach/evidence.jsonl --by normalized_url --limit 20 --json
 ```
 

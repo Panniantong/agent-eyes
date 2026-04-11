@@ -48,7 +48,10 @@ _JSONL_UNSAFE_LINE_SEPARATORS = {
 _FILTER_EXPRESSION_RE = re.compile(
     r"^\s*(?P<path>[A-Za-z0-9_.-]+)\s*(?P<operator>==|!=|>=|<=|>|<|contains)\s*(?P<value>.+?)\s*$"
 )
+_PROJECTION_SEGMENT_RE = re.compile(r"^(?P<name>[^\[\]]+)?(?P<brackets>(?:\[(?:\d+|\*)\])*)$")
+_PROJECTION_INDEX_RE = re.compile(r"\[(\d+|\*)\]")
 _MISSING = object()
+_WILDCARD = object()
 
 
 def default_run_id() -> str:
@@ -789,6 +792,70 @@ def _project_query_match(match: dict[str, Any], fields: list[str] | None) -> dic
         return match
     projected: dict[str, Any] = {}
     for field in fields:
-        value = _query_path_value(match, field)
+        value = _project_query_value(match, field)
         projected[field] = None if value is _MISSING else value
     return projected
+
+
+def _project_query_value(value: Any, field: str) -> Any:
+    tokens = _parse_projection_path(field)
+    if tokens is None:
+        return _MISSING
+    return _resolve_projection_path(value, tokens)
+
+
+def _parse_projection_path(field: str) -> list[Any] | None:
+    tokens: list[Any] = []
+    for part in field.split("."):
+        if not part:
+            return None
+        if "[" not in part:
+            tokens.append(part)
+            continue
+        match = _PROJECTION_SEGMENT_RE.fullmatch(part)
+        if not match:
+            return None
+        name = match.group("name")
+        brackets = match.group("brackets")
+        if name:
+            tokens.append(name)
+        for index in _PROJECTION_INDEX_RE.findall(brackets):
+            tokens.append(_WILDCARD if index == "*" else int(index))
+    return tokens
+
+
+def _resolve_projection_path(value: Any, tokens: list[Any]) -> Any:
+    if not tokens:
+        return value
+
+    token = tokens[0]
+    rest = tokens[1:]
+
+    if token is _WILDCARD:
+        if not isinstance(value, list):
+            return _MISSING
+        projected_items = []
+        for item in value:
+            projected = _resolve_projection_path(item, rest)
+            if projected is _MISSING:
+                continue
+            projected_items.append(projected)
+        return projected_items
+
+    if isinstance(token, int):
+        if not isinstance(value, list) or token < 0 or token >= len(value):
+            return _MISSING
+        return _resolve_projection_path(value[token], rest)
+
+    if isinstance(value, dict):
+        if token not in value:
+            return _MISSING
+        return _resolve_projection_path(value[token], rest)
+
+    if isinstance(value, list) and token.isdigit():
+        index = int(token)
+        if index < 0 or index >= len(value):
+            return _MISSING
+        return _resolve_projection_path(value[index], rest)
+
+    return _MISSING
