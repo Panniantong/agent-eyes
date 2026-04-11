@@ -52,16 +52,17 @@ agent-reach collect --channel mcp_registry --operation search --input "docs mcp"
 When provenance matters, append each raw collection envelope to a JSONL ledger:
 
 ```powershell
-agent-reach collect --channel exa_search --operation search --input "latest AI agent frameworks" --limit 5 --json --save .agent-reach/evidence.jsonl --run-id agent-frameworks
-agent-reach ledger validate --input .agent-reach/evidence.jsonl --json
-agent-reach plan candidates --input .agent-reach/evidence.jsonl --by url --limit 20 --json
+agent-reach collect --channel exa_search --operation search --input "latest AI agent frameworks" --limit 5 --json --save .agent-reach/evidence.jsonl --run-id agent-frameworks --intent discovery --query-id exa-agent-frameworks --source-role web_search
+agent-reach ledger validate --input .agent-reach/evidence.jsonl --require-metadata --json
+agent-reach ledger summarize --input .agent-reach/evidence.jsonl --json
+agent-reach plan candidates --input .agent-reach/evidence.jsonl --by normalized_url --limit 20 --json
 ```
 
 This does not require `.codex-plugin`, `.mcp.json`, or `agent_reach/skills` files inside the downstream project.
 
 `agent-reach check-update --json` compares this fork to upstream `Panniantong/Agent-Reach` releases. Treat it as upstream awareness, not as the source of truth for the latest fork commit.
 
-Treat `extras.source_hints`, `extras.media_references`, and web `meta` hygiene fields as diagnostics only. They can help downstream code explain provenance or flag suspicious extraction shape, but they are not ranking, trust scoring, summarization, or publishing instructions. Inspect `agent-reach channels --json` `operation_contracts` before choosing per-channel controls such as `page_size`, `max_pages`, `cursor`, `page`, `since`, or `until`; Agent Reach does not choose those inputs for the caller. `collect --max-text-chars N` is only for human text-mode snippets and does not truncate `--json` output or saved ledgers.
+Treat `extras.source_hints`, item-level `engagement`, `media_references`, neutral `identifiers`, `error.category`, and web `meta` hygiene fields as diagnostics only. They can help downstream code explain provenance or flag suspicious extraction shape, but they are not ranking, trust scoring, summarization, or publishing instructions. Inspect `agent-reach channels --json` `operation_contracts` before choosing per-channel controls such as `page_size`, `max_pages`, `cursor`, `page`, `since`, or `until`; Agent Reach does not choose those inputs for the caller. Social search responses may set `meta.diagnostics.unbounded_time_window` so the caller can notice missing time bounds. `collect --max-text-chars N` is only for human text-mode snippets and does not truncate `--json` output or saved ledgers. Use `--raw-mode minimal`, `--raw-mode none`, or `--raw-max-bytes N` when the caller wants smaller machine-readable artifacts.
 
 If a conditional command was captured without `--save`, append it later with:
 
@@ -81,9 +82,12 @@ When Codex is working inside an arbitrary project:
 - Agent Reach does not choose request scale, investigation routes, source mix, ranking, summarization, or posting.
 - The caller chooses scope. Do not auto-escalate a lightweight request into large-scale research.
 - Use `agent-reach collect --json` as the stable handoff to project code.
+- Use `agent-reach schema collection-result --json` when a downstream project wants a contract-testable JSON Schema.
 - Inspect `agent-reach channels --json` `operation_contracts` before choosing per-channel pagination or time-window options.
 - Add `--save .agent-reach/evidence.jsonl` when the run needs an auditable evidence trail.
+- Prefer `--run-id`, `--intent`, `--query-id`, and `--source-role` with saved ledgers; use `ledger validate --require-metadata --json` when metadata completeness should gate automation.
 - Validate ledgers with `agent-reach ledger validate --json` before treating them as CI artifacts.
+- Use `agent-reach ledger summarize --json` for channel, operation, intent, query, source-role, item, error, and metadata health counts.
 - Use `agent-reach plan candidates` for lightweight URL or ID dedupe before follow-up reads.
 - Keep `agent-reach plan candidates` at the default `--limit 20` unless the caller explicitly wants a broader candidate set.
 - Treat `batch` and `scout` as explicit opt-in helpers rather than the default route for everyday collection.
@@ -96,10 +100,11 @@ Large-scale research is explicit opt-in. When the caller asks for it, use bounde
 2. Choose page, cursor, and time-window inputs from the live channel contract when a task needs bounded multi-page collection.
 3. If a saved batch plan is involved, run `agent-reach batch --plan PLAN.json --validate-only --json` before any write-producing batch execution.
 4. Save raw `CollectionResult` JSONL with `--save .agent-reach/evidence.jsonl`.
-5. Run `agent-reach plan candidates --input .agent-reach/evidence.jsonl --by url --limit 20 --json`.
-6. Use specialist channels when the source is known.
-7. Deep-read only selected URLs with `web`.
-8. Persist raw ledgers and candidate plans as artifacts in CI when traceability matters.
+5. Run `agent-reach ledger summarize --input .agent-reach/evidence.jsonl --json`.
+6. Run `agent-reach plan candidates --input .agent-reach/evidence.jsonl --by normalized_url --limit 20 --json`.
+7. Use specialist channels when the source is known.
+8. Deep-read only selected URLs with `web`.
+9. Persist raw ledgers and candidate plans as artifacts in CI when traceability matters.
 
 ## GitHub Actions
 
@@ -124,8 +129,9 @@ jobs:
         run: |
           agent-reach version
           agent-reach doctor --json
-          agent-reach collect --channel bluesky --operation search --input "OpenAI" --limit 3 --json --save .agent-reach/evidence.jsonl > agent-reach-results.json
-          agent-reach plan candidates --input .agent-reach/evidence.jsonl --by url --limit 20 --json > agent-reach-candidates.json
+          agent-reach collect --channel bluesky --operation search --input "OpenAI" --limit 3 --json --save .agent-reach/evidence.jsonl --run-id smoke --intent discovery --query-id bluesky-openai --source-role social_search > agent-reach-results.json
+          agent-reach ledger summarize --input .agent-reach/evidence.jsonl --json > agent-reach-summary.json
+          agent-reach plan candidates --input .agent-reach/evidence.jsonl --by normalized_url --limit 20 --json > agent-reach-candidates.json
 ```
 
 Enable optional backends only when the workflow needs them:
@@ -212,7 +218,12 @@ Map `payload["items"]` to the bot's normalized item type:
 - `text` -> summary candidate or body snippet
 - `author` -> source author
 - `published_at` -> item timestamp
-- `extras.metrics` / channel-specific extras -> engagement, linked media references, labels, source hints, or diagnostics
+- `canonical_url` -> normalized URL for caller-selected dedupe
+- `source_item_id` -> source-native item ID when available
+- `engagement` -> raw source metrics normalized to common names such as likes, comments, stars, forks, points, or views
+- `media_references` -> linked images, thumbnails, videos, icons, screenshots, or avatars when discoverable
+- `identifiers` -> neutral source identifiers such as `domain` or `repo_full_name`
+- `extras` -> channel-specific details, source hints, and diagnostics
 
 Use `agent-reach doctor --json --probe` in CI or scheduled workflows when readiness matters. By default, `doctor --json` is diagnostic-only; callers decide whether to add `--require-channel`, `--require-channels`, or `--require-all` for the channels that matter to a given run. Treat Twitter/X authenticated-but-unprobed status as `warn` with `usability_hint=authenticated_but_unprobed`, while `doctor --json --probe` separates live `user` and `search` readiness under `operation_statuses`. Use `channels --json` fields such as `probe_operations` and `probe_coverage`, plus doctor fields such as `probed_operations`, `unprobed_operations`, `probe_run_coverage`, `summary.required_not_ready`, `summary.informational_not_ready`, and `summary.probe_attention`, when downstream automation needs to know whether a probe covered every operation or only a subset.
 

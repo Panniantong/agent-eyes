@@ -8,7 +8,8 @@ Agent Reach is a Windows-first integration layer for research tooling. It expose
 - per-operation option contracts through `channels --json` `operation_contracts`, so downstream code can choose pagination and time-window inputs itself
 - readiness diagnostics through `agent-reach doctor --json`, including `operation_statuses`, `probed_operations`, `probe_run_coverage`, and `summary.probe_attention`
 - a thin read-only collector through `agent-reach collect --json`
-- ledger validation and append helpers through `agent-reach ledger validate --json` and `agent-reach ledger append --json`
+- a packaged `CollectionResult` contract through `agent-reach schema collection-result --json`
+- ledger validation, summary, and append helpers through `agent-reach ledger validate --json`, `agent-reach ledger summarize --json`, and `agent-reach ledger append --json`
 - a non-mutating Codex export through `agent-reach export-integration --client codex`
 - bundled Codex skills for diagnostics, brief shaping, and in-session orchestration
 - repo-local Codex artifacts through `.codex-plugin/plugin.json`, `.mcp.json`, and `agent_reach/skills/` when running from a source checkout
@@ -104,6 +105,7 @@ When a channel supports bounded pagination or time windows, those controls are e
 | Python SDK | Supported | `AgentReachClient` works after install into the caller project environment |
 | Read-only collect CLI | Supported | `agent-reach collect --json` |
 | Caller-defined doctor readiness policy | Supported | `doctor --json` stays diagnostic by default; callers opt into `--require-channel`, `--require-channels`, or `--require-all` |
-| Evidence ledger validation | Supported | `ledger validate --json` checks saved JSONL artifacts, and `ledger append --json` can add a captured `CollectionResult` later |
+| CollectionResult schema | Supported | `schema collection-result --json` exposes a contract-testable schema for downstream systems |
+| Evidence ledger validation | Supported | `ledger validate --json` checks saved JSONL artifacts, `ledger validate --require-metadata --json` optionally gates provenance metadata, `ledger summarize --json` reports neutral health counts, and `ledger append --json` can add a captured `CollectionResult` later |
 | macOS/Linux installer automation | Not first-class | Use `install --safe` for guidance only |
 | Full workflow orchestration | Deferred | Scheduling, ranking, summarization, and publishing stay downstream |

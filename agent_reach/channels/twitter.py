@@ -9,7 +9,7 @@ import subprocess
 from typing import Any
 
 from agent_reach.adapters.twitter import TwitterAdapter
-from agent_reach.results import CollectionError, CollectionResult
+from agent_reach.results import CollectionError, CollectionResult, build_error
 from agent_reach.utils.commands import find_command
 
 from .base import Channel
@@ -116,11 +116,11 @@ class TwitterChannel(Channel):
                 "count": count,
             }
 
-        error: CollectionError = payload.get("error") or {
-            "code": "command_failed",
-            "message": "operation failed",
-            "details": {},
-        }
+        error: CollectionError = payload.get("error") or build_error(
+            code="command_failed",
+            message="operation failed",
+            details={},
+        )
         return {
             "status": "warn",
             "message": error.get("message") or "operation failed",
@@ -258,16 +258,16 @@ class TwitterChannel(Channel):
                 "operation_statuses": operation_statuses,
             }
 
-        user_error: CollectionError = user_payload.get("error") or {
-            "code": "",
-            "message": "",
-            "details": {},
-        }
-        search_error: CollectionError = search_payload.get("error") or {
-            "code": "",
-            "message": "",
-            "details": {},
-        }
+        user_error: CollectionError = user_payload.get("error") or build_error(
+            code="",
+            message="",
+            details={},
+        )
+        search_error: CollectionError = search_payload.get("error") or build_error(
+            code="",
+            message="",
+            details={},
+        )
         user_code = user_error.get("code") or ""
         search_code = search_error.get("code") or ""
         if user_code == "not_authenticated" and search_code in {"", "not_authenticated"}:

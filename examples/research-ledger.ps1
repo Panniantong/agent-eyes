@@ -15,5 +15,6 @@ if ($EvidenceDir) {
   New-Item -ItemType Directory -Force -Path $EvidenceDir | Out-Null
 }
 
-agent-reach collect --json --save $EvidencePath --run-id $RunId --channel exa_search --operation search --input $Topic --limit $Limit
-agent-reach plan candidates --input $EvidencePath --by url --limit 20 --json
+agent-reach collect --json --save $EvidencePath --run-id $RunId --intent discovery --query-id exa-topic --source-role web_search --channel exa_search --operation search --input $Topic --limit $Limit
+agent-reach ledger summarize --input $EvidencePath --json
+agent-reach plan candidates --input $EvidencePath --by normalized_url --limit 20 --json

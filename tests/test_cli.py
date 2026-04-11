@@ -410,6 +410,53 @@ class TestCLI:
         assert ledger_record["urls"] == ["https://example.com"]
         assert ledger_record["result"] == stdout_payload
 
+    def test_collect_raw_mode_none_applies_to_stdout_and_saved_ledger(self, capsys, monkeypatch, tmp_path):
+        class _FakeClient:
+            def collect(self, channel, operation, value, limit=None):
+                return {
+                    "ok": True,
+                    "channel": channel,
+                    "operation": operation,
+                    "items": [{"id": "1", "title": "Example", "url": value}],
+                    "raw": {"large": "x" * 1000},
+                    "meta": {"count": 1},
+                    "error": None,
+                }
+
+        monkeypatch.setattr("agent_reach.cli.AgentReachClient", _FakeClient)
+        ledger_path = tmp_path / "evidence.jsonl"
+
+        assert (
+            main(
+                [
+                    "collect",
+                    "--channel",
+                    "web",
+                    "--operation",
+                    "read",
+                    "--input",
+                    "https://example.com",
+                    "--json",
+                    "--save",
+                    str(ledger_path),
+                    "--raw-mode",
+                    "none",
+                    "--intent",
+                    "official_docs",
+                    "--query-id",
+                    "q01",
+                    "--source-role",
+                    "web_discovery",
+                ]
+            )
+            == 0
+        )
+        stdout_payload = json.loads(capsys.readouterr().out)
+        ledger_record = json.loads(ledger_path.read_text(encoding="utf-8"))
+        assert stdout_payload["raw"] is None
+        assert stdout_payload["meta"]["raw_payload_omitted"] is True
+        assert ledger_record["result"]["raw"] is None
+
     def test_collect_save_records_error_envelope(self, capsys, monkeypatch, tmp_path):
         class _FakeClient:
             def collect(self, channel, operation, value, limit=None):
@@ -454,6 +501,41 @@ class TestCLI:
         assert ledger_record["ok"] is False
         assert ledger_record["error_code"] == "unknown_channel"
         assert ledger_record["result"]["error"]["code"] == "unknown_channel"
+
+    def test_collect_save_warns_when_evidence_metadata_missing(self, capsys, monkeypatch, tmp_path):
+        class _FakeClient:
+            def collect(self, channel, operation, value, limit=None):
+                return {
+                    "ok": True,
+                    "channel": channel,
+                    "operation": operation,
+                    "items": [],
+                    "raw": None,
+                    "meta": {"count": 0},
+                    "error": None,
+                }
+
+        monkeypatch.setattr("agent_reach.cli.AgentReachClient", _FakeClient)
+        ledger_path = tmp_path / "evidence.jsonl"
+
+        assert (
+            main(
+                [
+                    "collect",
+                    "--channel",
+                    "web",
+                    "--operation",
+                    "read",
+                    "--input",
+                    "https://example.com",
+                    "--save",
+                    str(ledger_path),
+                ]
+            )
+            == 0
+        )
+        captured = capsys.readouterr()
+        assert "evidence metadata" in captured.err
 
     def test_collect_annotations_require_save(self, capsys, monkeypatch):
         class _FakeClient:
@@ -1680,6 +1762,56 @@ class TestCLI:
         assert captured.out == ""
         assert "crawl4ai crawl requires query" in captured.err
 
+    def test_batch_inherits_plan_metadata_defaults(self, capsys, monkeypatch, tmp_path):
+        plan_path = tmp_path / "plan.json"
+        ledger_path = tmp_path / "evidence.jsonl"
+        plan_path.write_text(
+            json.dumps(
+                {
+                    "run_id": "run-plan",
+                    "intent": "external_news",
+                    "source_role": "web_discovery",
+                    "query_id_prefix": "topic",
+                    "queries": [
+                        {
+                            "channel": "web",
+                            "operation": "read",
+                            "input": "https://example.com/a",
+                        },
+                        {
+                            "channel": "web",
+                            "operation": "read",
+                            "input": "https://example.com/b",
+                            "source_role": "followup_read",
+                        },
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        class _FakeClient:
+            def collect(self, channel, operation, value, limit=None):
+                return {
+                    "ok": True,
+                    "channel": channel,
+                    "operation": operation,
+                    "items": [{"id": value, "title": value, "url": value}],
+                    "raw": None,
+                    "meta": {"input": value, "count": 1},
+                    "error": None,
+                }
+
+        monkeypatch.setattr("agent_reach.batch.AgentReachClient", _FakeClient)
+
+        assert main(["batch", "--plan", str(plan_path), "--save", str(ledger_path), "--json"]) == 0
+        payload = json.loads(capsys.readouterr().out)
+        records = [json.loads(line) for line in ledger_path.read_text(encoding="utf-8").splitlines()]
+        assert [query["query_id"] for query in payload["queries"]] == ["topic-01", "topic-02"]
+        assert records[0]["intent"] == "external_news"
+        assert records[0]["source_role"] == "web_discovery"
+        assert records[1]["source_role"] == "followup_read"
+
     def test_ledger_merge_command(self, capsys, tmp_path):
         source_dir = tmp_path / "ledger"
         source_dir.mkdir()
@@ -1733,6 +1865,37 @@ class TestCLI:
         assert payload["valid"] is True
         assert payload["collection_results"] == 1
         assert payload["items_seen"] == 1
+
+    def test_ledger_validate_require_metadata_and_summarize_commands(self, capsys, tmp_path):
+        ledger_path = tmp_path / "evidence.jsonl"
+        result = {
+            "ok": True,
+            "channel": "web",
+            "operation": "read",
+            "items": [{"id": "1", "url": "https://example.com"}],
+            "raw": None,
+            "meta": {"input": "https://example.com", "count": 1},
+            "error": None,
+        }
+        record = {
+            "record_type": "collection_result",
+            "run_id": "run-1",
+            "channel": "web",
+            "operation": "read",
+            "result": result,
+        }
+        ledger_path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+        assert main(["ledger", "validate", "--input", str(ledger_path), "--require-metadata", "--json"]) == 1
+        validate_payload = json.loads(capsys.readouterr().out)
+        assert validate_payload["require_metadata"] is True
+        assert validate_payload["missing_metadata"]["records"] == 1
+
+        assert main(["ledger", "summarize", "--input", str(ledger_path), "--json"]) == 0
+        summary_payload = json.loads(capsys.readouterr().out)
+        assert summary_payload["command"] == "ledger summarize"
+        assert summary_payload["records"] == 1
+        assert summary_payload["missing_metadata"]["records"] == 1
 
     def test_ledger_validate_command_returns_exit_1_for_invalid_records(self, capsys, tmp_path):
         ledger_path = tmp_path / "evidence.jsonl"
@@ -1824,6 +1987,13 @@ class TestCLI:
         assert payload["channel"]["name"] == "github"
         assert payload["channel"]["entrypoint_kind"] == "cli"
         assert payload["channel"]["operation_contracts"]["read"]["input_kind"] == "repository"
+
+    def test_schema_collection_result_json(self, capsys):
+        assert main(["schema", "collection-result", "--json"]) == 0
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["title"] == "Agent Reach CollectionResult"
+        assert "schema_version" in payload["required"]
+        assert "NormalizedItem" in payload["$defs"]
 
     def test_export_integration_json(self, capsys):
         assert main(["export-integration", "--client", "codex", "--format", "json"]) == 0

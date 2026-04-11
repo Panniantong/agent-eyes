@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-reach.local/schemas/collection-result.schema.json",
+  "title": "Agent Reach CollectionResult",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "agent_reach_version",
+    "ok",
+    "channel",
+    "operation",
+    "items",
+    "raw",
+    "meta",
+    "error"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "agent_reach_version": {
+      "type": "string"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "channel": {
+      "type": "string"
+    },
+    "operation": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/NormalizedItem"
+      }
+    },
+    "raw": true,
+    "meta": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "error": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/CollectionError"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "NormalizedItem": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "kind",
+        "title",
+        "url",
+        "text",
+        "author",
+        "published_at",
+        "source",
+        "canonical_url",
+        "source_item_id",
+        "engagement",
+        "media_references",
+        "identifiers",
+        "extras"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "author": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "published_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": "string"
+        },
+        "canonical_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_item_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "engagement": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          },
+          "propertyNames": {
+            "enum": [
+              "likes",
+              "reposts",
+              "retweets",
+              "replies",
+              "quotes",
+              "views",
+              "bookmarks",
+              "points",
+              "comments",
+              "stars",
+              "forks"
+            ]
+          }
+        },
+        "media_references": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "identifiers": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "extras": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "CollectionError": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "code",
+        "category",
+        "message",
+        "details",
+        "retryable"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "timeout",
+            "auth_required",
+            "rate_limited",
+            "dependency_missing",
+            "invalid_input",
+            "parse_error",
+            "no_results",
+            "upstream_unavailable",
+            "unknown"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

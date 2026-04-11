@@ -83,7 +83,7 @@ Use `items` for downstream automation and `raw` when you need backend-native det
 
 When a channel supports bounded pagination or continuation tokens, the result keeps the existing flat metadata keys and also mirrors them under `meta.pagination`. Agent Reach does not choose those controls for you; the caller decides whether to use them.
 
-Diagnostics such as `extras.source_hints`, `extras.media_references`, YouTube `extras.thumbnail_url`, subtitle/caption availability fields, and social `extras.media` are evidence metadata only. Agent Reach does not rank sources or analyze image/video binaries.
+Diagnostics such as `extras.source_hints`, top-level `engagement`, `media_references`, neutral `identifiers`, YouTube `extras.thumbnail_url`, subtitle/caption availability fields, social `extras.media`, and `error.category` are evidence metadata only. Agent Reach does not rank sources or analyze image/video binaries.
 
 ## Discord bot style usage
 

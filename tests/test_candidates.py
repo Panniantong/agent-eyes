@@ -319,3 +319,39 @@ def test_candidates_records_alternate_urls_for_duplicate(tmp_path):
     assert payload["candidates"][0]["extras"]["alternate_urls"] == [
         "https://example.com/post#section"
     ]
+
+
+def test_candidates_supports_neutral_identifier_dedupe_modes(tmp_path):
+    path = tmp_path / "evidence.jsonl"
+    github_item = build_item(
+        item_id="repo-api-id",
+        kind="repository",
+        title="Agent Reach",
+        url="https://github.com/iwachacha/Agent-Reach",
+        text=None,
+        author="iwachacha",
+        published_at=None,
+        source="github",
+        extras={"repo_full_name": "iwachacha/Agent-Reach", "stars": 10},
+        source_item_id="iwachacha/Agent-Reach",
+    )
+    web_item = _item("web-1", "https://example.com/post#intro", "Post")
+    _write_jsonl(
+        path,
+        [
+            build_ledger_record(_result(channel="github", operation="read", items=[github_item]), run_id="run-1"),
+            build_ledger_record(_result(channel="web", operation="read", items=[web_item]), run_id="run-1"),
+        ],
+    )
+
+    by_repo = build_candidates_payload(path, by="repo", limit=20)
+    by_domain = build_candidates_payload(path, by="domain", limit=20)
+    by_source_item_id = build_candidates_payload(path, by="source_item_id", limit=20)
+    by_normalized_url = build_candidates_payload(path, by="normalized_url", limit=20)
+
+    assert by_repo["summary"]["candidate_count"] == 1
+    assert by_repo["candidates"][0]["extras"]["candidate_key"] == "repo:iwachacha/Agent-Reach"
+    assert by_domain["summary"]["candidate_count"] == 2
+    assert by_source_item_id["candidates"][0]["extras"]["candidate_key"] == "source_item_id:github:iwachacha/Agent-Reach"
+    assert by_source_item_id["candidates"][0]["engagement"] == {"stars": 10}
+    assert by_normalized_url["candidates"][1]["extras"]["candidate_key"] == "normalized_url:https://example.com/post"

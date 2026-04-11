@@ -9,6 +9,7 @@ from typing import Any, Sequence
 from urllib.parse import urlsplit, urlunsplit
 
 from agent_reach.ledger import iter_jsonl_lines
+from agent_reach.results import canonicalize_url as result_canonicalize_url
 from agent_reach.schemas import SCHEMA_VERSION, utc_timestamp
 
 
@@ -25,6 +26,11 @@ ALLOWED_CANDIDATE_FIELDS = {
     "author",
     "published_at",
     "source",
+    "canonical_url",
+    "source_item_id",
+    "engagement",
+    "media_references",
+    "identifiers",
     "intent",
     "query_id",
     "source_role",
@@ -65,7 +71,7 @@ def build_candidates_payload(
 ) -> dict[str, Any]:
     """Read evidence JSONL and return a deduped candidate payload."""
 
-    if by not in {"url", "id"}:
+    if by not in {"url", "normalized_url", "id", "source_item_id", "domain", "repo"}:
         raise CandidatePlanError(f"Unsupported dedupe mode: {by}")
     if limit < 1:
         raise CandidatePlanError("limit must be greater than or equal to 1")
@@ -251,6 +257,11 @@ def _candidate_from_item(item: dict[str, Any]) -> dict[str, Any]:
         "kind": item.get("kind"),
         "title": item.get("title"),
         "url": item.get("url"),
+        "canonical_url": item.get("canonical_url"),
+        "source_item_id": item.get("source_item_id"),
+        "engagement": item.get("engagement") if isinstance(item.get("engagement"), dict) else {},
+        "media_references": item.get("media_references") if isinstance(item.get("media_references"), list) else [],
+        "identifiers": item.get("identifiers") if isinstance(item.get("identifiers"), dict) else {},
         "text": item.get("text"),
         "author": item.get("author"),
         "published_at": item.get("published_at"),
@@ -362,15 +373,58 @@ def _dedupe_key(
 ) -> str | None:
     source = item.get("source") or result.get("channel") or "unknown"
     item_id = item.get("id")
-    url = canonicalize_url(item.get("url"))
+    url = _normalized_url(item)
+    source_item_id = item.get("source_item_id") or item_id
+    domain = _identifier_value(item, "domain")
+    repo = _identifier_value(item, "repo_full_name")
     if by == "id":
         if item_id:
             return f"id:{source}:{item_id}"
         if url:
             return f"url:{url}"
-    else:
+    if by == "source_item_id":
+        if source_item_id:
+            return f"source_item_id:{source}:{source_item_id}"
+        if url:
+            return f"url:{url}"
+    if by == "domain":
+        if domain:
+            return f"domain:{domain}"
+        return None
+    if by == "repo":
+        if repo:
+            return f"repo:{repo}"
+        return None
+    if by == "normalized_url":
+        if url:
+            return f"normalized_url:{url}"
+        return None
+    if by == "url":
         if url:
             return f"url:{url}"
         if item_id:
             return f"id:{source}:{item_id}"
     return None
+
+
+def _normalized_url(item: dict[str, Any]) -> str | None:
+    value = item.get("canonical_url") or result_canonicalize_url(item.get("url")) or canonicalize_url(item.get("url"))
+    return str(value) if value else None
+
+
+def _identifier_value(item: dict[str, Any], key: str) -> str | None:
+    raw_identifiers = item.get("identifiers")
+    identifiers = raw_identifiers if isinstance(raw_identifiers, dict) else {}
+    raw_extras = item.get("extras")
+    extras = raw_extras if isinstance(raw_extras, dict) else {}
+    value = identifiers.get(key)
+    if value is None:
+        value = extras.get(key)
+    if value is None and key == "domain":
+        url = _normalized_url(item)
+        if url:
+            value = urlsplit(url).netloc.lower()
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None

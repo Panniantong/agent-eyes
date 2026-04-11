@@ -57,6 +57,7 @@ Good behavior:
 
 - explicitly mark this as a broad run
 - include `agent-reach collect --json --save .agent-reach/evidence.jsonl`
-- include `agent-reach plan candidates --input .agent-reach/evidence.jsonl --by url --limit 20 --json`
+- include `agent-reach ledger summarize --input .agent-reach/evidence.jsonl --json`
+- include `agent-reach plan candidates --input .agent-reach/evidence.jsonl --by normalized_url --limit 20 --json`
 - mention `agent-reach batch --plan PLAN.json --validate-only --json` before any saved batch execution
 - still deep-read only selected URLs

@@ -280,7 +280,7 @@ def merge_ledger_inputs(
     }
 
 
-def validate_ledger_input(input_path: str | Path) -> dict[str, Any]:
+def validate_ledger_input(input_path: str | Path, *, require_metadata: bool = False) -> dict[str, Any]:
     """Validate one evidence ledger file or a directory of ledger shards."""
 
     source = Path(input_path)
@@ -300,7 +300,11 @@ def validate_ledger_input(input_path: str | Path) -> dict[str, Any]:
     channel_counts: dict[str, int] = {}
     operation_counts: dict[str, int] = {}
     error_codes: dict[str, int] = {}
+    intent_counts: dict[str, int] = {}
+    query_id_counts: dict[str, int] = {}
+    source_role_counts: dict[str, int] = {}
     missing_metadata_counts = {"intent": 0, "query_id": 0, "source_role": 0}
+    metadata_missing_records = 0
     missing_metadata_samples: list[dict[str, Any]] = []
 
     for ledger_path in inputs:
@@ -367,8 +371,19 @@ def validate_ledger_input(input_path: str | Path) -> dict[str, Any]:
                 for name in ("intent", "query_id", "source_role")
                 if record.get(name) is None and meta.get(name) is None
             ]
+            _increment_if_present(intent_counts, record.get("intent") if record.get("intent") is not None else meta.get("intent"))
+            _increment_if_present(
+                query_id_counts,
+                record.get("query_id") if record.get("query_id") is not None else meta.get("query_id"),
+            )
+            _increment_if_present(
+                source_role_counts,
+                record.get("source_role") if record.get("source_role") is not None else meta.get("source_role"),
+            )
             for name in missing_fields:
                 missing_metadata_counts[name] += 1
+            if missing_fields:
+                metadata_missing_records += 1
             if missing_fields and len(missing_metadata_samples) < _DIAGNOSTIC_LIMIT:
                 missing_metadata_samples.append(
                     {
@@ -406,12 +421,14 @@ def validate_ledger_input(input_path: str | Path) -> dict[str, Any]:
                         }
                     )
 
-    valid = invalid_line_count == 0 and invalid_record_count == 0
+    metadata_valid = not require_metadata or metadata_missing_records == 0
+    valid = invalid_line_count == 0 and invalid_record_count == 0 and metadata_valid
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": utc_timestamp(),
         "command": "ledger validate",
         "input": str(source),
+        "require_metadata": require_metadata,
         "valid": valid,
         "files_checked": len(inputs),
         "records": records,
@@ -421,9 +438,13 @@ def validate_ledger_input(input_path: str | Path) -> dict[str, Any]:
         "error_records": error_records,
         "channel_counts": channel_counts,
         "operation_counts": operation_counts,
+        "intent_counts": intent_counts,
+        "query_id_counts": query_id_counts,
+        "source_role_counts": source_role_counts,
         "error_codes": error_codes,
         "missing_metadata": {
             **missing_metadata_counts,
+            "records": metadata_missing_records,
             "samples": missing_metadata_samples,
         },
         "items_seen": items_seen,
@@ -436,6 +457,35 @@ def validate_ledger_input(input_path: str | Path) -> dict[str, Any]:
         "large_text_fields": large_text_fields,
         "large_raw_payload_threshold": _LARGE_RAW_CHARS,
         "large_raw_payloads": large_raw_payloads,
+    }
+
+
+def summarize_ledger_input(input_path: str | Path) -> dict[str, Any]:
+    """Return non-scoring evidence ledger health counts for downstream automation."""
+
+    validation = validate_ledger_input(input_path)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": utc_timestamp(),
+        "command": "ledger summarize",
+        "input": validation["input"],
+        "valid": validation["valid"],
+        "counts_scope": validation["counts_scope"],
+        "files_checked": validation["files_checked"],
+        "records": validation["records"],
+        "collection_results": validation["collection_results"],
+        "items_seen": validation["items_seen"],
+        "ok_records": validation["ok_records"],
+        "error_records": validation["error_records"],
+        "channel_counts": validation["channel_counts"],
+        "operation_counts": validation["operation_counts"],
+        "intent_counts": validation["intent_counts"],
+        "query_id_counts": validation["query_id_counts"],
+        "source_role_counts": validation["source_role_counts"],
+        "error_codes": validation["error_codes"],
+        "missing_metadata": validation["missing_metadata"],
+        "invalid_lines": validation["invalid_lines"],
+        "invalid_records": validation["invalid_records"],
     }
 
 
@@ -530,6 +580,13 @@ def _raw_payload_length(raw_payload: Any) -> int:
         return len(json.dumps(raw_payload, ensure_ascii=False))
     except (TypeError, ValueError):
         return len(str(raw_payload))
+
+
+def _increment_if_present(counts: dict[str, int], value: Any) -> None:
+    if value is None or value == "":
+        return
+    key = str(value)
+    counts[key] = counts.get(key, 0) + 1
 
 
 def _resolved_path(path: str | Path | None) -> Path | None:

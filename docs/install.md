@@ -42,7 +42,7 @@ uv tool install --force .
 agent-reach version
 ```
 
-For the current collection and ledger surface, `agent-reach version` should report `Agent Reach v1.7.0` or newer.
+For the current collection and ledger surface, `agent-reach version` should report `Agent Reach v1.8.0` or newer.
 
 ## Preview mode
 
@@ -161,7 +161,9 @@ These commands are the supported integration surface for downstream tools. They 
 
 ```powershell
 agent-reach ledger validate --input .agent-reach/evidence.jsonl --json
+agent-reach ledger validate --input .agent-reach/evidence.jsonl --require-metadata --json
+agent-reach ledger summarize --input .agent-reach/evidence.jsonl --json
 agent-reach ledger append --input live-results/twitter-openai.json --output .agent-reach/evidence.jsonl --run-id external-run --json
 ```
 
-Use `ledger validate` when a CI job needs to prove that saved evidence is parseable. Use `ledger append` when a conditional live collect was first captured to a JSON file and should be added to the evidence ledger afterward.
+Use `ledger validate` when a CI job needs to prove that saved evidence is parseable. Add `--require-metadata` only when missing `intent`, `query_id`, or `source_role` should fail automation. Use `ledger summarize` for neutral artifact health counts, and `ledger append` when a conditional live collect was first captured to a JSON file and should be added to the evidence ledger afterward.

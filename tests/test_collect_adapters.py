@@ -42,6 +42,7 @@ def test_web_adapter_success(config, monkeypatch):
             "Published Time: 2026-04-10T00:00:00Z\n\n"
             "Markdown Content:\n"
             "# Example Domain\n\nThis is a test page.\n"
+            "![Chart](https://example.com/chart.png)\n"
         )
 
         def raise_for_status(self):
@@ -62,9 +63,19 @@ def test_web_adapter_success(config, monkeypatch):
     assert payload["items"][0]["title"] == "Example Domain"
     assert payload["items"][0]["published_at"] == "2026-04-10T00:00:00Z"
     assert "This is a test page." in payload["items"][0]["text"]
-    assert payload["meta"]["text_length"] == len("# Example Domain\n\nThis is a test page.")
-    assert payload["meta"]["link_count"] == 0
+    assert payload["meta"]["text_length"] == len(
+        "# Example Domain\n\nThis is a test page.\n![Chart](https://example.com/chart.png)"
+    )
+    assert payload["meta"]["link_count"] == 1
     assert payload["meta"]["extraction_warning"] is None
+    assert payload["items"][0]["media_references"] == [
+        {
+            "type": "image",
+            "url": "https://example.com/chart.png",
+            "relation": "page_image",
+            "source_field": "markdown",
+        }
+    ]
     assert payload["meta"]["returned_count"] == 1
     assert payload["items"][0]["extras"]["source_hints"] == {
         "source_kind": "unknown",
@@ -752,6 +763,8 @@ def test_github_adapter_read_success(config, monkeypatch):
 
     assert payload["ok"] is True
     assert payload["items"][0]["id"] == "openai/openai-python"
+    assert payload["items"][0]["engagement"] == {"stars": 1, "forks": 2}
+    assert payload["items"][0]["identifiers"]["repo_full_name"] == "openai/openai-python"
     assert payload["items"][0]["extras"]["default_branch"] == "main"
     assert payload["items"][0]["extras"]["source_hints"] == {
         "source_kind": "repository",
@@ -824,6 +837,44 @@ def test_github_adapter_search_paginates_via_gh_api(config, monkeypatch):
     assert payload["meta"]["pagination"]["next_page"] == 3
     assert len(payload["items"]) == 4
     assert len(payload["raw"]) == 4
+    assert payload["items"][0]["engagement"]["stars"] == 1
+    assert payload["items"][0]["identifiers"]["repo_full_name"] == "openai/repo-1"
+
+
+def test_github_adapter_search_normalizes_rest_api_repository_fields(config, monkeypatch):
+    adapter = GitHubAdapter(config=config)
+    monkeypatch.setattr(adapter, "command_path", lambda _name: "gh")
+    monkeypatch.setattr(
+        adapter,
+        "run_command",
+        lambda command, timeout=60, env=None: _cp(
+            stdout=json.dumps(
+                {
+                    "total_count": 1,
+                    "items": [
+                        {
+                            "name": "Agent-Reach",
+                            "full_name": "iwachacha/Agent-Reach",
+                            "html_url": "https://github.com/iwachacha/Agent-Reach",
+                            "description": "Research integration",
+                            "owner": {"login": "iwachacha"},
+                            "updated_at": "2026-04-10T00:00:00Z",
+                            "stargazers_count": 42,
+                            "forks_count": 3,
+                        }
+                    ],
+                }
+            )
+        ),
+    )
+
+    payload = adapter.search("agent reach", limit=1)
+
+    assert payload["ok"] is True
+    assert payload["items"][0]["id"] == "iwachacha/Agent-Reach"
+    assert payload["items"][0]["url"] == "https://github.com/iwachacha/Agent-Reach"
+    assert payload["items"][0]["engagement"] == {"stars": 42, "forks": 3}
+    assert payload["items"][0]["identifiers"]["repo_full_name"] == "iwachacha/Agent-Reach"
 
 
 def test_github_adapter_invalid_json(config, monkeypatch):
@@ -1002,6 +1053,8 @@ def test_twitter_adapter_success(config, monkeypatch):
     assert payload["items"][0]["author"] == "OpenAI"
     assert payload["items"][0]["url"] == "https://x.com/OpenAI/status/123"
     assert payload["items"][0]["extras"]["metrics"] == {"likes": 10}
+    assert payload["items"][0]["engagement"] == {"likes": 10}
+    assert payload["meta"]["diagnostics"]["unbounded_time_window"] is True
     assert captured["command"][1:3] == ["search", "OpenAI"]
 
 
@@ -1064,6 +1117,7 @@ def test_twitter_adapter_search_prefers_explicit_since_until(config, monkeypatch
     ]
     assert payload["meta"]["since"] == "2026-01-01"
     assert payload["meta"]["until"] == "2026-12-31"
+    assert payload["meta"]["diagnostics"]["unbounded_time_window"] is False
 
 
 def test_twitter_adapter_user_success(config, monkeypatch):

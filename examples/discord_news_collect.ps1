@@ -16,13 +16,16 @@ $BlueskyJson = Join-Path $OutputDir "bluesky.json"
 $QiitaJson = Join-Path $OutputDir "qiita.json"
 $CandidatesJson = Join-Path $OutputDir "candidates.json"
 
-agent-reach collect --json --save $EvidencePath --run-id $RunId --channel bluesky --operation search --input $Query --limit $Limit |
+agent-reach collect --json --save $EvidencePath --run-id $RunId --intent news_discovery --query-id bluesky-query --source-role social_search --channel bluesky --operation search --input $Query --limit $Limit |
   Set-Content -Encoding utf8 -Path $BlueskyJson
 
-agent-reach collect --json --save $EvidencePath --run-id $RunId --channel qiita --operation search --input $Query --limit $Limit |
+agent-reach collect --json --save $EvidencePath --run-id $RunId --intent news_discovery --query-id qiita-query --source-role community_article_search --channel qiita --operation search --input $Query --limit $Limit |
   Set-Content -Encoding utf8 -Path $QiitaJson
 
-agent-reach plan candidates --input $EvidencePath --by url --limit 20 --json |
+agent-reach ledger summarize --input $EvidencePath --json |
+  Set-Content -Encoding utf8 -Path (Join-Path $OutputDir "summary.json")
+
+agent-reach plan candidates --input $EvidencePath --by normalized_url --limit 20 --json |
   Set-Content -Encoding utf8 -Path $CandidatesJson
 
 Write-Host "Wrote raw collection artifacts to $OutputDir for downstream review or bot logic."

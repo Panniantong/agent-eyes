@@ -29,10 +29,11 @@ from agent_reach.ledger import (
     default_run_id,
     merge_ledger_inputs,
     save_collection_result,
+    summarize_ledger_input,
     validate_ledger_input,
 )
-from agent_reach.results import CollectionResult
-from agent_reach.schemas import SCHEMA_VERSION, utc_timestamp
+from agent_reach.results import CollectionResult, apply_raw_mode
+from agent_reach.schemas import SCHEMA_VERSION, collection_result_schema, utc_timestamp
 from agent_reach.scout import (
     BUDGETS,
     PRESETS,
@@ -183,6 +184,17 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Show text snippets up to N characters in text mode only",
     )
     p_collect.add_argument(
+        "--raw-mode",
+        choices=["full", "minimal", "none"],
+        default="full",
+        help="Control raw payload retention in printed and saved CollectionResult JSON. Defaults to full",
+    )
+    p_collect.add_argument(
+        "--raw-max-bytes",
+        type=int,
+        help="Replace raw with a preview summary when its UTF-8 JSON size exceeds N bytes",
+    )
+    p_collect.add_argument(
         "--save",
         help="Append the raw CollectionResult envelope to an evidence ledger JSONL file",
     )
@@ -221,7 +233,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p_candidates.add_argument("--input", required=True, help="Evidence ledger JSONL input path")
     p_candidates.add_argument(
         "--by",
-        choices=["url", "id"],
+        choices=["url", "normalized_url", "id", "source_item_id", "domain", "repo"],
         default="url",
         help="Dedupe mode. Defaults to URL, then falls back to source + id",
     )
@@ -293,6 +305,14 @@ def _build_parser() -> argparse.ArgumentParser:
     p_channels.add_argument("name", nargs="?", help="Optional stable channel name to inspect")
     p_channels.add_argument("--json", action="store_true", help="Print machine-readable channel data")
 
+    p_schema = sub.add_parser("schema", help="Print packaged JSON Schemas for stable contracts")
+    p_schema.add_argument(
+        "name",
+        choices=["collection-result"],
+        help="Schema name to print",
+    )
+    p_schema.add_argument("--json", action="store_true", help="Print the JSON Schema payload")
+
     p_export = sub.add_parser(
         "export-integration",
         help="Export non-mutating integration data for downstream clients",
@@ -313,7 +333,15 @@ def _build_parser() -> argparse.ArgumentParser:
     p_ledger_merge.add_argument("--json", action="store_true", help="Print machine-readable merge output")
     p_ledger_validate = ledger_sub.add_parser("validate", help="Validate a ledger file or shard directory")
     p_ledger_validate.add_argument("--input", required=True, help="Ledger input file or directory")
+    p_ledger_validate.add_argument(
+        "--require-metadata",
+        action="store_true",
+        help="Fail validation when collection records lack intent, query_id, or source_role",
+    )
     p_ledger_validate.add_argument("--json", action="store_true", help="Print machine-readable validation output")
+    p_ledger_summarize = ledger_sub.add_parser("summarize", help="Summarize evidence ledger health counts")
+    p_ledger_summarize.add_argument("--input", required=True, help="Ledger input file or directory")
+    p_ledger_summarize.add_argument("--json", action="store_true", help="Print machine-readable summary output")
     p_ledger_append = ledger_sub.add_parser("append", help="Append a CollectionResult JSON file to a ledger")
     p_ledger_append.add_argument("--input", required=True, help="CollectionResult JSON input file")
     p_ledger_append.add_argument("--output", required=True, help="Evidence ledger JSONL output path")
@@ -375,6 +403,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return _cmd_ledger(args)
     if args.command == "channels":
         return _cmd_channels(args)
+    if args.command == "schema":
+        return _cmd_schema(args)
     if args.command == "export-integration":
         return _cmd_export_integration(args)
     if args.command == "uninstall":
@@ -1156,6 +1186,9 @@ def _cmd_collect(args) -> int:
     if args.max_text_chars is not None and args.max_text_chars < 1:
         print("max-text-chars must be greater than or equal to 1", file=sys.stderr)
         return 2
+    if args.raw_max_bytes is not None and args.raw_max_bytes < 1:
+        print("raw-max-bytes must be greater than or equal to 1", file=sys.stderr)
+        return 2
     annotations = [args.intent, args.query_id, args.source_role]
     if any(value is not None for value in annotations) and not args.save:
         print("intent, query-id, and source-role require --save", file=sys.stderr)
@@ -1191,12 +1224,18 @@ def _cmd_collect(args) -> int:
     if args.until is not None:
         collect_kwargs["until"] = args.until
     payload = client.collect(args.channel, args.operation, args.input, **collect_kwargs)
+    try:
+        payload = apply_raw_mode(payload, raw_mode=args.raw_mode, raw_max_bytes=args.raw_max_bytes)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     if args.json:
         _print_json(payload)
     else:
         print(_render_collect_text(payload, max_text_chars=args.max_text_chars))
 
     if args.save:
+        _warn_missing_evidence_metadata(args.intent, args.query_id, args.source_role)
         try:
             save_collection_result(
                 args.save,
@@ -1217,6 +1256,29 @@ def _cmd_collect(args) -> int:
     if error and error["code"] in {"unknown_channel", "unsupported_operation", "invalid_input", "unsupported_option"}:
         return 2
     return 1
+
+
+def _warn_missing_evidence_metadata(
+    intent: str | None,
+    query_id: str | None,
+    source_role: str | None,
+) -> None:
+    missing = [
+        name
+        for name, value in (
+            ("intent", intent),
+            ("query-id", query_id),
+            ("source-role", source_role),
+        )
+        if value is None
+    ]
+    if missing:
+        print(
+            "[WARN] --save used without evidence metadata: "
+            f"{', '.join(missing)}. "
+            "Use --intent, --query-id, and --source-role when downstream provenance matters.",
+            file=sys.stderr,
+        )
 
 
 def _cmd_plan(args) -> int:
@@ -1368,6 +1430,8 @@ def _cmd_ledger(args) -> int:
         return _cmd_ledger_merge(args)
     if args.ledger_command == "validate":
         return _cmd_ledger_validate(args)
+    if args.ledger_command == "summarize":
+        return _cmd_ledger_summarize(args)
     if args.ledger_command == "append":
         return _cmd_ledger_append(args)
     print("ledger requires a subcommand", file=sys.stderr)
@@ -1400,7 +1464,7 @@ def _cmd_ledger_merge(args) -> int:
 
 def _cmd_ledger_validate(args) -> int:
     try:
-        payload = validate_ledger_input(args.input)
+        payload = validate_ledger_input(args.input, require_metadata=args.require_metadata)
     except (FileNotFoundError, OSError, ValueError) as exc:
         print(f"Could not validate ledger: {exc}", file=sys.stderr)
         return 2
@@ -1414,6 +1478,7 @@ def _cmd_ledger_validate(args) -> int:
                     "========================================",
                     f"Input: {payload['input']}",
                     f"Valid: {'yes' if payload['valid'] else 'no'}",
+                    f"Require metadata: {'yes' if payload['require_metadata'] else 'no'}",
                     f"Files checked: {payload['files_checked']}",
                     f"Records: {payload['records']}",
                     f"Collection results: {payload['collection_results']}",
@@ -1421,6 +1486,32 @@ def _cmd_ledger_validate(args) -> int:
                     f"Invalid lines: {payload['invalid_lines']}",
                     f"Invalid records: {payload['invalid_records']}",
                     f"Large text fields: {len(payload['large_text_fields'])}",
+                ]
+            )
+        )
+    return 0 if payload["valid"] else 1
+
+
+def _cmd_ledger_summarize(args) -> int:
+    try:
+        payload = summarize_ledger_input(args.input)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        print(f"Could not summarize ledger: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        _print_json(payload)
+    else:
+        print(
+            "\n".join(
+                [
+                    "Agent Reach Ledger Summary",
+                    "========================================",
+                    f"Input: {payload['input']}",
+                    f"Records: {payload['records']}",
+                    f"Collection results: {payload['collection_results']}",
+                    f"Items seen: {payload['items_seen']}",
+                    f"Errors: {payload['error_records']}",
+                    f"Metadata missing records: {payload['missing_metadata']['records']}",
                 ]
             )
         )
@@ -1536,6 +1627,18 @@ def _cmd_channels(args) -> int:
         )
     else:
         print(_render_channels_text(contracts))
+    return 0
+
+
+def _cmd_schema(args) -> int:
+    if args.name != "collection-result":
+        print(f"Unknown schema: {args.name}", file=sys.stderr)
+        return 2
+    payload = collection_result_schema()
+    if args.json:
+        _print_json(payload)
+    else:
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
     return 0
 
 

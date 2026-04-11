@@ -47,6 +47,7 @@ Choose routing hints that match the task. Do not hard-code unavailable channels;
 - In that case:
 - start with 2-4 small discovery queries
 - save raw envelopes with `--save .agent-reach/evidence.jsonl`
-- run `agent-reach plan candidates --input .agent-reach/evidence.jsonl --by url --limit 20 --json`
+- run `agent-reach ledger summarize --input .agent-reach/evidence.jsonl --json` when downstream automation needs neutral artifact health counts
+- run `agent-reach plan candidates --input .agent-reach/evidence.jsonl --by normalized_url --limit 20 --json`
 - deep-read only selected URLs
 - use `batch --validate-only` before any saved batch plan execution

@@ -14,6 +14,7 @@ from agent_reach.ledger import (
     save_collection_result,
     save_collection_result_sharded,
     shard_ledger_path,
+    summarize_ledger_input,
     validate_ledger_input,
 )
 from agent_reach.results import build_error, build_item, build_result
@@ -269,3 +270,36 @@ def test_validate_ledger_input_reports_diagnostics(tmp_path):
     assert payload["large_raw_payload_threshold"] == 100_000
     assert payload["large_raw_payloads"][0]["channel"] == "github"
     assert payload["large_raw_payloads"][0]["raw_length"] == 100_001
+
+
+def test_validate_ledger_input_can_require_metadata(tmp_path):
+    path = tmp_path / "evidence.jsonl"
+    record = build_ledger_record(_success_result(), run_id="run-1")
+    path.write_text(json.dumps(record, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    payload = validate_ledger_input(path, require_metadata=True)
+
+    assert payload["require_metadata"] is True
+    assert payload["valid"] is False
+    assert payload["missing_metadata"]["records"] == 1
+
+
+def test_summarize_ledger_input_returns_health_counts(tmp_path):
+    path = tmp_path / "evidence.jsonl"
+    record = build_ledger_record(
+        _success_result(),
+        run_id="run-1",
+        intent="official_docs",
+        query_id="q01",
+        source_role="web_discovery",
+    )
+    path.write_text(json.dumps(record, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    payload = summarize_ledger_input(path)
+
+    assert payload["command"] == "ledger summarize"
+    assert payload["records"] == 1
+    assert payload["items_seen"] == 1
+    assert payload["intent_counts"] == {"official_docs": 1}
+    assert payload["query_id_counts"] == {"q01": 1}
+    assert payload["source_role_counts"] == {"web_discovery": 1}

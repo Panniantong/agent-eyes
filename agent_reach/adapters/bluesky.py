@@ -29,6 +29,14 @@ _SEARCH_HOSTS = (
 _PAGE_SIZE_MAX = 100
 
 
+def _time_window_diagnostics() -> dict[str, object]:
+    return {
+        "unbounded_time_window": True,
+        "time_window_fields": [],
+        "time_window_control": "not_available",
+    }
+
+
 def _excerpt(value: str, limit: int = 200) -> str:
     """Keep upstream failure details useful without bloating JSON output."""
 
@@ -352,6 +360,7 @@ class BlueskyAdapter(BaseAdapter):
                         attempted_hosts=[attempt["api_base_url"] for attempt in attempts],
                         attempted_host_results=list(attempts),
                         pagination_interrupted={"code": code, "message": message},
+                        diagnostics=_time_window_diagnostics(),
                         **build_pagination_meta(
                             limit=limit,
                             requested_page_size=page_size,
@@ -378,6 +387,7 @@ class BlueskyAdapter(BaseAdapter):
                         fallback_used=index > 0,
                         attempted_hosts=[attempt["api_base_url"] for attempt in attempts],
                         attempted_host_results=list(attempts),
+                        diagnostics=_time_window_diagnostics(),
                         **build_pagination_meta(
                             limit=limit,
                             requested_page_size=page_size,

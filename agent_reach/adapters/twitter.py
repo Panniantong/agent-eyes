@@ -159,6 +159,18 @@ def _build_search_args(query: str, limit: int, *, since: str | None = None, unti
     return args
 
 
+def _query_has_time_window(query: str) -> bool:
+    return any(token.lower().startswith(("since:", "until:")) for token in query.split())
+
+
+def _time_window_diagnostics(query: str, since: str | None, until: str | None) -> dict[str, object]:
+    bounded = since is not None or until is not None or _query_has_time_window(query)
+    return {
+        "unbounded_time_window": not bounded,
+        "time_window_fields": ["since", "until"],
+    }
+
+
 def _parse_error_output(raw_output: str) -> tuple[str | None, str | None, dict | None]:
     """Extract a structured error from twitter-cli stderr/stdout when available."""
 
@@ -211,7 +223,14 @@ class TwitterAdapter(BaseAdapter):
             "search",
             items=items,
             raw=raw,
-            meta=self.make_meta(value=query, limit=limit, started_at=started_at, since=since, until=until),
+            meta=self.make_meta(
+                value=query,
+                limit=limit,
+                started_at=started_at,
+                since=since,
+                until=until,
+                diagnostics=_time_window_diagnostics(query, since, until),
+            ),
         )
 
     def user(self, screen_name: str, limit: int | None = None) -> CollectionResult:

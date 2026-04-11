@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
 """Tests for the external collection result schema helpers."""
 
-from agent_reach.results import build_error, build_item, build_pagination_meta, build_result
+from agent_reach.results import (
+    apply_raw_mode,
+    build_error,
+    build_item,
+    build_pagination_meta,
+    build_result,
+)
 
 
 def test_build_item_and_result_shape():
@@ -35,10 +41,30 @@ def test_build_item_and_result_shape():
         "author",
         "published_at",
         "source",
+        "canonical_url",
+        "source_item_id",
+        "engagement",
+        "media_references",
+        "identifiers",
         "extras",
     }
-    assert set(payload) == {"ok", "channel", "operation", "items", "raw", "meta", "error"}
+    assert set(payload) == {
+        "schema_version",
+        "agent_reach_version",
+        "ok",
+        "channel",
+        "operation",
+        "items",
+        "raw",
+        "meta",
+        "error",
+    }
+    assert payload["schema_version"]
+    assert payload["agent_reach_version"]
     assert payload["meta"]["schema_version"]
+    assert item["canonical_url"] == "https://example.com"
+    assert item["source_item_id"] == "item-1"
+    assert item["identifiers"] == {"domain": "example.com"}
     assert payload["meta"]["count"] == 1
 
 
@@ -47,9 +73,63 @@ def test_build_error_shape():
 
     assert error == {
         "code": "invalid_input",
+        "category": "invalid_input",
         "message": "bad input",
         "details": {"field": "input"},
+        "retryable": False,
     }
+
+
+def test_build_item_normalizes_engagement_media_and_identifiers():
+    item = build_item(
+        item_id="repo-1",
+        kind="repository",
+        title="Repo",
+        url="HTTPS://GitHub.com/OpenAI/Example/#readme",
+        text=None,
+        author="openai",
+        published_at=None,
+        source="github",
+        extras={
+            "repo_full_name": "OpenAI/Example",
+            "stars": "1,234",
+            "forks": 5,
+            "media_references": [{"type": "image", "url": "https://example.com/a.png"}],
+        },
+        source_item_id="OpenAI/Example",
+    )
+
+    assert item["canonical_url"] == "https://github.com/OpenAI/Example"
+    assert item["source_item_id"] == "OpenAI/Example"
+    assert item["engagement"] == {"stars": 1234, "forks": 5}
+    assert item["media_references"] == [{"type": "image", "url": "https://example.com/a.png"}]
+    assert item["identifiers"] == {
+        "domain": "github.com",
+        "repo_full_name": "OpenAI/Example",
+    }
+
+
+def test_apply_raw_mode_can_minimize_or_truncate_raw_payload():
+    payload = build_result(
+        ok=True,
+        channel="web",
+        operation="read",
+        items=[],
+        raw={"body": "x" * 100},
+        meta={},
+        error=None,
+    )
+
+    minimized = apply_raw_mode(payload, raw_mode="minimal")
+    truncated = apply_raw_mode(payload, raw_mode="full", raw_max_bytes=10)
+    omitted = apply_raw_mode(payload, raw_mode="none")
+
+    assert minimized["raw"]["raw_mode"] == "minimal"
+    assert minimized["meta"]["raw_payload_minimized"] is True
+    assert truncated["raw"]["raw_mode"] == "truncated"
+    assert truncated["meta"]["raw_payload_truncated"] is True
+    assert omitted["raw"] is None
+    assert omitted["meta"]["raw_payload_omitted"] is True
 
 
 def test_build_result_keeps_flat_and_nested_pagination_meta():

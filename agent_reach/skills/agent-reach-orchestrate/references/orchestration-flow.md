@@ -24,12 +24,13 @@ Use this only when the user explicitly asks for wider coverage or provenance-hea
 
 - start with 2-4 small discovery queries
 - save raw envelopes with `--save .agent-reach/evidence.jsonl`
-- run `agent-reach plan candidates --input .agent-reach/evidence.jsonl --by url --limit 20 --json`
+- run `agent-reach ledger summarize --input .agent-reach/evidence.jsonl --json` when downstream automation needs neutral artifact health counts
+- run `agent-reach plan candidates --input .agent-reach/evidence.jsonl --by normalized_url --limit 20 --json`
 - deep-read only selected URLs
 - use `agent-reach batch --plan PLAN.json --validate-only --json` before any saved batch execution
 
 ## Collection-Start Guardrails
 
 - inspect live `operation_contracts` before using `page_size`, `max_pages`, `cursor`, `page`, `since`, or `until`
-- treat `extras.source_hints`, `extras.media_references`, and extraction hygiene as diagnostics only
+- treat `engagement`, `media_references`, `identifiers`, `extras.source_hints`, `error.category`, social time-window warnings, and extraction hygiene as diagnostics only
 - keep channel choice task-driven and live-contract-aware

@@ -7,6 +7,7 @@ import time
 
 import feedparser
 
+from agent_reach.media_references import build_media_reference, dedupe_media_references
 from agent_reach.results import (
     CollectionResult,
     NormalizedItem,
@@ -17,6 +18,54 @@ from agent_reach.results import (
 from agent_reach.source_hints import rss_source_hints
 
 from .base import BaseAdapter
+
+
+def _entry_media_references(entry: dict) -> list[dict]:
+    references = []
+    for media in entry.get("media_thumbnail") or []:
+        if not isinstance(media, dict):
+            continue
+        reference = build_media_reference(
+            type="image",
+            url=media.get("url"),
+            relation="thumbnail",
+            width=media.get("width"),
+            height=media.get("height"),
+            source_field="media_thumbnail[]",
+        )
+        if reference is not None:
+            references.append(reference)
+    for media in entry.get("media_content") or []:
+        if not isinstance(media, dict):
+            continue
+        medium = str(media.get("medium") or media.get("type") or "")
+        reference = build_media_reference(
+            type="image" if "image" in medium else "unknown",
+            media_type=medium or None,
+            url=media.get("url"),
+            relation="media_content",
+            width=media.get("width"),
+            height=media.get("height"),
+            source_field="media_content[]",
+        )
+        if reference is not None:
+            references.append(reference)
+    for link in entry.get("links") or []:
+        if not isinstance(link, dict):
+            continue
+        if str(link.get("rel") or "").lower() not in {"enclosure", "thumbnail"}:
+            continue
+        media_type = str(link.get("type") or "")
+        reference = build_media_reference(
+            type="image" if media_type.startswith("image/") else "unknown",
+            media_type=media_type or None,
+            url=link.get("href"),
+            relation=str(link.get("rel") or "enclosure"),
+            source_field="links[]",
+        )
+        if reference is not None:
+            references.append(reference)
+    return dedupe_media_references(references)
 
 
 class RSSAdapter(BaseAdapter):
@@ -67,6 +116,7 @@ class RSSAdapter(BaseAdapter):
                     source=self.channel,
                     extras={
                         "feed_title": parsed.feed.get("title"),
+                        "media_references": _entry_media_references(entry),
                         "source_hints": rss_source_hints(published_at),
                     },
                 )

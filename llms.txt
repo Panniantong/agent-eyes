@@ -30,8 +30,10 @@ Agent Reach is a Windows-first integration layer for research tooling on Codex-s
 - `agent-reach doctor --json`
 - `agent-reach doctor --json --probe`
 - `agent-reach collect --channel <name> --operation <op> --input <value> --json`
+- `agent-reach schema collection-result --json`
 - `agent-reach plan candidates --input .agent-reach/evidence.jsonl --json`
 - `agent-reach ledger validate --input .agent-reach/evidence.jsonl --json`
+- `agent-reach ledger summarize --input .agent-reach/evidence.jsonl --json`
 - `agent-reach ledger append --input RESULT.json --output .agent-reach/evidence.jsonl --json`
 - `agent-reach install --dry-run --json`
 - `agent-reach export-integration --client codex --format json`

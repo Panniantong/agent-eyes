@@ -8,6 +8,11 @@ import time
 import warnings
 from urllib.parse import urlparse
 
+from agent_reach.media_references import (
+    build_media_reference,
+    dedupe_media_references,
+    extract_image_urls,
+)
 from agent_reach.results import (
     CollectionResult,
     build_item,
@@ -88,6 +93,20 @@ def _web_hygiene_meta(text: str) -> dict[str, int | str | None]:
     }
 
 
+def _web_media_references(text: str) -> list[dict]:
+    references = []
+    for image_url in extract_image_urls(text):
+        reference = build_media_reference(
+            type="image",
+            url=image_url,
+            relation="page_image",
+            source_field="markdown",
+        )
+        if reference is not None:
+            references.append(reference)
+    return dedupe_media_references(references)
+
+
 def _reader_error_details(status_code: int, reader_url: str, response_text: str) -> tuple[str, str, dict[str, object]]:
     details: dict[str, object] = {
         "reader_url": reader_url,
@@ -151,6 +170,7 @@ class WebAdapter(BaseAdapter):
 
         title, published_at, body = _extract_reader_metadata(markdown)
         hygiene_meta = _web_hygiene_meta(body)
+        media_references = _web_media_references(body)
         item = build_item(
             item_id=normalized,
             kind="page",
@@ -162,6 +182,7 @@ class WebAdapter(BaseAdapter):
             source=self.channel,
             extras={
                 "reader_url": reader_url,
+                "media_references": media_references,
                 "source_hints": web_source_hints(published_at),
             },
         )

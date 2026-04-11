@@ -295,20 +295,44 @@ def _prepare_batch_plan(
     queries = plan.get("queries") or plan.get("pilot_queries") or []
     if not isinstance(queries, list):
         raise BatchPlanError("batch plan queries must be a list")
-    normalized_queries = [_normalize_query(query, index) for index, query in enumerate(queries)]
+    metadata_defaults = _plan_metadata_defaults(plan)
+    normalized_queries = [
+        _normalize_query(
+            query,
+            index,
+            metadata_defaults=metadata_defaults,
+            total_queries=len(queries),
+        )
+        for index, query in enumerate(queries)
+    ]
     failure_policy = str(plan.get("failure_policy") or "partial")
     requested_quality = str(quality or plan.get("quality_profile") or "precision")
     return path, plan, normalized_queries, failure_policy, requested_quality
 
 
-def _normalize_query(raw_query: Any, index: int) -> dict[str, Any]:
+def _normalize_query(
+    raw_query: Any,
+    index: int,
+    *,
+    metadata_defaults: dict[str, Any] | None = None,
+    total_queries: int = 1,
+) -> dict[str, Any]:
     if not isinstance(raw_query, dict):
         raise BatchPlanError(f"query {index + 1} must be a JSON object")
     missing = [field for field in ("channel", "operation", "input") if not raw_query.get(field)]
     if missing:
         raise BatchPlanError(f"query {index + 1} is missing required field(s): {', '.join(missing)}")
     query = dict(raw_query)
-    query["query_id"] = str(query.get("query_id") or f"q{index + 1:02d}")
+    defaults = metadata_defaults or {}
+    query_id = query.get("query_id")
+    if query_id is None and defaults.get("query_id") is not None and total_queries == 1:
+        query_id = defaults.get("query_id")
+    if query_id is None and defaults.get("query_id_prefix") is not None:
+        query_id = f"{defaults['query_id_prefix']}-{index + 1:02d}"
+    query["query_id"] = str(query_id or f"q{index + 1:02d}")
+    for key in ("intent", "source_role"):
+        if query.get(key) is None and defaults.get(key) is not None:
+            query[key] = defaults[key]
     query["channel"] = str(query["channel"])
     query["operation"] = str(query["operation"])
     query["input"] = str(query["input"])
@@ -324,6 +348,17 @@ def _normalize_query(raw_query: Any, index: int) -> dict[str, Any]:
     except OperationContractError as exc:
         raise BatchPlanError(f"query {index + 1} is invalid: {exc.message}") from exc
     return query
+
+
+def _plan_metadata_defaults(plan: dict[str, Any]) -> dict[str, Any]:
+    raw_metadata = plan.get("metadata")
+    metadata = raw_metadata if isinstance(raw_metadata, dict) else {}
+    defaults: dict[str, Any] = {}
+    for key in ("intent", "query_id", "query_id_prefix", "source_role"):
+        value = plan.get(key) if plan.get(key) is not None else metadata.get(key)
+        if value is not None:
+            defaults[key] = value
+    return defaults
 
 
 def _count_values(values: list[Any]) -> dict[str, int]:

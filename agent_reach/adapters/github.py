@@ -240,22 +240,28 @@ class GitHubAdapter(BaseAdapter):
             page_items = [repo for repo in page_payload.get("items", []) if isinstance(repo, dict)]
             raw.extend(page_items)
             for idx, repo in enumerate(page_items, start=len(items)):
-                published_at = parse_timestamp(repo.get("updatedAt"))
+                repo_full_name = repo.get("fullName") or repo.get("full_name")
+                repo_url = repo.get("html_url") or repo.get("url")
+                owner = repo.get("owner") or {}
+                owner_login = owner.get("login") if isinstance(owner, dict) else None
+                published_at = parse_timestamp(repo.get("updatedAt") or repo.get("updated_at"))
                 items.append(
                     build_item(
-                        item_id=repo.get("fullName")
-                        or repo.get("url")
+                        item_id=repo_full_name
+                        or repo_url
                         or repo.get("name")
                         or f"github-{idx}",
                         kind="repository",
-                        title=repo.get("fullName") or repo.get("name"),
-                        url=repo.get("url"),
+                        title=repo_full_name or repo.get("name"),
+                        url=repo_url,
                         text=repo.get("description"),
-                        author=(repo.get("owner") or {}).get("login"),
+                        author=owner_login,
                         published_at=published_at,
                         source=self.channel,
                         extras={
-                            "stars": repo.get("stargazersCount"),
+                            "repo_full_name": repo_full_name,
+                            "stars": repo.get("stargazersCount") or repo.get("stargazers_count"),
+                            "forks": repo.get("forkCount") or repo.get("forks_count"),
                             "language": repo.get("language"),
                             "source_hints": github_source_hints(published_at),
                         },
@@ -368,6 +374,7 @@ class GitHubAdapter(BaseAdapter):
             published_at=published_at,
             source=self.channel,
             extras={
+                "repo_full_name": raw.get("nameWithOwner") or repo_name,
                 "homepage_url": raw.get("homepageUrl"),
                 "stars": raw.get("stargazerCount"),
                 "forks": raw.get("forkCount"),

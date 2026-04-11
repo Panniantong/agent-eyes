@@ -24,8 +24,9 @@ jobs:
           set -euo pipefail
           mkdir -p .agent-reach
           agent-reach doctor --json > .agent-reach/doctor.json
-          agent-reach collect --json --save .agent-reach/evidence.jsonl --run-id smoke-bluesky --channel bluesky --operation search --input "OpenAI" --limit 3 > .agent-reach/bluesky.json
-          agent-reach plan candidates --input .agent-reach/evidence.jsonl --by url --limit 10 --json > .agent-reach/candidates.json
+          agent-reach collect --json --save .agent-reach/evidence.jsonl --run-id smoke-bluesky --intent smoke --query-id bluesky-openai --source-role social_search --channel bluesky --operation search --input "OpenAI" --limit 3 > .agent-reach/bluesky.json
+          agent-reach ledger summarize --input .agent-reach/evidence.jsonl --json > .agent-reach/summary.json
+          agent-reach plan candidates --input .agent-reach/evidence.jsonl --by normalized_url --limit 10 --json > .agent-reach/candidates.json
 
       - name: Upload raw smoke artifacts
         uses: actions/upload-artifact@v4
@@ -34,5 +35,6 @@ jobs:
           path: |
             .agent-reach/doctor.json
             .agent-reach/evidence.jsonl
+            .agent-reach/summary.json
             .agent-reach/bluesky.json
             .agent-reach/candidates.json

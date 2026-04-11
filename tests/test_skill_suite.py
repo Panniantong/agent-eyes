@@ -86,4 +86,5 @@ def test_orchestrate_references_cover_subagent_policy_and_run_rules():
         assert section in routing
 
     assert "agent-reach collect --json --save .agent-reach/evidence.jsonl" in examples
-    assert "agent-reach plan candidates --input .agent-reach/evidence.jsonl --by url --limit 20 --json" in examples
+    assert "agent-reach ledger summarize --input .agent-reach/evidence.jsonl --json" in examples
+    assert "agent-reach plan candidates --input .agent-reach/evidence.jsonl --by normalized_url --limit 20 --json" in examples

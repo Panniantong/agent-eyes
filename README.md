@@ -71,8 +71,10 @@ agent-reach version
 - `agent-reach doctor --json`
 - `agent-reach doctor --json --probe`
 - `agent-reach collect --channel <name> --operation <op> --input <value> --json`
+- `agent-reach schema collection-result --json`
 - `agent-reach plan candidates --input .agent-reach/evidence.jsonl --json`
 - `agent-reach ledger validate --input .agent-reach/evidence.jsonl --json`
+- `agent-reach ledger summarize --input .agent-reach/evidence.jsonl --json`
 - `agent-reach ledger append --input RESULT.json --output .agent-reach/evidence.jsonl --json`
 - `agent-reach export-integration --client codex --format json`
 - Python: `from agent_reach import AgentReachClient`
@@ -95,12 +97,16 @@ agent-reach export-integration --client codex --format json
 When provenance matters:
 
 ```powershell
-agent-reach collect --channel exa_search --operation search --input "AI agent tooling" --limit 10 --json --save .agent-reach/evidence.jsonl --run-id agent-tooling
-agent-reach ledger validate --input .agent-reach/evidence.jsonl --json
-agent-reach plan candidates --input .agent-reach/evidence.jsonl --by url --limit 20 --json
+agent-reach schema collection-result --json
+agent-reach collect --channel exa_search --operation search --input "AI agent tooling" --limit 10 --json --save .agent-reach/evidence.jsonl --run-id agent-tooling --intent discovery --query-id exa-agent-tooling --source-role web_search
+agent-reach ledger validate --input .agent-reach/evidence.jsonl --require-metadata --json
+agent-reach ledger summarize --input .agent-reach/evidence.jsonl --json
+agent-reach plan candidates --input .agent-reach/evidence.jsonl --by normalized_url --limit 20 --json
 ```
 
-Collection output may include `extras.source_hints`, `extras.media_references`, and web hygiene fields such as `meta.text_length`, `meta.link_count`, and `meta.extraction_warning`. These are diagnostics only, not ranking or publishing policy.
+Collection output includes top-level `schema_version` and `agent_reach_version`. Normalized items expose common raw signals such as `canonical_url`, `source_item_id`, `engagement`, `media_references`, and neutral `identifiers` when the source provides them. `error.category` gives a stable cross-channel taxonomy while `error.code` preserves the source-specific or contract-specific detail. These are diagnostics only, not ranking or publishing policy.
+
+Use `--raw-mode minimal`, `--raw-mode none`, or `--raw-max-bytes N` only when the caller wants smaller JSON artifacts. The default remains full raw payload retention.
 
 ## No-Copy Downstream Use
 
@@ -120,7 +126,7 @@ Downstream projects do not need `.codex-plugin`, `.mcp.json`, or `agent_reach/sk
 - `batch` and `scout` are explicit opt-in helpers. They are not the default route for everyday collection.
 - `agent-reach doctor --json` is diagnostic-only by default; use `--require-channel`, `--require-channels`, or `--require-all` only when the caller wants readiness to gate a run.
 - Inspect `agent-reach channels --json` `operation_contracts` before choosing bounded pagination or time-window options such as `page_size`, `max_pages`, `cursor`, `page`, `since`, or `until`.
-- `agent-reach plan candidates` keeps its default `--limit 20`; raise it only when the caller explicitly wants a wider candidate review set.
+- `agent-reach plan candidates` keeps its default `--limit 20`; raise it only when the caller explicitly wants a wider candidate review set. Use `--by normalized_url`, `--by source_item_id`, `--by domain`, or `--by repo` only for caller-selected candidate grouping.
 - Large-scale research is explicit opt-in. When a saved batch plan is involved, run `agent-reach batch --plan PLAN.json --validate-only --json` before the write-producing batch execution.
 - Keep ranking, summarization, scheduling, Discord publishing, and state in the downstream project.
 

@@ -10,6 +10,11 @@ from types import SimpleNamespace
 from typing import Iterable, cast
 from urllib.parse import urlparse
 
+from agent_reach.media_references import (
+    build_media_reference,
+    dedupe_media_references,
+    extract_image_urls,
+)
 from agent_reach.results import (
     CollectionResult,
     NormalizedItem,
@@ -147,6 +152,29 @@ def _extract_title(url: str, metadata: dict, markdown: str | None) -> str | None
     return derive_title_from_text(markdown, fallback=parsed.netloc or url)
 
 
+def _extract_media_references(metadata: dict, markdown: str | None) -> list[dict]:
+    references = []
+    for key in ("og:image", "twitter:image", "image", "thumbnail", "thumbnail_url"):
+        reference = build_media_reference(
+            type="image",
+            url=metadata.get(key),
+            relation="metadata_image",
+            source_field=f"metadata.{key}",
+        )
+        if reference is not None:
+            references.append(reference)
+    for image_url in extract_image_urls(markdown):
+        reference = build_media_reference(
+            type="image",
+            url=image_url,
+            relation="page_image",
+            source_field="markdown",
+        )
+        if reference is not None:
+            references.append(reference)
+    return dedupe_media_references(references)
+
+
 def _result_url(result: object, fallback: str) -> str:
     return str(
         _get_value(result, "redirected_url")
@@ -163,6 +191,7 @@ def _normalize_page_item(result: object, *, fallback_url: str, crawl_query: str 
     extras = {
         "status_code": _get_value(result, "status_code"),
         "final_url": resolved_url,
+        "media_references": _extract_media_references(metadata, markdown),
         "source_hints": page_source_hints(published_at),
     }
     if crawl_query is not None:

@@ -4,6 +4,24 @@ All notable changes to this fork are documented here.
 
 ## Unreleased
 
+## [1.8.0] - 2026-04-12
+
+### Added
+
+- top-level `schema_version` and `agent_reach_version` on `CollectionResult` envelopes
+- packaged `collection-result` JSON Schema exposed through `agent-reach schema collection-result --json`
+- normalized item diagnostics for `canonical_url`, `source_item_id`, `engagement`, `media_references`, and neutral `identifiers`
+- cross-channel `error.category` taxonomy while preserving source-specific `error.code`
+- `collect --raw-mode full|minimal|none` and `--raw-max-bytes` for caller-controlled raw payload retention
+- `ledger validate --require-metadata` and `ledger summarize` for optional evidence metadata strictness and neutral artifact health counts
+- `plan candidates --by normalized_url|source_item_id|domain|repo`
+- social search time-window diagnostics under `meta.diagnostics.unbounded_time_window`
+- batch plan metadata defaults for `intent`, `source_role`, and `query_id_prefix`
+
+### Changed
+
+- normalized GitHub repository search results from both REST snake_case and existing camelCase payloads so stars, forks, and repo identifiers are available without reading `raw`
+
 ## [1.7.0] - 2026-04-11
 
 ### Changed
