@@ -225,6 +225,7 @@ def configure_from_browser(browser: str, config) -> List[Tuple[str, bool, str]]:
             config.set("twitter_ct0", tc["ct0"])
             # Legacy sync (best-effort)
             _sync_xfetch_session(tc["auth_token"], tc["ct0"])
+            _sync_bird_env(tc["auth_token"], tc["ct0"])
             results_list.append(("Twitter/X", True, "auth_token + ct0"))
         else:
             found = ", ".join(tc.keys())

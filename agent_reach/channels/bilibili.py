@@ -53,8 +53,9 @@ class BilibiliChannel(Channel):
         # bili-cli 增强
         if has_bili_cli:
             parts.append("搜索/热门/排行：bili-cli 可用")
+            api_ok = True
         else:
-            # 检测搜索 API 连通性
+            # 检测搜索 API 连通性（call once, reuse for status)
             api_ok = _search_api_ok()
             if api_ok:
                 parts.append("搜索：B站 API 可用")
@@ -62,5 +63,5 @@ class BilibiliChannel(Channel):
                 parts.append("搜索：B站 API 不可达")
             parts.append("提示：安装 bili-cli 可解锁热门/排行/动态：pipx install bilibili-cli")
 
-        status = "ok" if has_bili_cli or _search_api_ok() else "warn"
+        status = "ok" if api_ok else "warn"
         return status, "。".join(parts)

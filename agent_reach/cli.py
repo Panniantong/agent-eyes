@@ -1072,7 +1072,10 @@ def _cmd_configure(args):
             config.set("twitter_auth_token", auth_token)
             config.set("twitter_ct0", ct0)
 
-            # Sync credentials to twitter-cli env
+            # Sync credentials to legacy session stores so upstream CLIs can see them
+            from agent_reach.cookie_extract import _sync_xfetch_session, _sync_bird_env
+            _sync_xfetch_session(auth_token, ct0)
+            _sync_bird_env(auth_token, ct0)
             print("✅ Twitter cookies configured!")
 
             print("Testing Twitter access...", end=" ")
@@ -1375,9 +1378,27 @@ def _cmd_uninstall(args):
                 except Exception as e:
                     print(f"  Could not remove {skill_path}: {e}")
 
-    # ── 3. mcporter MCP entries ──
+    # ── 3. Synced credential files ──
+    if not keep_config:
+        credential_files = [
+            (os.path.expanduser("~/.config/xfetch/session.json"), "xfetch session"),
+            (os.path.expanduser("~/.config/bird/credentials.env"), "bird credentials"),
+        ]
+        for cred_path, cred_label in credential_files:
+            if os.path.isfile(cred_path):
+                if dry_run:
+                    print(f"[dry-run] Would remove {cred_label}: {cred_path}")
+                else:
+                    try:
+                        os.remove(cred_path)
+                        print(f"  Removed {cred_label}: {cred_path}")
+                        removed_any = True
+                    except Exception as e:
+                        print(f"  Could not remove {cred_path}: {e}")
+
+    # ── 4. mcporter MCP entries ──
     if shutil.which("mcporter"):
-        for mcp_name in ("exa", "xiaohongshu"):
+        for mcp_name in ("exa", "xiaohongshu", "weibo"):
             try:
                 r = subprocess.run(
                     ["mcporter", "list"], capture_output=True, encoding="utf-8", errors="replace", timeout=10
@@ -1395,7 +1416,7 @@ def _cmd_uninstall(args):
             except Exception:
                 pass
 
-    # ── 4. Summary and optional steps ──
+    # ── 5. Summary and optional steps ──
     print()
     if dry_run:
         print("Dry run complete. No changes were made.")
